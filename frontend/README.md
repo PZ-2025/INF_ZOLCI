@@ -7,6 +7,8 @@
 For local development testing
 
 ```shell
+cd frontend
+npm install
 npm run dev
 ```
 
@@ -15,6 +17,8 @@ npm run dev
 For the production run
 
 ```shell
+cd frontend
+npm install
 npm run build && npm run start:prod
 ```
 
