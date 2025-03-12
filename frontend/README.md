@@ -12,6 +12,8 @@ npm install
 npm run dev
 ```
 
+NOTE: Provide environment variable for server location: `API_URL='http://localhost:8080'` or make and source `.env` file.
+
 ## Prod frontend
 
 For the production run
