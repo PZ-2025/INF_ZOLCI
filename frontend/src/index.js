@@ -2,6 +2,8 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from "dotenv";
+dotenv.config();
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -12,8 +14,9 @@ const createWindow = () => {
         width: 800,
         height: 600,
         webPreferences: {
-            nodeIntegration: true,
-            contextIsolation: false
+            preload: path.join(__dirname, "preload.js"), // Setting the preload.js file
+            contextIsolation: true, // Must be true for contextBridge
+            nodeIntegration: false // Disables access to Node.js in the renderer
         }
     });
 
