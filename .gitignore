@@ -11,4 +11,5 @@
 */.cache
 */.parcel-cache
 */.yarn
-/.idea/
+*/.idea
+frontend/assets/styles.css
