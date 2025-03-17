@@ -1,8 +1,8 @@
 # Setting up environments
 
-## Dev
-
 Go into `backend/` folder
+
+## Dev
 
 ```shell
 ./gradlew bootRun
@@ -10,4 +10,8 @@ Go into `backend/` folder
 
 ## Prod
 
-TODO
+```shell
+./gradlew clean build -x test
+
+java -jar *.jar
+```
