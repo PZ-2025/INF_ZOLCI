@@ -1,0 +1,79 @@
+name: CI Build & Test
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  build-backend:
+    name: Build Backend (Gradle)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setting JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Installing Gradle Wrapper
+        run: cd backend && chmod +x gradlew
+
+      - name: Building Backend (Spring Boot)
+        run: cd backend && ./gradlew clean build
+
+      # - name: Run Backend Tests
+      #   run: cd backend && ./gradlew test
+
+      # - name: Save Backend Artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: backend-jar
+      #     path: backend/build/libs/*.jar
+
+      # - name: Verify Backend Starts
+      #   run: |
+      #     cd backend
+      #     java -jar build/libs/*.jar &
+      #     sleep 30
+      #     curl http://localhost:8080/home/hello || exit 1
+
+  build-frontend:
+    name: Build Frontend (Electron)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setting Node.js 18
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: cd frontend && npm install
+
+      - name: Build Frontend
+        run: cd frontend && npm run build
+
+      # - name: Save Frontend Artifact
+      #   uses: actions/upload-artifact@v3
+      #   with:
+      #     name: frontend-dist
+      #     path: frontend/dist
+
+      # - name: Verify Frontend Build
+      #   run: |
+      #     cd frontend
+      #     npm run start:prod &
+      #     sleep 10
+      #     if ! ps aux | grep "electron" | grep -v grep; then
+      #       echo "Frontend failed to start"
+      #       exit 1
+      #     fi
