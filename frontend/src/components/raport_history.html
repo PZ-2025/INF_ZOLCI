@@ -1,0 +1,79 @@
+<h1 class="text-3xl font-bold text-gray-800 mb-6">Historia Raportów</h1>
+
+<div class="flex justify-between items-center mb-6">
+    <div class="flex items-center">
+        <label for="reportDate" class="mr-2 font-medium text-gray-700">Data Raportu:</label>
+        <input type="date" id="reportDate" class="p-2 border rounded-md">
+    </div>
+
+    <div class="flex items-center">
+        <label for="reportType" class="mr-2 font-medium text-gray-700">Typ Raportu:</label>
+        <select id="reportType" class="p-2 border rounded-md">
+            <option value="workload">Raport obciążenia pracownika</option>
+            <option value="construction_progress">Raport postępu prac na budowie</option>
+            <option value="team_efficiency">Raport efektywności zespołu</option>
+        </select>
+    </div>
+
+    <button class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-700 transition">Filtruj</button>
+</div>
+
+<div id="reportsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+</div>
+
+<script>
+    // Przykładowe raporty (do dynamicznego załadowania z backendu)
+    const reports = [
+      {
+        id: 1,
+        name: "Raport obciążenia pracownika",
+        description: "Podsumowanie obciążenia pracownika za miesiąc marzec.",
+        type: "workload"
+      },
+      {
+        id: 2,
+        name: "Raport postępu prac na budowie",
+        description: "Raport o stanie zaawansowania prac budowlanych na projekcie XYZ.",
+        type: "construction_progress"
+      },
+      {
+        id: 3,
+        name: "Raport efektywności zespołu",
+        description: "Podsumowanie efektywności zespołu IT w ostatnich trzech miesiącach.",
+        type: "team_efficiency"
+      }
+    ];
+
+    // Funkcja do generowania kafelków raportów
+    function generateReports() {
+      const container = document.getElementById('reportsContainer');
+      container.innerHTML = ''; // Wyczyść kontener przed dodaniem nowych raportów
+
+      reports.forEach(report => {
+        const tile = document.createElement('div');
+        tile.className = 'bg-white p-4 rounded-lg shadow-lg flex justify-between items-center hover:scale-105 transition';
+
+        const content = `
+          <div>
+            <h3 class="text-xl font-semibold text-gray-800">${report.name}</h3>
+            <p class="text-gray-600">${report.description}</p>
+          </div>
+          <button class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition" onclick="openReportDetails(${report.id})">Szczegóły</button>
+        `;
+
+        tile.innerHTML = content;
+        container.appendChild(tile);
+      });
+    }
+
+    // Funkcja do otwierania szczegółów raportu
+    function openReportDetails(reportId) {
+      const report = reports.find(r => r.id === reportId);
+      alert(`Otwieram szczegóły raportu: ${report.name}`);
+      // Możesz zaimplementować przejście do nowej strony lub wyświetlenie szczegółów w nowym oknie/modalu
+    }
+
+    // Załaduj raporty po załadowaniu strony
+    document.addEventListener('DOMContentLoaded', generateReports);
+</script>

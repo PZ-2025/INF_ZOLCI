@@ -1,1 +1,0 @@
-CSS files generated from PostCSS compilation, icons, graphics (and other static files)
