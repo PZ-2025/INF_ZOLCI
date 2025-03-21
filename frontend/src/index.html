@@ -16,6 +16,13 @@
 <!-- Placeholder for displaying the server response -->
 <p id="response"></p>
 
+
+<!-- Button to fetch user data from backend -->
+<button id="fetchUsers">Pobierz użytkowników</button>
+
+<!-- List of users -->
+<ul id="usersList"></ul>
+
 <script>
   // Event listener on button
   document.addEventListener("DOMContentLoaded", async () => {
@@ -48,6 +55,38 @@
 
     document.querySelector("button").addEventListener("click", fetchData);
   });
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    // Check if the API bridge is available in the preload script
+    if (!window.api || !window.api.fetchUsers) {
+      console.error("API bridge not available");
+      return;
+    }
+
+    // Function to fetch users from the backend and update the UI
+    async function fetchUsers() {
+      // Show a loading message while fetching data
+      document.getElementById("usersList").innerHTML = "<li>Loading...</li>";
+
+      try {
+        // Call the API function from the preload script
+        const users = await window.api.fetchUsers();
+
+        // Update the user list in the UI
+        document.getElementById("usersList").innerHTML = users.length
+                ? users.map(user => `<li>${user.username} - ${user.email}</li>`).join("")
+                : "<li>No users found</li>";
+      } catch (error) {
+        // Handle errors if the API call fails
+        console.error("Error fetching users:", error);
+        document.getElementById("usersList").innerHTML = "<li>Error fetching data</li>";
+      }
+    }
+
+    // Attach the fetchUsers function to the button click event
+    document.getElementById("fetchUsers").addEventListener("click", fetchUsers);
+  });
+
 </script>
 
 </body>
