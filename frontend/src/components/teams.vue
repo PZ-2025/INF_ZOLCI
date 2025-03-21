@@ -1,30 +1,71 @@
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+
+// Przykładowe raporty do wyświetlenia
+const reports = ref([
+  {
+    id: 1,
+    name: 'Raport obciążenia pracownika',
+    description: 'Podsumowanie obciążenia pracownika za miesiąc marzec.',
+    type: 'workload'
+  },
+  {
+    id: 2,
+    name: 'Raport postępu prac na budowie',
+    description: 'Raport o stanie zaawansowania prac budowlanych na projekcie XYZ.',
+    type: 'construction_progress'
+  },
+  {
+    id: 3,
+    name: 'Raport efektywności zespołu',
+    description: 'Podsumowanie efektywności zespołu IT w ostatnich trzech miesiącach.',
+    type: 'team_efficiency'
+  }
+]);
+
+const selectedDate = ref('');
+const selectedType = ref('');
+
+const filteredReports = computed(() => {
+  return reports.value.filter(report => {
+    return (!selectedType.value || report.type === selectedType.value);
+  });
+});
+
+const openReportDetails = (report) => {
+  alert(`Otwieram szczegóły raportu: ${report.name}`);
+};
+</script>
+
 <template>
-    <div class="fixed top-0 left-0 h-screen w-1/4 bg-gray-800 text-white flex flex-col p-5 m-0">
-        <button class="w-full text-left bg-gray-700 hover:bg-teal-500 p-3 rounded mb-3 transition" id="backButton">
-            Wstecz
-        </button>
-
-        <button class="w-full text-left bg-gray-700 hover:bg-teal-500 p-3 rounded mb-3 transition" id="teamsButton">
-            Zespoły
-        </button>
-        <button class="w-full text-left bg-gray-700 hover:bg-teal-500 p-3 rounded mb-3 transition" id="reportsButton">
-            Zarządzanie Raportami
-        </button>
-        <button class="w-full text-left bg-gray-700 hover:bg-teal-500 p-3 rounded mb-3 transition" id="tasksButton">
-            Zarządzanie Zadaniami
-        </button>
-        <button class="w-full text-left bg-gray-700 hover:bg-teal-500 p-3 rounded mb-3 transition" id="usersButton">
-            Zarządzanie Użytkownikami
-        </button>
-        <button class="w-full text-left bg-gray-700 hover:bg-teal-500 p-3 rounded mb-3 transition" id="employeesButton">
-            Pracownicy
-        </button>
-
-        <button class="absolute bottom-5 left-5 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded transition" id="logoutButton">
-            Wyloguj
-        </button>
-        <button class="absolute bottom-5 right-5 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded transition" id="settingsButton">
-            Ustawienia
-        </button>
+  <h1 class="text-3xl font-bold text-gray-800 mb-6">Historia Raportów</h1>
+  
+  <div class="flex justify-between items-center mb-6">
+    <div class="flex items-center">
+      <label for="reportDate" class="mr-2 font-medium text-gray-700">Data Raportu:</label>
+      <input type="date" id="reportDate" v-model="selectedDate" class="p-2 border rounded-md">
     </div>
+    
+    <div class="flex items-center">
+      <label for="reportType" class="mr-2 font-medium text-gray-700">Typ Raportu:</label>
+      <select id="reportType" v-model="selectedType" class="p-2 border rounded-md">
+        <option value="">Wszystkie</option>
+        <option value="workload">Raport obciążenia pracownika</option>
+        <option value="construction_progress">Raport postępu prac na budowie</option>
+        <option value="team_efficiency">Raport efektywności zespołu</option>
+      </select>
+    </div>
+    
+    <button class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-700 transition">Filtruj</button>
+  </div>
+
+  <div id="reportsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div v-for="report in filteredReports" :key="report.id" class="bg-white p-4 rounded-lg shadow-lg flex justify-between items-center hover:scale-105 transition">
+      <div>
+        <h3 class="text-xl font-semibold text-gray-800">{{ report.name }}</h3>
+        <p class="text-gray-600">{{ report.description }}</p>
+      </div>
+      <button class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition" @click="openReportDetails(report)">Szczegóły</button>
+    </div>
+  </div>
 </template>
