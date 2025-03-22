@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
+
+    <!-- Tabela priorities -->
+    <changeSet id="04-create-priorities-table" author="your-name">
+        <createTable tableName="priorities">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="value" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="color_code" type="varchar(7)"/>
+        </createTable>
+    </changeSet>
+
+    <!-- Tabela task_statuses -->
+    <changeSet id="05-create-task-statuses-table" author="your-name">
+        <createTable tableName="task_statuses">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="name" type="varchar(50)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="progress_min" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="progress_max" type="int">
+                <constraints nullable="false"/>
+            </column>
+            <column name="display_order" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Tabela tasks -->
+    <changeSet id="06-create-tasks-table" author="your-name">
+        <createTable tableName="tasks">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="varchar(100)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="description" type="text"/>
+            <column name="team_id" type="int">
+                <constraints foreignKeyName="fk_task_team" references="teams(id)"/>
+            </column>
+            <column name="priority_id" type="int">
+                <constraints nullable="false" foreignKeyName="fk_task_priority" references="priorities(id)"/>
+            </column>
+            <column name="status_id" type="int">
+                <constraints nullable="false" foreignKeyName="fk_task_status" references="task_statuses(id)"/>
+            </column>
+            <column name="start_date" type="date"/>
+            <column name="deadline" type="date"/>
+            <column name="completed_date" type="date"/>
+            <column name="created_by" type="int">
+                <constraints nullable="false" foreignKeyName="fk_task_creator" references="users(id)"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamp"/>
+        </createTable>
+    </changeSet>
+
+    <!-- Tabela task_comments -->
+    <changeSet id="07-create-task-comments-table" author="your-name">
+        <createTable tableName="task_comments">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="task_id" type="int">
+                <constraints nullable="false" foreignKeyName="fk_comment_task" references="tasks(id)" deleteCascade="true"/>
+            </column>
+            <column name="user_id" type="int">
+                <constraints nullable="false" foreignKeyName="fk_comment_user" references="users(id)"/>
+            </column>
+            <column name="comment" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+
+    <!-- Tabela task_history -->
+    <changeSet id="08-create-task-history-table" author="your-name">
+        <createTable tableName="task_history">
+            <column name="id" type="int" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="task_id" type="int">
+                <constraints nullable="false" foreignKeyName="fk_history_task" references="tasks(id)" deleteCascade="true"/>
+            </column>
+            <column name="changed_by" type="int">
+                <constraints nullable="false" foreignKeyName="fk_history_user" references="users(id)"/>
+            </column>
+            <column name="field_name" type="varchar(50)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="old_value" type="text"/>
+            <column name="new_value" type="text"/>
+            <column name="changed_at" type="timestamp" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>
