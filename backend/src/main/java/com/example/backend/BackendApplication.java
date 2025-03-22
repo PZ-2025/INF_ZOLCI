@@ -5,7 +5,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = {"com.example.database", "com.example.database.repository"})
+@ComponentScan(basePackages = {
+        "com.example.database",
+        "com.example.database.repository",
+        "com.example.database.services"
+})
 
 public class BackendApplication {
     public static void main(String[] args) {
