@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+                      http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
+
+    <!-- Tabele użytkowników i zespołów -->
+    <include file="01-create-users-and-teams.xml" relativeToChangelogFile="true"/>
+
+    <!-- Tabele zadań i powiązane -->
+    <include file="02-create-task-related-tables.xml" relativeToChangelogFile="true"/>
+
+    <!-- Tabele raportów i ustawień -->
+    <include file="03-create-reports-and-settings.xml" relativeToChangelogFile="true"/>
+
+    <!-- Podstawowe dane -->
+    <include file="04-insert-basic-data.xml" relativeToChangelogFile="true"/>
+</databaseChangeLog>
