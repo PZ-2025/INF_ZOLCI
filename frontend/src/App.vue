@@ -1,20 +1,23 @@
 <script setup>
-import { ref } from 'vue';
 import Navbar from './components/Navbar.vue';
-import RaportHistory from './views/RaportHistory.vue';
-
-const currentView = ref('home');
+import Teams from './components/Teams.vue';
 </script>
 
 <template>
-  <div class="app-container">
-    <Navbar @navigate="currentView = $event" />
-    <div class="content">
-      <div v-if="currentView === 'home'">
-        <h1>Strona Główna</h1>
-        <p>Witaj w aplikacji!</p>
-      </div>
-      <ReportsView v-if="currentView === 'reports'" />
+  <div class="flex h-screen w-screen">
+    <Navbar class="w-64 bg-gray-800 text-white h-full flex-shrink-0" />
+
+    <div class="flex-1 overflow-auto bg-gray-100">
+      <Teams />
     </div>
   </div>
 </template>
+
+<style>
+html, body, #app {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+</style>
