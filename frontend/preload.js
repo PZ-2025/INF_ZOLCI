@@ -1,8 +1,8 @@
-// const { contextBridge } = require("electron");
+const { contextBridge } = require("electron");
 
-// contextBridge.exposeInMainWorld("api", {
-//     getApiUrl: () => process.env.API_URL || "http://localhost:8080"
-// });
+contextBridge.exposeInMainWorld("api", {
+    getApiUrl: () => process.env.API_URL
+});
 
 window.addEventListener('DOMContentLoaded', () => {
     const replaceText = (selector, text) => {
