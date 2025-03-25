@@ -1,71 +1,143 @@
-<script setup>
-import { ref, computed, onMounted } from 'vue';
-
-// Przykładowe raporty do wyświetlenia
-const reports = ref([
-  {
-    id: 1,
-    name: 'Raport obciążenia pracownika',
-    description: 'Podsumowanie obciążenia pracownika za miesiąc marzec.',
-    type: 'workload'
-  },
-  {
-    id: 2,
-    name: 'Raport postępu prac na budowie',
-    description: 'Raport o stanie zaawansowania prac budowlanych na projekcie XYZ.',
-    type: 'construction_progress'
-  },
-  {
-    id: 3,
-    name: 'Raport efektywności zespołu',
-    description: 'Podsumowanie efektywności zespołu IT w ostatnich trzech miesiącach.',
-    type: 'team_efficiency'
-  }
-]);
-
-const selectedDate = ref('');
-const selectedType = ref('');
-
-const filteredReports = computed(() => {
-  return reports.value.filter(report => {
-    return (!selectedType.value || report.type === selectedType.value);
-  });
-});
-
-const openReportDetails = (report) => {
-  alert(`Otwieram szczegóły raportu: ${report.name}`);
-};
-</script>
-
 <template>
-  <h1 class="text-3xl font-bold text-gray-800 mb-6">Historia Raportów</h1>
-  
-  <div class="flex justify-between items-center mb-6">
-    <div class="flex items-center">
-      <label for="reportDate" class="mr-2 font-medium text-gray-700">Data Raportu:</label>
-      <input type="date" id="reportDate" v-model="selectedDate" class="p-2 border rounded-md">
-    </div>
+  <div class="p-4 bg-primary h-screen">
+    <h2 class="text-2xl font-bold text-accent mb-6">Zespoły</h2>
     
-    <div class="flex items-center">
-      <label for="reportType" class="mr-2 font-medium text-gray-700">Typ Raportu:</label>
-      <select id="reportType" v-model="selectedType" class="p-2 border rounded-md">
-        <option value="">Wszystkie</option>
-        <option value="workload">Raport obciążenia pracownika</option>
-        <option value="construction_progress">Raport postępu prac na budowie</option>
-        <option value="team_efficiency">Raport efektywności zespołu</option>
-      </select>
-    </div>
-    
-    <button class="bg-blue-500 text-white p-2 rounded-md hover:bg-blue-700 transition">Filtruj</button>
-  </div>
-
-  <div id="reportsContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <div v-for="report in filteredReports" :key="report.id" class="bg-white p-4 rounded-lg shadow-lg flex justify-between items-center hover:scale-105 transition">
-      <div>
-        <h3 class="text-xl font-semibold text-gray-800">{{ report.name }}</h3>
-        <p class="text-gray-600">{{ report.description }}</p>
+    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div 
+        v-for="team in teams" 
+        :key="team.id" 
+        @click="selectTeam(team)"
+        class="bg-secondary rounded-xl p-4 cursor-pointer hover:bg-primary transition transform hover:scale-105 flex flex-col items-center justify-center text-center"
+      >
+        <div 
+          class="w-16 h-16 rounded-xl mb-3 flex items-center justify-center text-white font-bold"
+          :style="{ backgroundColor: team.color }"
+        >
+          {{ team.shortName }}
+        </div>
+        <h3 class="font-semibold text-white">{{ team.name }}</h3>
+        <p class="text-accent text-sm">{{ team.membersCount }} członków</p>
       </div>
-      <button class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition" @click="openReportDetails(report)">Szczegóły</button>
     </div>
   </div>
 </template>
+
+<script>
+export default {
+  name: 'TeamSelection',
+  data() {
+    return {
+      teams: [
+        {
+          id: 1,
+          name: 'Frontend Development',
+          shortName: 'FE',
+          color: '#D8572A',
+          membersCount: 5,
+          members: [
+            { 
+              id: 1, 
+              name: 'Jan Kowalski', 
+              initials: 'JK', 
+              role: 'Senior Developer',
+              color: '#780116'
+            },
+            { 
+              id: 2, 
+              name: 'Anna Nowak', 
+              initials: 'AN', 
+              role: 'UI/UX Designer',
+              color: '#DB7C26'
+            },
+            { 
+              id: 3, 
+              name: 'Piotr Wiśniewski', 
+              initials: 'PW', 
+              role: 'Junior Developer',
+              color: '#F7B538'
+            }
+          ],
+          recentActivities: [
+            {
+              id: 1,
+              title: 'Nowy komponent UI',
+              description: 'Utworzono nowy komponent nawigacyjny',
+              timestamp: '2 godziny temu'
+            },
+            {
+              id: 2,
+              title: 'Code Review',
+              description: 'Przeprowadzono przegląd kodu dla PR #245',
+              timestamp: '5 godzin temu'
+            }
+          ],
+          upcomingTasks: [
+            {
+              id: 1,
+              title: 'Redesign strony głównej',
+              assignedTo: 'Jan Kowalski',
+              priority: 'high'
+            },
+            {
+              id: 2,
+              title: 'Optymalizacja wydajności',
+              assignedTo: 'Piotr Wiśniewski',
+              priority: 'medium'
+            }
+          ]
+        },
+        {
+          id: 2,
+          name: 'Backend Engineering',
+          shortName: 'BE',
+          color: '#F7B538',
+          membersCount: 4,
+          members: [
+            { 
+              id: 4, 
+              name: 'Michał Kowalczyk', 
+              initials: 'MK', 
+              role: 'Tech Lead',
+              color: '#780116'
+            },
+            { 
+              id: 5, 
+              name: 'Katarzyna Nowacka', 
+              initials: 'KN', 
+              role: 'Senior Backend Developer',
+              color: '#DB7C26'
+            }
+          ],
+          recentActivities: [
+            {
+              id: 1,
+              title: 'Wdrożenie nowego API',
+              description: 'Zakończono implementację nowego endpointu',
+              timestamp: '3 godziny temu'
+            }
+          ],
+          upcomingTasks: [
+            {
+              id: 1,
+              title: 'Migracja bazy danych',
+              assignedTo: 'Michał Kowalczyk',
+              priority: 'high'
+            },
+            {
+              id: 2,
+              title: 'Zabezpieczenia systemu',
+              assignedTo: 'Katarzyna Nowacka',
+              priority: 'medium'
+            }
+          ]
+        }
+      ]
+    };
+  },
+  methods: {
+    selectTeam(team) {
+      this.$emit('team-selected', team);
+    }
+  }
+}
+</script>
