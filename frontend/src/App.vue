@@ -1,7 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import Navbar from './components/Navbar.vue';
-import Teams from './components/TeamsTasks.vue';
 
 const currentView = ref('home');
 // variable for response from backend
@@ -42,8 +41,6 @@ async function fetchData() {
     <Navbar class="w-64 bg-gray-800 text-white h-full flex-shrink-0" />
     
     <div class="flex-1 overflow-auto bg-gray-100">
-
-      
       <!-- Container for backend data fetch -->
       <!-- 
       <div class="p-4">
@@ -56,7 +53,7 @@ async function fetchData() {
         <p class="mt-4 text-gray-700">{{ responseText }}</p>
       </div>
       -->
-      <Teams />
+      <router-view />
     </div>
   </div>
 </template>

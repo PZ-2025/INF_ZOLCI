@@ -1,12 +1,13 @@
 <template>
   <div class="h-screen w-64 bg-navbar text-white flex flex-col">
     <div class="flex-grow p-4 overflow-auto">
-      <button class="w-full text-left bg-warning hover:bg-danger p-3 rounded mb-3 transition">Wstecz</button>
-      <button class="w-full text-left bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zespoły</button>
-      <button class="w-full text-left bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zarządzanie Raportami</button>
-      <button class="w-full text-left bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zarządzanie Zadaniami</button>
-      <button class="w-full text-left bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zarządzanie Użytkownikami</button>
-      <button class="w-full text-left bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Pracownicy</button>
+      <router-link to="/" class="text-white block bg-warning hover:bg-danger p-3 rounded mb-3 transition">Wstecz</router-link>
+      <router-link to="/teams" class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zespoły</router-link>
+      <router-link to="/raportgenerate" class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zarządzanie Raportami</router-link>
+      <router-link to="/taskshistory" class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zarządzanie Zadaniami</router-link>
+      <router-link to="/allemployees" class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zarządzanie Pracownikami</router-link>
+      <router-link to="/allusers" class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Zarządzanie Użytkownikami</router-link>
+      <router-link to="/settings" class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">Ustawienia</router-link>
     </div>
 
     <div class="p-4">
