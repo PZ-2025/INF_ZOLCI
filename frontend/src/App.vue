@@ -1,7 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import Navbar from './components/Navbar.vue';
-import Teams from './components/Teams.vue';
+import Teams from './components/TeamsTasks.vue';
 
 const currentView = ref('home');
 // variable for response from backend
@@ -45,6 +45,7 @@ async function fetchData() {
 
       
       <!-- Container for backend data fetch -->
+      <!-- 
       <div class="p-4">
         <button 
           @click="fetchData" 
@@ -54,6 +55,7 @@ async function fetchData() {
         </button>
         <p class="mt-4 text-gray-700">{{ responseText }}</p>
       </div>
+      -->
       <Teams />
     </div>
   </div>

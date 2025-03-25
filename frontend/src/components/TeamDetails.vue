@@ -1,5 +1,5 @@
 <template>
-    <div class="p-6 bg-background h-screen overflow-auto">
+    <div class="p-6 bg-primary h-screen overflow-auto">
       <!-- Team Header -->
       <div class="bg-secondary rounded-xl p-4 flex justify-between items-center mb-6">
         <div class="flex items-center">

@@ -1,10 +1,10 @@
 <template>
-  <div class="bg-secondary p-6 rounded-lg shadow-md">
-    <h1 class="text-3xl font-bold text-primary mb-6">Generowanie Raportów</h1>
+  <div class="h-full flex flex-col p-6 bg-primary">
+    <h1 class="text-3xl font-bold text-white mb-6">Generowanie Raportów</h1>
 
     <div class="mb-4">
       <label for="reportType" class="block text-lg font-medium text-white mb-2">Wybierz typ raportu:</label>
-      <select v-model="reportType" class="p-2 border rounded-md w-full bg-gray-700 text-white" @change="handleReportTypeChange">
+      <select v-model="reportType" class="p-2 border rounded-md w-full bg-warning text-white" @change="handleReportTypeChange">
         <option value="workload">Raport obciążenia pracownika</option>
         <option value="progress">Raport postępu prac na budowie</option>
         <option value="teamEffectiveness">Raport efektywności zespołu</option>
@@ -14,11 +14,11 @@
     <div class="mb-4 flex gap-4">
       <div class="flex flex-col">
         <label class="block text-lg font-medium text-white mb-2">Data początkowa:</label>
-        <input type="date" v-model="startDate" class="p-2 border rounded-md bg-gray-700 text-white" />
+        <input type="date" v-model="startDate" class="p-2 border rounded-md bg-warning text-white" />
       </div>
       <div class="flex flex-col">
         <label class="block text-lg font-medium text-white mb-2">Data końcowa:</label>
-        <input type="date" v-model="endDate" class="p-2 border rounded-md bg-gray-700 text-white" />
+        <input type="date" v-model="endDate" class="p-2 border rounded-md bg-warning text-white" />
       </div>
     </div>
 
