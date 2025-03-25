@@ -1,6 +1,8 @@
 <script setup>
 import { ref, onMounted } from 'vue';
+import { authState } from '../router/router.js';
 import Navbar from './components/Navbar.vue';
+import LoginForm from './components/LoginForm.vue';
 
 const currentView = ref('home');
 // variable for response from backend
@@ -38,22 +40,15 @@ async function fetchData() {
 
 <template>
   <div class="flex h-screen w-screen">
-    <Navbar class="w-64 bg-gray-800 text-white h-full flex-shrink-0" />
+    <!-- Show LoginForm if the user is not authenticated -->
+    <LoginForm v-if="!authState.isAuthenticated" />
     
-    <div class="flex-1 overflow-auto bg-gray-100">
-      <!-- Container for backend data fetch -->
-      <!-- 
-      <div class="p-4">
-        <button 
-          @click="fetchData" 
-          class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-        >
-          Fetch Data
-        </button>
-        <p class="mt-4 text-gray-700">{{ responseText }}</p>
+    <!-- Show the rest of the application if the user is authenticated -->
+    <div v-else class="flex h-screen w-screen">
+      <Navbar class="w-64 bg-gray-800 text-white h-full flex-shrink-0" />
+      <div class="flex-1 overflow-auto bg-gray-100">
+        <router-view />
       </div>
-      -->
-      <router-view />
     </div>
   </div>
 </template>
