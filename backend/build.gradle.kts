@@ -29,6 +29,7 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
 
     implementation ("io.github.cdimascio:dotenv-java:2.3.2")
+    implementation ("com.h2database:h2")
 
 }
 
