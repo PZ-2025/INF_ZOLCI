@@ -1,15 +1,15 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { reactive } from 'vue';
-import Teams from '../src/components/Teams.vue';
-import AllEmployees from '../src/components/AllEmployees.vue';
-import LoginForm from '../src/components/LoginForm.vue';
-import RaportGenerate from '../src/components/RaportGenerate.vue';
-import SystemConf from '../src/components/SystemConf.vue';
-import TasksHistory from '../src/components/TasksHistory.vue';
-import TeamDetails from '../src/components/TeamDetails.vue';
-import TeamsTasks from '../src/components/TeamsTasks.vue';
-import UserSettings from '../src/components/UserSettings.vue';
-import AllUsers from '../src/components/AllUsers.vue';
+import Teams from '@/components/Teams.vue';
+import AllEmployees from '@/components/Teams.vue';
+import LoginForm from '@/components/LoginForm.vue';
+import RaportGenerate from '@/components/RaportGenerate.vue';
+import SystemConf from '@/components/SystemConf.vue';
+import TasksHistory from '@/components/TasksHistory.vue';
+import TeamDetails from '@/components/TeamDetails.vue';
+import TeamsTasks from '@/components/TeamsTasks.vue';
+import UserSettings from '@/components/UserSettings.vue';
+import AllUsers from '@/components/AllUsers.vue';
 
 export const authState = reactive({
   isAuthenticated: false,
