@@ -9,7 +9,6 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
 import javax.sql.DataSource;
 
 @TestConfiguration
-@Profile("test")
 public class TestDataSourceConfig {
     @Bean
     public DataSource dataSource() {
