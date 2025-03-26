@@ -13,6 +13,25 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * Konfiguracja inicjalizacji danych testowych dla aplikacji BuildTask.
+ *
+ * <p>Klasa odpowiedzialna za automatyczne tworzenie początkowych danych testowych
+ * w środowisku programistycznym (dev). Realizuje inicjalizację użytkowników, zespołów,
+ * zadań i komentarzy podczas uruchamiania aplikacji.</p>
+ *
+ * <p>Kluczowe funkcje:</p>
+ * <ul>
+ *   <li>Tworzenie użytkowników testowych</li>
+ *   <li>Zakładanie zespołów</li>
+ *   <li>Przypisywanie członków do zespołów</li>
+ *   <li>Generowanie przykładowych zadań i komentarzy</li>
+ * </ul>
+ *
+ * @author Jakub
+ * @version 1.0.0
+ * @since 1.0.0
+ */
 @Configuration
 @RequiredArgsConstructor
 public class DataInitializerConfig {
@@ -25,6 +44,22 @@ public class DataInitializerConfig {
     private final TaskRepository taskRepository;
     private final TaskCommentRepository taskCommentRepository;
 
+    /**
+     * Metoda inicjalizacji danych testowych dla środowiska deweloperskiego.
+     *
+     * <p>Konfiguruje początkowe dane aplikacji, w tym:</p>
+     * <ul>
+     *   <li>Weryfikację i tworzenie użytkowników</li>
+     *   <li>Zakładanie zespołów</li>
+     *   <li>Przypisywanie użytkowników do zespołów</li>
+     *   <li>Tworzenie przykładowych zadań</li>
+     *   <li>Dodawanie komentarzy do zadań</li>
+     * </ul>
+     *
+     * <p>Aktywna tylko w profilu deweloperskim 'dev'.</p>
+     *
+     * @return CommandLineRunner uruchamiany podczas startu aplikacji
+     */
     @Bean
     @Profile("dev") // Ten bean będzie aktywny tylko w profilu 'dev'
     public CommandLineRunner initDevData() {
@@ -149,11 +184,27 @@ public class DataInitializerConfig {
         };
     }
 
-    // Metoda sprawdzająca, czy użytkownik jest już członkiem zespołu
+    /**
+     * Sprawdza, czy użytkownik jest już członkiem określonego zespołu.
+     *
+     * @param user użytkownik do sprawdzenia
+     * @param team zespół do weryfikacji członkostwa
+     * @return {@code true} jeśli użytkownik jest już w zespole, {@code false} w przeciwnym razie
+     */
     private boolean isUserInTeam(User user, Team team) {
         return teamMemberRepository.findByUserAndTeam(user, team).isPresent();
     }
 
+    /**
+     * Tworzy nowego użytkownika w systemie.
+     *
+     * @param username nazwa użytkownika
+     * @param firstName imię użytkownika
+     * @param lastName nazwisko użytkownika
+     * @param email adres email użytkownika
+     * @param role rola użytkownika w systemie
+     * @return utworzony i zapisany obiekt użytkownika
+     */
     private User createUser(String username, String firstName, String lastName, String email, String role) {
         User user = new User();
         user.setUsername(username);
@@ -167,6 +218,13 @@ public class DataInitializerConfig {
         return userRepository.save(user);
     }
 
+    /**
+     * Tworzy nowy zespół w systemie.
+     *
+     * @param name nazwa zespołu
+     * @param manager menedżer zespołu
+     * @return utworzony i zapisany obiekt zespołu
+     */
     private Team createTeam(String name, User manager) {
         Team team = new Team();
         team.setName(name);
@@ -176,6 +234,13 @@ public class DataInitializerConfig {
         return teamRepository.save(team);
     }
 
+    /**
+     * Dodaje użytkownika jako członka do określonego zespołu.
+     *
+     * @param user użytkownik do dodania
+     * @param team zespół, do którego użytkownik ma zostać dodany
+     * @return utworzony i zapisany obiekt członka zespołu
+     */
     private TeamMember addMemberToTeam(User user, Team team) {
         TeamMember member = new TeamMember();
         member.setUser(user);
@@ -185,6 +250,19 @@ public class DataInitializerConfig {
         return teamMemberRepository.save(member);
     }
 
+    /**
+     * Tworzy nowe zadanie w systemie.
+     *
+     * @param title tytuł zadania
+     * @param description opis zadania
+     * @param team zespół przypisany do zadania
+     * @param priority priorytet zadania
+     * @param status aktualny status zadania
+     * @param createdBy użytkownik tworzący zadanie
+     * @param startDate data rozpoczęcia zadania
+     * @param deadline termin realizacji zadania
+     * @return utworzone i zapisane zadanie
+     */
     private Task createTask(String title, String description, Team team, Priority priority,
                             TaskStatus status, User createdBy, LocalDate startDate, LocalDate deadline) {
         Task task = new Task();
@@ -200,6 +278,14 @@ public class DataInitializerConfig {
         return taskRepository.save(task);
     }
 
+    /**
+     * Dodaje komentarz do określonego zadania.
+     *
+     * @param task zadanie, do którego dodawany jest komentarz
+     * @param user użytkownik dodający komentarz
+     * @param comment treść komentarza
+     * @return utworzony i zapisany komentarz do zadania
+     */
     private TaskComment addComment(Task task, User user, String comment) {
         TaskComment taskComment = new TaskComment();
         taskComment.setTask(task);
