@@ -56,11 +56,8 @@ jobs:
         with:
           node-version: '18'
 
-      - name: Install dependencies
-        run: cd frontend && npm install
-
-      - name: Build Frontend
-        run: cd frontend && npm run build
+      - name: Install dependencie & Build Frontend
+        run: cd frontend && npm install && npm run build
 
       # - name: Save Frontend Artifact
       #   uses: actions/upload-artifact@v3
