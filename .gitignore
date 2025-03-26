@@ -13,3 +13,7 @@
 */.yarn
 */.idea
 frontend/assets/styles.css
+/.idea/
+# Exclude docs folder completely
+docs/
+docs/**
