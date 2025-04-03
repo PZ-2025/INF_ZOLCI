@@ -205,18 +205,6 @@
         <module name="StaticVariableName"/>
         <module name="MethodName"/>
 
-        <!-- Nowy moduł zastępujący brakujący StaticAccessedViaMember -->
-<!--        <module name="StaticAccess">-->
-<!--            <property name="exemptClasses" value="java.lang.System, java.lang.Math"/>-->
-<!--        </module>-->
-
-<!--        <module name="IllegalTokenText">-->
-<!--            <property name="tokens" value="DOT"/>-->
-<!--            <property name="format" value="^[a-z][a-zA-Z0-9]*\.(class|CLASS_)"/>-->
-<!--            <property name="ignoreCase" value="true"/>-->
-<!--            <property name="message" value="Nie używaj obiektu do dostępu do statycznych zmiennych lub metod. Używaj nazwy klasy."/>-->
-<!--        </module>-->
-
         <!-- Rozdział 5 - Komentarze -->
         <module name="CommentsIndentation"/>
         <module name="JavadocMethod">
