@@ -3,6 +3,7 @@ plugins {
     id("org.springframework.boot") version "3.4.3"
     id("io.spring.dependency-management") version "1.1.7"
     checkstyle
+    id("com.github.spotbugs") version "6.1.7"
 }
 
 group = "com.example"
@@ -31,11 +32,31 @@ dependencies {
 
     implementation ("io.github.cdimascio:dotenv-java:2.3.2")
     implementation ("com.h2database:h2")
-
 }
 
 tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+spotbugs {
+    toolVersion = "4.8.3"
+    ignoreFailures = true
+}
 
+tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
+    reports {
+        create("html") {
+            required.set(true)
+            // Don't specify stylesheet at all - it will use the default
+        }
+    }
+}
+
+// custom task
+tasks.register("codeQuality") {
+    description = "Runs both Checkstyle and SpotBugs checks"
+    group = "verification"
+
+    // Make this task depend on checkstyle and spotbugs tasks
+    dependsOn("checkstyleMain", "checkstyleTest", "spotbugsMain", "spotbugsTest")
+}
