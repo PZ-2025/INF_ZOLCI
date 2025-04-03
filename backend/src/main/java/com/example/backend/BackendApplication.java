@@ -25,19 +25,6 @@ import io.github.cdimascio.dotenv.Dotenv;
         "com.example.database.controllers",
         "com.example.database.services"
 })
-
-/**
- * Główna metoda startowa aplikacji BuildTask.
- *
- * <p>Odpowiada za:</p>
- * <ul>
- *   <li>Ładowanie zmiennych środowiskowych z pliku .env</li>
- *   <li>Ustawienie zmiennych środowiskowych jako właściwości systemowe</li>
- *   <li>Uruchomienie aplikacji Spring Boot</li>
- * </ul>
- *
- * @param args argumenty wiersza poleceń przekazywane podczas uruchamiania aplikacji
- */
 public class BackendApplication {
 
     /**
@@ -52,8 +39,7 @@ public class BackendApplication {
      *
      * @param args argumenty wiersza poleceń przekazywane podczas uruchamiania aplikacji
      */
-    public static void main(String[] args)
-    {
+    public static void main(final String[] args) {
         // Ładowanie zmiennych środowiskowych
         Dotenv dotenv = Dotenv.configure().load();
 
