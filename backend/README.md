@@ -12,6 +12,32 @@ The backend provides REST API services for managing construction tasks, users, a
 - Liquibase for database migrations
 - JPA/Hibernate for ORM
 
+## Style and Bugs checks
+
+Checks according to PDF from Sun's microsystems.
+
+### Available checks
+
+- **Checkstyle**: Ensures code adheres to our style guidelines
+- **SpotBugs**: Identifies potential bugs and problematic code patterns
+
+### Dependencies
+
+```shell
+   plugins {
+       checkstyle
+       id("com.github.spotbugs") version "6.1.7"
+   }
+```
+
+### Running the checks
+
+You can run both tools simultaneously using the custom Gradle task:
+
+```shell
+  ./gradlew codeQuality
+```
+
 ## Environment Setup
 
 ### Prerequisites

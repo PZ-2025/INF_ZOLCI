@@ -1,0 +1,242 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+        "-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+        "https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<module name="Checker">
+    <property name="severity" value="warning"/>
+    <property name="fileExtensions" value="java"/>
+
+    <!-- Rozdział 2 - Nazwy plików -->
+    <!-- Sprawdzanie przyrostków plików .java -->
+    <module name="RegexpOnFilename">
+        <property name="match" value="true"/>
+        <property name="fileNamePattern" value="^.*\.java$"/>
+        <message key="regexp.filename.match" value="Pliki źródłowe Java muszą mieć rozszerzenie .java"/>
+    </module>
+
+    <!-- Sprawdzanie konwencji nazw popularnych plików -->
+    <module name="RegexpOnFilename">
+        <property name="folderPattern" value=".*"/>
+        <property name="fileNamePattern" value="^(?!GNUmakefile|README).*$"/>
+        <property name="match" value="false"/>
+        <message key="regexp.filename.mismatch" value="Pliki GNUmakefile i README powinny być nazwane zgodnie z konwencją"/>
+    </module>
+
+    <!-- Rozdział 3 - Organizacja plików -->
+    <!-- File length checks -->
+    <module name="FileLength">
+        <property name="max" value="2000"/>
+    </module>
+
+    <!-- Rozdział 4.1 - Długość linii -->
+    <module name="LineLength">
+        <property name="max" value="80"/>
+    </module>
+
+    <!-- Rozdział 8.2 - Białe znaki -->
+    <module name="FileTabCharacter">
+        <property name="eachLine" value="true"/>
+    </module>
+
+    <!-- Wymaga pustej linii po nagłówku licencji (Rozdział 3.1.1) -->
+    <module name="RegexpHeader">
+        <property name="headerFile" value="${config_loc}/java.header"/>
+        <property name="fileExtensions" value="java"/>
+    </module>
+
+    <module name="NewlineAtEndOfFile"/>
+
+    <!-- Rozdział 10.5.4 - Specjalne komentarze -->
+    <module name="RegexpSingleline">
+        <property name="format" value="XXX"/>
+        <property name="message" value="Komentarz zawiera XXX - należy oznaczyć coś, co działa, ale jest problematyczne"/>
+    </module>
+
+    <module name="RegexpSingleline">
+        <property name="format" value="FIXME"/>
+        <property name="message" value="Komentarz zawiera FIXME - należy oznaczyć coś, co jest błędne i wymaga naprawy"/>
+    </module>
+
+    <module name="TreeWalker">
+        <!-- Rozdział 4 - Wcięcia -->
+        <module name="Indentation">
+            <property name="basicOffset" value="4"/>
+            <property name="braceAdjustment" value="0"/>
+            <property name="caseIndent" value="4"/>
+            <property name="throwsIndent" value="4"/>
+            <property name="lineWrappingIndentation" value="8"/>
+            <property name="arrayInitIndent" value="4"/>
+        </module>
+
+        <!-- Rozdział 3.1.2 - Package i Import -->
+        <module name="AvoidStarImport"/>
+        <module name="RedundantImport"/>
+        <module name="UnusedImports"/>
+        <module name="ImportOrder">
+            <property name="groups" value="java,javax,org,com"/>
+            <property name="ordered" value="true"/>
+            <property name="separated" value="true"/>
+        </module>
+
+        <!-- Rozdział 9 - Konwencje nazewnictwa -->
+        <module name="ClassTypeParameterName"/>
+        <module name="ConstantName">
+            <property name="format" value="^[A-Z][A-Z0-9]*(_[A-Z0-9]+)*$"/>
+        </module>
+        <module name="LocalFinalVariableName"/>
+        <module name="LocalVariableName"/>
+        <module name="MemberName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+        <module name="MethodName">
+            <property name="format" value="^[a-z][a-zA-Z0-9]*$"/>
+        </module>
+        <module name="MethodTypeParameterName"/>
+        <module name="PackageName"/>
+        <module name="ParameterName"/>
+        <module name="StaticVariableName"/>
+        <module name="TypeName"/>
+
+        <!-- Rozdział 6 - Deklaracje -->
+        <module name="MultipleVariableDeclarations"/>
+        <module name="OneStatementPerLine"/>
+        <module name="DeclarationOrder">
+            <property name="ignoreConstructors" value="false"/>
+            <property name="ignoreModifiers" value="false"/>
+        </module>
+        <module name="VariableDeclarationUsageDistance"/>
+
+        <!-- Rozdział 5.2 - Komentarze dokumentacji -->
+        <module name="MissingJavadocMethod">
+            <property name="scope" value="public"/>
+            <property name="allowMissingPropertyJavadoc" value="true"/>
+        </module>
+        <module name="MissingJavadocType">
+            <property name="scope" value="public"/>
+        </module>
+
+        <!-- Rozdział 7 - Instrukcje -->
+        <module name="EmptyBlock">
+            <property name="option" value="text"/>
+        </module>
+        <module name="LeftCurly">
+            <property name="option" value="eol"/>
+        </module>
+        <module name="RightCurly">
+            <property name="option" value="alone"/>
+        </module>
+        <module name="NeedBraces"/>
+        <module name="EmptyStatement"/>
+        <module name="EqualsHashCode"/>
+        <module name="DefaultComesLast"/>
+        <module name="FallThrough"/>
+        <module name="MissingSwitchDefault"/>
+
+        <!-- Rozdział 8.2 - Białe znaki -->
+        <module name="ParenPad"/>
+        <module name="TypecastParenPad"/>
+        <module name="WhitespaceAfter"/>
+        <module name="WhitespaceAround"/>
+        <module name="ModifierOrder"/>
+        <module name="RedundantModifier"/>
+
+        <!-- Rozdział 8.1 - Puste linie -->
+        <module name="EmptyLineSeparator">
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+            <property name="allowMultipleEmptyLines" value="false"/>
+            <property name="allowMultipleEmptyLinesInsideClassMembers" value="false"/>
+        </module>
+        <module name="GenericWhitespace"/>
+        <module name="MethodParamPad"/>
+        <module name="NoWhitespaceAfter"/>
+        <module name="NoWhitespaceBefore"/>
+        <module name="OperatorWrap">
+            <property name="option" value="nl"/>
+            <property name="tokens" value="BAND, BOR, BSR, BXOR, DIV, EQUAL, GE, GT, LAND, LE, LITERAL_INSTANCEOF, LOR, LT, MINUS, MOD, NOT_EQUAL, PLUS, QUESTION, SL, SR, STAR"/>
+        </module>
+        <module name="SeparatorWrap">
+            <property name="tokens" value="COMMA"/>
+            <property name="option" value="EOL"/>
+        </module>
+        <module name="SeparatorWrap">
+            <property name="tokens" value="DOT"/>
+            <property name="option" value="NL"/>
+        </module>
+
+        <!-- Rozdział 10 - Praktyki programistyczne -->
+        <module name="AvoidNestedBlocks"/>
+        <module name="InnerAssignment"/>
+        <module name="MagicNumber">
+            <property name="ignoreNumbers" value="-1, 0, 1"/>
+        </module>
+        <module name="SimplifyBooleanExpression"/>
+        <module name="SimplifyBooleanReturn"/>
+        <module name="StringLiteralEquality"/>
+        <module name="SuperClone"/>
+        <module name="SuperFinalize"/>
+        <module name="UnnecessaryParentheses"/>
+
+        <!-- Rozdział 10.1 - Dostęp do zmiennych instancji i klasy -->
+        <module name="VisibilityModifier">
+            <property name="protectedAllowed" value="true"/>
+        </module>
+
+        <!-- Rozdział 10.2 - Odwołania do zmiennych i metod klasy -->
+        <module name="NoClone"/>
+        <module name="NoFinalizer"/>
+        <module name="IllegalCatch"/>
+        <module name="IllegalThrows"/>
+        <module name="PackageDeclaration"/>
+        <module name="ReturnCount"/>
+        <module name="IllegalType"/>
+        <module name="DeclarationOrder"/>
+        <module name="ParameterAssignment"/>
+        <module name="ExplicitInitialization"/>
+        <module name="DefaultComesLast"/>
+        <module name="MissingSwitchDefault"/>
+        <module name="FallThrough"/>
+        <module name="MultipleStringLiterals"/>
+        <module name="MultipleVariableDeclarations"/>
+        <module name="RequireThis"/>
+        <module name="UnnecessaryParentheses"/>
+
+        <!-- DODANE: Rozdział 10.2 - Używanie klasy zamiast obiektu do dostępu do statycznych członków -->
+        <module name="StaticVariableName"/>
+        <module name="MethodName"/>
+
+        <!-- Rozdział 5 - Komentarze -->
+        <module name="CommentsIndentation"/>
+        <module name="JavadocMethod">
+            <property name="accessModifiers" value="public"/>
+            <property name="allowMissingParamTags" value="false"/>
+            <property name="allowMissingReturnTag" value="false"/>
+        </module>
+        <module name="JavadocStyle">
+            <property name="checkFirstSentence" value="false"/>
+        </module>
+        <module name="JavadocType">
+            <property name="scope" value="public"/>
+        </module>
+        <module name="JavadocVariable">
+            <property name="scope" value="public"/>
+        </module>
+        <module name="NonEmptyAtclauseDescription"/>
+
+        <!-- Rozdział 7.2 - Instrukcje złożone -->
+        <module name="AvoidNestedBlocks"/>
+        <module name="EmptyCatchBlock"/>
+
+        <!-- Rozdział 8.1 - Puste linie między sekcjami -->
+        <module name="EmptyLineSeparator">
+            <property name="tokens" value="CLASS_DEF, INTERFACE_DEF, ENUM_DEF, STATIC_INIT, INSTANCE_INIT, METHOD_DEF, CTOR_DEF, VARIABLE_DEF"/>
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+        </module>
+
+        <!-- Rozdział 8.1 - Puste linie między metodami -->
+        <module name="EmptyLineSeparator">
+            <property name="tokens" value="METHOD_DEF"/>
+            <property name="allowNoEmptyLineBetweenFields" value="true"/>
+        </module>
+    </module>
+</module>
