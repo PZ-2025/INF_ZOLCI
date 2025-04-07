@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,7 +33,7 @@ class UserControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Mock
+    @MockBean
     private UserService userService;
 
     @Autowired
@@ -133,8 +134,8 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].active", is(true)))
-                .andExpect(jsonPath("$[1].active", is(true)));
+                .andExpect(jsonPath("$[0].isActive", is(true)))
+                .andExpect(jsonPath("$[1].isActive", is(true)));
 
         verify(userService, times(1)).findActiveUsers();
     }
@@ -250,7 +251,7 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is(1)))
                 .andExpect(jsonPath("$.username", is("testuser")))
-                .andExpect(jsonPath("$.active", is(false)));
+                .andExpect(jsonPath("$.isActive", is(false)));
 
         // When & Then - not found case
         mockMvc.perform(put("/database/users/999/deactivate"))
