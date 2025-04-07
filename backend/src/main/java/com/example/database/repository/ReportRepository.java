@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Reposytorium dla encji {@link Report}.
@@ -40,4 +41,6 @@ public interface ReportRepository extends JpaRepository<Report, Integer>
      * @return Lista raportów stworzonych przez określonego użytkownika.
      */
     List<Report> findByCreatedBy(User user);
+
+    Optional<Report> findById(Long id);
 }

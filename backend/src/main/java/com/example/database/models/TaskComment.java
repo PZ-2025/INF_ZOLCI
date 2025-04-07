@@ -72,4 +72,11 @@ public class TaskComment {
     public TaskComment() {
         // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
+
+    public void setTaskId(Integer taskId) {
+    }
+
+    public void setUserId(Integer userId) {
+
+    }
 }

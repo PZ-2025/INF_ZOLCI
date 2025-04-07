@@ -37,7 +37,9 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
-
+    @ManyToOne
+    @JoinColumn(name = "task_id", referencedColumnName = "id")
+    private Task task;
     /**
      * Tytuł zadania, np. "Przygotowanie fundamentów".
      * Maksymalna długość: 100 znaków.
@@ -140,4 +142,6 @@ public class Task {
     public Task() {
         // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
+
+
 }

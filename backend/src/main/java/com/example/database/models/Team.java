@@ -87,4 +87,10 @@ public class Team {
     public Team() {
         // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
+
+//    public void getManagerId() {
+//    }
+
+    public void setManagerId(boolean managerId) {
+    }
 }

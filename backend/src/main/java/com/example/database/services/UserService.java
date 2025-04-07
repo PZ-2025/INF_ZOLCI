@@ -2,9 +2,11 @@ package com.example.database.services;
 
 import com.example.database.models.User;
 import com.example.database.repository.UserRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,6 +34,7 @@ public class UserService {
 
     /** Repozytorium użytkowników do wykonywania operacji bazodanowych. */
     private final UserRepository userRepository;
+
 
     /**
      * Pobiera listę wszystkich użytkowników z systemu.
@@ -72,12 +75,69 @@ public class UserService {
         return userRepository.save(user);
     }
 
-    /**
-     * Usuwa użytkownika o podanym identyfikatorze.
-     *
-     * @param id identyfikator użytkownika do usunięcia
-     */
-    public void deleteUser(Integer id) {
-        userRepository.deleteById(id);
+//    /**
+//     * Usuwa użytkownika o podanym identyfikatorze.
+//     *
+//     * @param id identyfikator użytkownika do usunięcia
+//     */
+//    public void deleteUser(Integer id) {
+//        userRepository.deleteById(id);
+//    }
+    public boolean deleteUser(Integer userId) {
+        return userRepository.findById(userId)
+                .map(user -> {
+                    userRepository.delete(user);
+                    return true;
+                })
+                .orElse(false);
     }
+
+    public List<User> findActiveUsers() {
+        return userRepository.findByIsActiveTrue();
+    }
+    @Transactional
+    public User createUser(User user) {
+        user.setCreatedAt(LocalDateTime.now());
+        user.setIsActive(true);
+        return userRepository.save(user);
+    }
+
+    @Transactional
+    public Optional<User> updateUser(Integer userId, User userDetails) {
+        return userRepository.findById(userId)
+                .map(existingUser -> {
+                    existingUser.setUsername(userDetails.getUsername());
+                    existingUser.setEmail(userDetails.getEmail());
+                    existingUser.setFirstName(userDetails.getFirstName());
+                    existingUser.setLastName(userDetails.getLastName());
+                    existingUser.setPhone(userDetails.getPhone());
+                    existingUser.setRole(userDetails.getRole());
+
+                    // Aktualizacja hasła bez enkodowania
+                    if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
+                        existingUser.setPassword(userDetails.getPassword());
+                    }
+
+                    return userRepository.save(existingUser);
+                });
+    }
+
+    @Transactional
+    public Optional<User> deactivateUser(Integer userId) {
+        return userRepository.findById(userId)
+                .map(user -> {
+                    user.setIsActive(false);
+                    return userRepository.save(user);
+                });
+    }
+
+    @Transactional
+    public Optional<User> updateLastLogin(Integer userId) {
+        return userRepository.findById(userId)
+                .map(user -> {
+                    user.setLastLogin(LocalDateTime.now());
+                    return userRepository.save(user);
+                });
+    }
+
 }
