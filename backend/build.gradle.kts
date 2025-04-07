@@ -52,7 +52,20 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
     }
 }
 
-// custom task
+checkstyle {
+    isShowViolations = false
+}
+
+tasks.withType<Checkstyle>().configureEach {
+    reports {
+        xml.required.set(true)
+        html.required.set(false)
+    }
+
+    logging.captureStandardOutput(org.gradle.api.logging.LogLevel.QUIET)
+}
+
+// Custom Tasks
 tasks.register("codeQuality") {
     description = "Runs both Checkstyle and SpotBugs checks"
     group = "verification"
