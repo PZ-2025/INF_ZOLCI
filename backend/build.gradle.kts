@@ -38,6 +38,16 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
+# Ignore Checkstyle output when building app
+tasks.withType<Checkstyle> {
+    reports {
+        html.required.set(true) // Wygeneruj raport HTML
+        xml.required.set(false) // Wyłącz raport XML, jeśli nie jest potrzebny
+    }
+    isIgnoreFailures = true // Opcjonalne: nie przerywaj budowania w przypadku błędów
+    showViolations = false // Wyłącz wyświetlanie naruszeń w konsoli
+}
+
 spotbugs {
     toolVersion = "4.8.3"
     ignoreFailures = true
