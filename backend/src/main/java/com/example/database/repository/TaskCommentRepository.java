@@ -38,4 +38,5 @@ public interface TaskCommentRepository extends JpaRepository<TaskComment, Intege
      * @return Lista komentarzy przypisanych do podanego użytkownika.
      */
     List<TaskComment> findByUser(User user);
+
 }

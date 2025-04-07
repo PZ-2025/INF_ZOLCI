@@ -48,4 +48,5 @@ public interface TeamRepository extends JpaRepository<Team, Integer>
      */
     Optional<Object> findByName(String teamName);
 
+    List<Team> findByIsActiveTrue();
 }

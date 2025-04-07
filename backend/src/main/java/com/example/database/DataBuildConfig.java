@@ -1,6 +1,8 @@
 package com.example.database;
 
-import com.example.database.models.*;
+import com.example.database.models.TaskComment;
+import com.example.database.models.Team;
+import com.example.database.models.TeamMember;
 import com.example.database.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;

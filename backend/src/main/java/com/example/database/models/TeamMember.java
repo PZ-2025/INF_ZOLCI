@@ -69,4 +69,13 @@ public class TeamMember {
     public TeamMember() {
         // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
+
+    public void setTeamId(Integer id) {
+    }
+
+    public void setUserId(boolean managerId) {
+    }
+
+    public void setUserId(Integer userId) {
+    }
 }

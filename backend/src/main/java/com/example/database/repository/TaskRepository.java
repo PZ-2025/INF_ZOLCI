@@ -3,10 +3,9 @@ package com.example.database.repository;
 import com.example.database.models.Task;
 import com.example.database.models.TaskStatus;
 import com.example.database.models.User;
-import org.springframework.data.jpa.repository.JpaRepository;
 import com.example.database.models.Team;
+import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
-
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,8 +26,8 @@ import java.util.Optional;
  * @since 1.0.0
  */
 @Repository
-public interface TaskRepository extends JpaRepository<Task, Integer>
-{
+public interface TaskRepository extends JpaRepository<Task, Integer> {
+
     /**
      * Znajduje wszystkie zadania przypisane do konkretnego zespołu.
      *
@@ -68,4 +67,28 @@ public interface TaskRepository extends JpaRepository<Task, Integer>
      * @return Opcjonalne zadanie o podanym tytule, jeśli istnieje.
      */
     Optional<Task> findByTitle(String title);
+
+    /**
+     * Znajduje zadania przypisane do konkretnego zespołu na podstawie ID zespołu.
+     *
+     * @param teamId ID zespołu.
+     * @return Lista zadań przypisanych do zespołu.
+     */
+    List<Task> findByTeamId(Integer teamId);
+
+    /**
+     * Znajduje zadania o określonym statusie na podstawie ID statusu.
+     *
+     * @param statusId ID statusu.
+     * @return Lista zadań o określonym statusie.
+     */
+    List<Task> findByStatusId(Integer statusId);
+
+    /**
+     * Znajduje zadania o określonym priorytecie na podstawie ID priorytetu.
+     *
+     * @param priorityId ID priorytetu.
+     * @return Lista zadań o określonym priorytecie.
+     */
+    List<Task> findByPriorityId(Integer priorityId);
 }

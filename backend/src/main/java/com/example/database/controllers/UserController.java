@@ -3,11 +3,9 @@ package com.example.database.controllers;
 import com.example.database.models.User;
 import com.example.database.services.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 import java.util.List;
@@ -71,4 +69,43 @@ public class UserController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+    @GetMapping("/active")
+    public ResponseEntity<List<User>> getActiveUsers() {
+        return ResponseEntity.ok(userService.findActiveUsers());
+    }
+    @PostMapping
+    public ResponseEntity<User> createUser(@RequestBody User user) {
+        try {
+            User createdUser = userService.createUser(user);
+            return new ResponseEntity<>(createdUser, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<User> updateUser(@PathVariable("id") Integer id, @RequestBody User user) {
+        return userService.updateUser(id, user)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable("id") Integer id) {
+        return userService.deleteUser(id)
+                ? ResponseEntity.noContent().build()
+                : ResponseEntity.notFound().build();
+    }
+    @PutMapping("/{id}/deactivate")
+    public ResponseEntity<User> deactivateUser(@PathVariable("id") Integer id) {
+        return userService.deactivateUser(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/login")
+    public ResponseEntity<User> updateLastLogin(@PathVariable("id") Integer id) {
+        return userService.updateLastLogin(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
 }

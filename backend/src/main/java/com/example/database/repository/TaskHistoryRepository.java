@@ -38,4 +38,6 @@ public interface TaskHistoryRepository extends JpaRepository<TaskHistory, Intege
      * @return Lista historii zmian wykonanych przez podanego użytkownika.
      */
     List<TaskHistory> findByChangedBy(User user);
+
+
 }

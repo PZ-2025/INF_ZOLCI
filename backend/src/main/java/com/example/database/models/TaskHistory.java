@@ -84,4 +84,10 @@ public class TaskHistory {
     public TaskHistory() {
         // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
+
+    public void setTaskId(Integer id) {
+    }
+
+    public void setChangedBy(Integer userId) {
+    }
 }

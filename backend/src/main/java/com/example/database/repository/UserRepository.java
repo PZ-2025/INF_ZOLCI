@@ -4,6 +4,7 @@ import com.example.database.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -54,4 +55,20 @@ public interface UserRepository extends JpaRepository<User, Integer>
    * @return True, jeśli użytkownik o podanym adresie e-mail istnieje, false w przeciwnym przypadku.
    */
   boolean existsByEmail(String email);
+
+    List<User> findByIsActiveTrue();
+  Optional<User> findByIdAndIsActiveTrue(Integer id);
+
+
+  // Wyszukaj użytkowników po roli
+  List<User> findByRole(String role);
+
+  // Wyszukaj użytkowników po nazwisku
+  List<User> findByLastName(String lastName);
+
+  // Znajdź użytkowników utworzonych po określonej dacie
+  List<User> findByCreatedAtAfter(java.time.LocalDateTime dateTime);
+
+  // Znajdź użytkowników, którzy logowali się po określonej dacie
+  List<User> findByLastLoginAfter(java.time.LocalDateTime dateTime);
 }

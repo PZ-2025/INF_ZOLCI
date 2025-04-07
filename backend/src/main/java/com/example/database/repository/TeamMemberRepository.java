@@ -45,7 +45,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Integer>
     /**
      * Znajduje wszystkich członków zespołu przypisanych do konkretnego zespołu i o określonym statusie aktywności.
      *
-     * @param team Zespół, którego członkowie mają zostać znalezieni.
+     * @param team     Zespół, którego członkowie mają zostać znalezieni.
      * @param isActive Status aktywności członków (true = aktywni, false = nieaktywni).
      * @return Lista członków zespołu o określonym statusie aktywności.
      */
@@ -67,4 +67,7 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Integer>
      * @return Lista wszystkich członków zespołu.
      */
     List<TeamMember> findAllByTeam(Team team);
+
+    Optional<TeamMember> findById(Long id);
 }
+
