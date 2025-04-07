@@ -38,16 +38,6 @@ tasks.withType<Test> {
     useJUnitPlatform()
 }
 
-# Ignore Checkstyle output when building app
-tasks.withType<Checkstyle> {
-    reports {
-        html.required.set(true) // Wygeneruj raport HTML
-        xml.required.set(false) // Wyłącz raport XML, jeśli nie jest potrzebny
-    }
-    isIgnoreFailures = true // Opcjonalne: nie przerywaj budowania w przypadku błędów
-    showViolations = false // Wyłącz wyświetlanie naruszeń w konsoli
-}
-
 spotbugs {
     toolVersion = "4.8.3"
     ignoreFailures = true
@@ -62,7 +52,20 @@ tasks.withType<com.github.spotbugs.snom.SpotBugsTask> {
     }
 }
 
-// custom task
+checkstyle {
+    isShowViolations = false
+}
+
+tasks.withType<Checkstyle>().configureEach {
+    reports {
+        xml.required.set(true)
+        html.required.set(false)
+    }
+
+    logging.captureStandardOutput(org.gradle.api.logging.LogLevel.QUIET)
+}
+
+// Custom Tasks
 tasks.register("codeQuality") {
     description = "Runs both Checkstyle and SpotBugs checks"
     group = "verification"
