@@ -17,7 +17,7 @@ import java.util.Optional;
  * Klasa zawiera logikę biznesową związaną z zarządzaniem raportami,
  * wykorzystując {@link ReportRepository} do komunikacji z bazą danych.
  *
- * @author YourName
+ * @author Karol
  * @version 1.0.0
  * @since 1.0.0
  */
