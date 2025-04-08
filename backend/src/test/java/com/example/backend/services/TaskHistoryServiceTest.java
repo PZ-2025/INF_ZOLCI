@@ -189,7 +189,7 @@ class TaskHistoryServiceTest {
             TaskHistory savedHistory = new TaskHistory();
             savedHistory.setId(1);
             savedHistory.setTask(inputHistory.getTask());
-            savedHistory.setChangedBy(inputHistory.getTask().getId());  // Use task ID for ChangedBy
+            savedHistory.setChangedBy(user.getId());  // Use user ID for ChangedBy
             savedHistory.setFieldName(inputHistory.getFieldName());
             savedHistory.setOldValue(inputHistory.getOldValue());
             savedHistory.setNewValue(inputHistory.getNewValue());
@@ -219,15 +219,15 @@ class TaskHistoryServiceTest {
         assertEquals(Integer.valueOf(1), result.getId(), "ID should be set");
         assertEquals(task, result.getTask(), "Task should match");
 
-        // Specific assertion for ChangedBy
+        // Specific assertion for ChangedBy - now updated to expect user.getId()
         assertEquals(
-                task.getId(),
+                user.getId(),  // Changed from task.getId() to user.getId()
                 result.getChangedBy(),
                 () -> String.format(
-                        "ChangedBy should match task ID. " +
-                                "Task ID: %d, " +
+                        "ChangedBy should match user ID. " +
+                                "User ID: %d, " +
                                 "Result ChangedBy: %s",
-                        task.getId(),
+                        user.getId(),
                         result.getChangedBy()
                 )
         );
