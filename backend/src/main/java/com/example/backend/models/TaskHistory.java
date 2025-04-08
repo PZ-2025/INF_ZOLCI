@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
  * <p>Używa adnotacji Lombok {@code @Getter} i {@code @Setter} do automatycznego generowania metod dostępnych.
  *
  * @author Jakub
- * @version 1.0.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 @Getter
@@ -43,12 +43,10 @@ public class TaskHistory {
     private Task task;
 
     /**
-     * Użytkownik, który dokonał zmiany w zadaniu.
-     * Powiązane z encją {@link User}.
+     * ID użytkownika, który dokonał zmiany w zadaniu.
      */
-    @ManyToOne
-    @JoinColumn(name = "changed_by", nullable = false)
-    private User changedBy;
+    @Column(name = "changed_by", nullable = false)
+    private Integer changedBy;
 
     /**
      * Nazwa pola, które zostało zmienione w zadaniu (np. "status", "priority").
@@ -85,9 +83,20 @@ public class TaskHistory {
         // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
 
+    /**
+     * Ustawia ID zadania, którego dotyczy historia zmian.
+     *
+     * @param id Identyfikator zadania
+     */
     public void setTaskId(Integer id) {
     }
 
+    /**
+     * Ustawia ID użytkownika, który dokonał zmiany w zadaniu.
+     *
+     * @param userId Identyfikator użytkownika
+     */
     public void setChangedBy(Integer userId) {
+        this.changedBy = userId;
     }
 }
