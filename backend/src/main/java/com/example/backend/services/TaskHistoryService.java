@@ -20,7 +20,7 @@ import java.util.Optional;
  * a także metody wyszukiwania historii według różnych kryteriów.
  *
  * @author Jakub
- * @version 1.0.0
+ * @version 1.1.0
  * @since 1.0.0
  */
 @Service
@@ -107,7 +107,7 @@ public class TaskHistoryService {
                                      String oldValue, String newValue) {
         TaskHistory history = new TaskHistory();
         history.setTask(task);
-        history.setChangedBy(user.getId());
+        history.setChangedBy(user.getId());  // This is now correct since we changed the model field type
         history.setFieldName(fieldName);
         history.setOldValue(oldValue);
         history.setNewValue(newValue);
