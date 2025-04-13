@@ -1,13 +1,13 @@
 <template>
-  <div class="p-4 bg-primary h-screen">
-    <h2 class="text-2xl font-bold text-accent mb-6">Zespoły</h2>
+  <div class="p-4 bg-background min-h-screen text-text">
+    <h2 class="text-2xl font-bold text-primary mb-6">Zespoły</h2>
     
     <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <div 
         v-for="team in teams" 
         :key="team.id" 
         @click="selectTeam(team)"
-        class="bg-secondary rounded-xl p-4 cursor-pointer hover:bg-primary transition transform hover:scale-105 flex flex-col items-center justify-center text-center"
+        class="bg-surface shadow-md rounded-xl p-4 cursor-pointer hover:bg-accent/10 transition transform hover:scale-105 flex flex-col items-center justify-center text-center"
       >
         <div 
           class="w-16 h-16 rounded-xl mb-3 flex items-center justify-center text-white font-bold"
@@ -15,8 +15,8 @@
         >
           {{ team.shortName }}
         </div>
-        <h3 class="font-semibold text-white">{{ team.name }}</h3>
-        <p class="text-accent text-sm">{{ team.membersCount }} członków</p>
+        <h3 class="font-semibold text-secondary">{{ team.name }}</h3>
+        <p class="text-muted text-sm">{{ team.membersCount }} członków</p>
       </div>
     </div>
   </div>

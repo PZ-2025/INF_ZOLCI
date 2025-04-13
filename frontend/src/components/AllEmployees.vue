@@ -1,36 +1,36 @@
 <template>
-  <div class="h-full flex flex-col p-6 bg-primary">
-    <h1 class="text-3xl font-bold text-white mb-6">Pracownicy</h1>
+  <div class="h-full flex flex-col p-6 bg-background text-text">
+    <h1 class="text-3xl font-bold text-primary mb-6">Pracownicy</h1>
     
-    <div class="flex-grow bg-secondary p-6 rounded-lg shadow-md mb-6 overflow-auto">
+    <div class="flex-grow bg-surface p-6 rounded-lg shadow-md mb-6 overflow-auto border border-gray-200">
       <div v-if="employees.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div 
           v-for="employee in employees" 
           :key="employee.id" 
-          class="bg-warning p-4 rounded-lg shadow-md relative"
+          class="bg-accent/20 p-4 rounded-lg shadow-md relative"
         >
-          <p class="font-medium text-lg text-white">{{ employee.name }}</p>
+          <p class="font-medium text-lg text-text">{{ employee.name }}</p>
           <button 
             @click="removeEmployee(employee.id)" 
-            class="absolute top-2 right-2 bg-danger text-white px-2 py-1 rounded-md hover:bg-red-700"
+            class="absolute top-2 right-2 bg-danger text-white px-2 py-1 rounded-md hover:bg-red-600"
           >
             Usuń
           </button>
         </div>
       </div>
-      <p v-else class="text-white text-center">Brak pracowników.</p>
+      <p v-else class="text-muted text-center">Brak pracowników.</p>
     </div>
     
     <div class="flex justify-between">
       <button 
         @click="addEmployee" 
-        class="bg-warning text-white px-4 py-2 rounded-md hover:bg-green-700"
+        class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition"
       >
         Dodaj Pracownika
       </button>
       <button 
         @click="removeAllEmployees" 
-        class="bg-danger text-white px-4 py-2 rounded-md hover:bg-red-700"
+        class="bg-danger hover:bg-red-600 text-white px-4 py-2 rounded-md transition"
       >
         Usuń Wszystkich
       </button>
