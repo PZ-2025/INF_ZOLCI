@@ -1,7 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { reactive } from 'vue';
 import Teams from '@/components/Teams.vue';
-import AllEmployees from '@/components/Teams.vue';
+import AllEmployees from '@/components/AllEmployees.vue';
 import LoginForm from '@/components/LoginForm.vue';
 import RaportGenerate from '@/components/RaportGenerate.vue';
 import SystemConf from '@/components/SystemConf.vue';
