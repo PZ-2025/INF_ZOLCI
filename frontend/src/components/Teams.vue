@@ -136,7 +136,7 @@ export default {
   },
   methods: {
     selectTeam(team) {
-      this.$emit('team-selected', team);
+      this.$router.push('/teamdetails');
     }
   }
 }
