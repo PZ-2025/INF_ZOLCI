@@ -7,7 +7,7 @@
         <div 
           v-for="user in users" 
           :key="user.id" 
-          class="bg-accent/20 p-4 rounded-lg shadow-md relative"
+          class="bg-surface border border-gray-200 p-4 rounded-lg shadow-md relative"
         >
           <p class="font-medium text-lg text-text">{{ user.name }}</p>
           <p class="text-sm text-muted">{{ user.role }}</p>

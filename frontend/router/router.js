@@ -27,6 +27,7 @@ const routes = [
   { path: "/teamtasks", component: TeamsTasks, meta: { requiresAuth: true, roles: ['employee', 'manager'] } },
   { path: '/settings', component: UserSettings, meta: { requiresAuth: true, roles: ['employee', 'manager'] } },
   { path: '/allusers', component: AllUsers, meta: { requiresAuth: true, roles: ['manager'] } },
+  { path: '/systemconfig', component: SystemConf, meta: { requiresAuth: true, roles: ['manager'] } },
 ];
 
 const router = createRouter({
