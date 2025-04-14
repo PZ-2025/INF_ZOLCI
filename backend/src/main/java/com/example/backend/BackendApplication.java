@@ -18,12 +18,12 @@ import io.github.cdimascio.dotenv.Dotenv;
  * @since 1.0.0
  */
 @SpringBootApplication
-@EnableJpaRepositories(basePackages = "com.example.database.repository")
-@EntityScan(basePackages = "com.example.database.models")
+@EnableJpaRepositories(basePackages = "com.example.backend.repository")
+@EntityScan(basePackages = "com.example.backend.models")
 @ComponentScan(basePackages = {
-        "com.example.database",
-        "com.example.database.controllers",
-        "com.example.database.services"
+        "com.example.backend",
+        "com.example.backend.controllers",
+        "com.example.backend.services"
 })
 public class BackendApplication {
 
