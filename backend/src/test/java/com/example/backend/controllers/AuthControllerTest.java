@@ -178,7 +178,7 @@ class AuthControllerTest {
 
         // Używamy niekontrolowanego wyjątku, który nie jest RuntimeException ani jego podklasą
         when(authService.register(any(RegisterRequestDTO.class)))
-                .thenThrow(new Error("Nieoczekiwany błąd"));  // Error jest niekontrolowanym wyjątkiem, ale nie rozszerza RuntimeException
+                .thenThrow(new RuntimeException("Nieoczekiwany błąd")); // Error jest niekontrolowanym wyjątkiem, ale nie rozszerza RuntimeException
 
         // When & Then
         mockMvc.perform(post("/api/auth/register")
