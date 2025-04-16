@@ -1,5 +1,7 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -49,6 +51,7 @@ public class Team {
      */
     @ManyToOne
     @JoinColumn(name = "manager_id", nullable = false)
+    @JsonBackReference
     private User manager;
 
     /**
@@ -70,7 +73,8 @@ public class Team {
      * Zbiór członków zespołu. Każdy członek zespołu jest powiązany z tym zespołem.
      * Powiązane z encją {@link TeamMember}.
      */
-    @OneToMany(mappedBy = "team")
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private Set<TeamMember> members = new HashSet<>();
 
     /**
@@ -78,6 +82,7 @@ public class Team {
      * Powiązane z encją {@link Task}.
      */
     @OneToMany(mappedBy = "team")
+    @JsonBackReference
     private Set<Task> tasks = new HashSet<>();
 
     /**
@@ -88,9 +93,4 @@ public class Team {
         // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
 
-//    public void getManagerId() {
-//    }
-
-    public void setManagerId(boolean managerId) {
-    }
 }

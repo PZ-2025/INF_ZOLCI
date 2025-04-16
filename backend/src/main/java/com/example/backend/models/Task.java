@@ -1,5 +1,6 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -59,6 +60,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "team_id")
+    @JsonManagedReference
     private Team team;
 
     /**
@@ -103,6 +105,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "created_by", nullable = false)
+    @JsonManagedReference
     private User createdBy;
 
     /**

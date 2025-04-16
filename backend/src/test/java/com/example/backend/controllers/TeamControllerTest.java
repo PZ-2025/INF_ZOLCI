@@ -46,17 +46,31 @@ class TeamControllerTest {
 
     @Test
     void getAllTeams() {
-        Team team = new Team();
-        team.setId(1);
-        team.setName("Alpha");
-        team.setManager(sampleManager);
+        Team team1 = new Team();
+        team1.setId(1);
+        team1.setName("Alpha");
+        team1.setManager(sampleManager);
 
-        when(teamService.getAllTeams()).thenReturn(List.of(team));
+        Team team2 = new Team();
+        team2.setId(2);
+        team2.setName("Beta");
+        team2.setManager(sampleManager);
+
+        Team team3 = new Team();
+        team3.setId(3);
+        team3.setName("Gamma");
+        team3.setManager(sampleManager);
+
+        when(teamService.getAllTeams()).thenReturn(List.of(team1, team2, team3));
 
         ResponseEntity<List<Team>> response = teamController.getAllTeams();
-        assertEquals(1, response.getBody().size());
+
+        assertEquals(3, response.getBody().size());
         assertEquals("Alpha", response.getBody().get(0).getName());
+        assertEquals("Beta", response.getBody().get(1).getName());
+        assertEquals("Gamma", response.getBody().get(2).getName());
     }
+
 
     @Test
     void getTeamById() {

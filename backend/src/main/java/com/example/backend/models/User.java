@@ -1,5 +1,8 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -7,6 +10,7 @@ import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -100,24 +104,28 @@ public class User {
      * Zespoły, które są zarządzane przez tego użytkownika. Powiązane z encją {@code Team}.
      */
     @OneToMany(mappedBy = "manager")
-    private Set<Team> managedTeams = new HashSet<>();
+    @JsonManagedReference
+    private List<Team> managedTeams;
 
     /**
      * Członkostwa użytkownika w zespołach. Powiązane z encją {@link TeamMember}.
      */
     @OneToMany(mappedBy = "user")
+    @JsonBackReference
     private Set<TeamMember> teamMemberships = new HashSet<>();
 
     /**
      * Zadania utworzone przez użytkownika. Powiązane z encją {@link Task}.
      */
     @OneToMany(mappedBy = "createdBy")
+    @JsonBackReference
     private Set<Task> createdTasks = new HashSet<>();
 
     /**
      * Komentarze użytkownika w zadaniach. Powiązane z encją {@link TaskComment}.
      */
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private Set<TaskComment> comments = new HashSet<>();
 
     /**

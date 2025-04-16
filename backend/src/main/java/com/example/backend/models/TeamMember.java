@@ -1,5 +1,7 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,6 +40,7 @@ public class TeamMember {
      */
     @ManyToOne
     @JoinColumn(name = "team_id", nullable = false)
+    @JsonBackReference
     private Team team;
 
     /**
@@ -45,6 +48,7 @@ public class TeamMember {
      */
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonManagedReference
     private User user;
 
     /**
