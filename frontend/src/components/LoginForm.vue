@@ -6,11 +6,11 @@
       <form @submit.prevent="handleLogin">
         <div class="mb-4">
           <label for="login" class="block text-text font-semibold mb-2">Login</label>
-          <input 
-            type="text" 
-            id="login" 
-            v-model="login" 
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-text" 
+          <input
+            type="text"
+            id="login"
+            v-model="login"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-text"
             placeholder="Wpisz login"
             required
           >
@@ -18,18 +18,18 @@
 
         <div class="mb-4">
           <label for="password" class="block text-text font-semibold mb-2">Hasło</label>
-          <input 
-            type="password" 
-            id="password" 
-            v-model="password" 
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-text" 
+          <input
+            type="password"
+            id="password"
+            v-model="password"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-text"
             placeholder="Wpisz hasło"
             required
           >
         </div>
 
-        <button 
-          type="submit" 
+        <button
+          type="submit"
           class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
         >
           Zaloguj
