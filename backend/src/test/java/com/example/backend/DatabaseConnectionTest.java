@@ -65,9 +65,10 @@ class DatabaseConnectionTest {
      * poprzez wykonanie zapytania specyficznego dla H2.
      */
     @Test
-    void h2DatabaseIsRunning() {
-        String dbProductName = jdbcTemplate.queryForObject(
-                "SELECT H2VERSION() FROM DUAL", String.class);
+    void h2DatabaseIsRunning() throws SQLException {
+        String dbProductName = jdbcTemplate.getDataSource().getConnection().getMetaData().getDatabaseProductName();
+        System.out.printf("Baza danych: %s%n", dbProductName);
+
 
         assertNotNull(dbProductName, "Powinno być możliwe wykonanie zapytania specyficznego dla H2");
         assertTrue(dbProductName.contains("H2"), "Baza danych powinna być H2");
