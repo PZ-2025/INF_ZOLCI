@@ -1,143 +1,86 @@
 <template>
-  <div class="p-4 bg-background min-h-screen text-text">
-    <h2 class="text-2xl font-bold text-primary mb-6">Zespoły</h2>
-    
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-      <div 
-        v-for="team in teams" 
-        :key="team.id" 
-        @click="selectTeam(team)"
-        class="bg-surface shadow-md rounded-xl p-4 cursor-pointer hover:bg-accent/10 transition transform hover:scale-105 flex flex-col items-center justify-center text-center"
+  <div class="p-4 bg-primary h-screen">
+    <h2 class="text-2xl font-bold text-accent mb-6">Zespoły</h2>
+
+    <div v-if="loading" class="flex justify-center items-center h-64">
+      <p class="text-white text-xl">Ładowanie zespołów...</p>
+    </div>
+
+    <div v-else-if="error" class="bg-danger p-4 rounded-xl text-white">
+      <p>Błąd podczas ładowania zespołów: {{ error }}</p>
+      <button @click="fetchTeams" class="bg-warning mt-2 px-4 py-2 rounded-md">Spróbuj ponownie</button>
+    </div>
+
+    <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div
+          v-for="team in teams"
+          :key="team.id"
+          @click="selectTeam(team)"
+          class="bg-secondary rounded-xl p-4 cursor-pointer hover:bg-primary transition transform hover:scale-105 flex flex-col items-center justify-center text-center"
       >
-        <div 
-          class="w-16 h-16 rounded-xl mb-3 flex items-center justify-center text-white font-bold"
-          :style="{ backgroundColor: team.color }"
+        <div
+            class="w-16 h-16 rounded-xl mb-3 flex items-center justify-center text-white font-bold"
+            :style="{ backgroundColor: team.color }"
         >
           {{ team.shortName }}
         </div>
-        <h3 class="font-semibold text-secondary">{{ team.name }}</h3>
-        <p class="text-muted text-sm">{{ team.membersCount }} członków</p>
+        <h3 class="font-semibold text-white">{{ team.name }}</h3>
+        <p class="text-accent text-sm">{{ team.membersCount }} członków</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import { ref, onMounted } from 'vue';
+import apiService from '../services/api.js';
+import { useRouter } from 'vue-router';
+
 export default {
   name: 'TeamSelection',
-  data() {
-    return {
-      teams: [
-        {
-          id: 1,
-          name: 'Frontend Development',
-          shortName: 'FE',
-          color: '#D8572A',
-          membersCount: 5,
-          members: [
-            { 
-              id: 1, 
-              name: 'Jan Kowalski', 
-              initials: 'JK', 
-              role: 'Senior Developer',
-              color: '#780116'
-            },
-            { 
-              id: 2, 
-              name: 'Anna Nowak', 
-              initials: 'AN', 
-              role: 'UI/UX Designer',
-              color: '#DB7C26'
-            },
-            { 
-              id: 3, 
-              name: 'Piotr Wiśniewski', 
-              initials: 'PW', 
-              role: 'Junior Developer',
-              color: '#F7B538'
-            }
-          ],
-          recentActivities: [
-            {
-              id: 1,
-              title: 'Nowy komponent UI',
-              description: 'Utworzono nowy komponent nawigacyjny',
-              timestamp: '2 godziny temu'
-            },
-            {
-              id: 2,
-              title: 'Code Review',
-              description: 'Przeprowadzono przegląd kodu dla PR #245',
-              timestamp: '5 godzin temu'
-            }
-          ],
-          upcomingTasks: [
-            {
-              id: 1,
-              title: 'Redesign strony głównej',
-              assignedTo: 'Jan Kowalski',
-              priority: 'high'
-            },
-            {
-              id: 2,
-              title: 'Optymalizacja wydajności',
-              assignedTo: 'Piotr Wiśniewski',
-              priority: 'medium'
-            }
-          ]
-        },
-        {
-          id: 2,
-          name: 'Backend Engineering',
-          shortName: 'BE',
-          color: '#F7B538',
-          membersCount: 4,
-          members: [
-            { 
-              id: 4, 
-              name: 'Michał Kowalczyk', 
-              initials: 'MK', 
-              role: 'Tech Lead',
-              color: '#780116'
-            },
-            { 
-              id: 5, 
-              name: 'Katarzyna Nowacka', 
-              initials: 'KN', 
-              role: 'Senior Backend Developer',
-              color: '#DB7C26'
-            }
-          ],
-          recentActivities: [
-            {
-              id: 1,
-              title: 'Wdrożenie nowego API',
-              description: 'Zakończono implementację nowego endpointu',
-              timestamp: '3 godziny temu'
-            }
-          ],
-          upcomingTasks: [
-            {
-              id: 1,
-              title: 'Migracja bazy danych',
-              assignedTo: 'Michał Kowalczyk',
-              priority: 'high'
-            },
-            {
-              id: 2,
-              title: 'Zabezpieczenia systemu',
-              assignedTo: 'Katarzyna Nowacka',
-              priority: 'medium'
-            }
-          ]
-        }
-      ]
+  setup() {
+    const router = useRouter();
+    const teams = ref([]);
+    const loading = ref(true);
+    const error = ref(null);
+
+    const fetchTeams = async () => {
+      loading.value = true;
+      error.value = null;
+
+      try {
+        const response = await apiService.get('/database/teams');
+        teams.value = response;
+      } catch (err) {
+        console.error('Error fetching teams:', err);
+        error.value = err.message;
+        teams.value = [ /* fallback data */ ];
+      } finally {
+        loading.value = false;
+      }
     };
-  },
-  methods: {
-    selectTeam(team) {
-      this.$router.push('/teamdetails');
-    }
+
+
+    // TODO: find a fix to pass team id to other views via router.js
+    // const selectTeam = (team) => {
+    //   console.log('Selected team:', team.id); // debug
+    //   router.push({
+    //     name: 'TeamDetails',
+    //     params: { id: team.id }
+    //   });
+    // };
+
+    // TODO: functions for counting team members and shorten names for team icon (team.shortName, team.memberCount)
+
+    onMounted(fetchTeams);
+
+    return {
+      teams,
+      loading,
+      error,
+      fetchTeams,
+      selectTeam
+    };
   }
 }
 </script>
