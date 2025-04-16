@@ -75,14 +75,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
-//    /**
-//     * Usuwa użytkownika o podanym identyfikatorze.
-//     *
-//     * @param id identyfikator użytkownika do usunięcia
-//     */
-//    public void deleteUser(Integer id) {
-//        userRepository.deleteById(id);
-//    }
+
     public boolean deleteUser(Integer userId) {
         return userRepository.findById(userId)
                 .map(user -> {
@@ -135,7 +128,7 @@ public class UserService {
     public Optional<User> updateLastLogin(Integer userId) {
         return userRepository.findById(userId)
                 .map(user -> {
-                    user.setLastLogin(LocalDateTime.now());
+                    user.setLastLogin(LocalDateTime.now()); // Upewnij się, że tutaj tworzona jest NOWA data
                     return userRepository.save(user);
                 });
     }
