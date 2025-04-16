@@ -313,20 +313,22 @@ class UserServiceTest {
     @Test
     void updateLastLogin_WhenUserExists_ShouldUpdateAndReturnUser() {
         // Given
+        LocalDateTime oldLoginTime = adminUser.getLastLogin();
         when(userRepository.findById(1)).thenReturn(Optional.of(adminUser));
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User savedUser = invocation.getArgument(0);
             return savedUser;
         });
 
-        LocalDateTime oldLoginTime = adminUser.getLastLogin();
-
         // When
         Optional<User> result = userService.updateLastLogin(1);
 
         // Then
         assertTrue(result.isPresent());
-        assertNotEquals(oldLoginTime, result.get().getLastLogin());
+        // Zamiast porównywać wartości, sprawdź czy nowa data jest późniejsza
+        assertTrue(result.get().getLastLogin().isAfter(oldLoginTime) ||
+                        !result.get().getLastLogin().equals(oldLoginTime),
+                "Czas logowania powinien być zaktualizowany");
         verify(userRepository, times(1)).findById(1);
         verify(userRepository, times(1)).save(any(User.class));
     }

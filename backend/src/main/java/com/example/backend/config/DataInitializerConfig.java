@@ -1,4 +1,4 @@
-package  com.example.backend;
+package com.example.backend.config;
 
 import com.example.backend.models.*;
 import com.example.backend.repository.*;
