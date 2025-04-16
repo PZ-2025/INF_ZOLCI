@@ -32,6 +32,9 @@ dependencies {
 
     implementation ("io.github.cdimascio:dotenv-java:2.3.2")
     implementation ("com.h2database:h2")
+
+    implementation("org.springframework.security:spring-security-crypto")
+    testImplementation("org.springframework.security:spring-security-test")
 }
 
 tasks.withType<Test> {
