@@ -126,7 +126,7 @@ export default {
     const getTeamId = () => {
       console.log("OGOLNIE TUTAJ JEST KONGO");
       // Sprawdź route.query.id (z URL ?id=1)
-      let teamId = route.query.id;
+      let teamId = route.params.id;
 
       // Log do debugowania
       console.log("TeamDetails - route.query.id:", teamId);

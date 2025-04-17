@@ -81,7 +81,7 @@ export default {
 
 
       // Metoda 2: Używamy URL z query
-      router.push({ path: '/teamdetails', query: { id: teamId } });
+      router.push({ name: 'teamDetails', params: { id: teamId } });
 
       // Log potwierdzający
       console.log('Rozpoczęto nawigację do:', `/teamdetails/${teamId}`);
