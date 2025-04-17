@@ -1,10 +1,13 @@
 import { createApp } from 'vue';
 import App from './App.vue';
-import router from '../router/router.js'; // Import the router
-
+import router from '../router/router.js'; // Import routera
 import './style.css';
 
+// Stwórz aplikację Vue
 const app = createApp(App);
 
-app.use(router); // Ensure the router is used
+// Dodaj router do aplikacji
+app.use(router);
+
+// Zamontuj aplikację
 app.mount('#app');

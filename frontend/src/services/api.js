@@ -3,26 +3,28 @@ import { ref } from 'vue';
 
 // Create a singleton API service
 const apiService = {
-    apiUrl: ref(''),
-    isLoaded: ref(false),
+    apiUrl: ref('http://localhost:8080'), // Domyślny adres backendu Spring Boot
+    isLoaded: ref(true), // Domyślnie załadowane - mamy statyczny URL
 
     /**
-     * Initialize the API service with the URL from Electron's contextBridge
+     * Initialize the API service
      */
     async init() {
+        // Jeśli aplikacja działa w Electron, spróbuj pobrać URL z contextBridge
         if (window.api?.getApiUrl) {
             try {
-                this.apiUrl.value = await window.api.getApiUrl();
-                this.isLoaded.value = true;
+                const apiUrl = await window.api.getApiUrl();
+                this.apiUrl.value = apiUrl || 'http://localhost:8080';
                 console.log(`API Service initialized with URL: ${this.apiUrl.value}`);
             } catch (error) {
-                console.error("Failed to get API URL:", error);
-                this.isLoaded.value = false;
+                console.error("Failed to get API URL, using default:", error);
+                this.apiUrl.value = 'http://localhost:8080';
             }
         } else {
-            console.error("API bridge not available");
-            this.isLoaded.value = false;
+            // W środowisku przeglądarki używamy domyślnego URL
+            console.log("Using default API URL: http://localhost:8080");
         }
+        this.isLoaded.value = true;
     },
 
     /**
@@ -131,7 +133,12 @@ const apiService = {
                 throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
 
-            return await response.json();
+            // Próbuj zwrócić JSON jeśli jest dostępny, w przeciwnym razie null
+            const contentType = response.headers.get("content-type");
+            if (contentType && contentType.indexOf("application/json") !== -1) {
+                return await response.json();
+            }
+            return null;
         } catch (error) {
             console.error(`Error deleting at ${endpoint}:`, error);
             throw error;
@@ -145,10 +152,6 @@ const apiService = {
     async ensureInit() {
         if (!this.isLoaded.value) {
             await this.init();
-        }
-
-        if (!this.isLoaded.value) {
-            throw new Error("API service is not available");
         }
     }
 };

@@ -5,23 +5,44 @@ import Navbar from './components/Navbar.vue';
 import LoginForm from './components/LoginForm.vue';
 import apiService from './services/api.js';
 
-const currentView = ref('home');
-// variable for response from backend
-const responseText = ref('');
+// Stan połączenia z backendem
+const backendStatus = ref('checking');
 
 onMounted(async () => {
   console.log("Vue app loaded");
-  // Initialize the API service
-  await apiService.init();
+
+  // Inicjalizacja serwisu API
+  try {
+    await apiService.init();
+
+    // Sprawdź połączenie z backendem
+    try {
+      await apiService.get('/database/users');
+      backendStatus.value = 'connected';
+      console.log('✅ Połączono z backendem Spring Boot');
+    } catch (error) {
+      backendStatus.value = 'disconnected';
+      console.error('❌ Brak połączenia z backendem:', error);
+      // Aplikacja nadal działa w trybie testowym z przykładowymi danymi
+    }
+  } catch (error) {
+    console.error('Error initializing API service:', error);
+    backendStatus.value = 'error';
+  }
 });
 </script>
 
 <template>
   <div class="flex h-screen w-screen">
-    <!-- Show LoginForm if the user is not authenticated -->
+    <!-- Pasek informacyjny o statusie backendu -->
+    <div v-if="backendStatus === 'disconnected'" class="fixed top-0 left-0 right-0 bg-warning text-white p-1 text-center text-sm z-50">
+      ⚠️ Brak połączenia z backendem. Aplikacja działa w trybie demonstracyjnym z przykładowymi danymi.
+    </div>
+
+    <!-- Formularz logowania, jeśli użytkownik nie jest zalogowany -->
     <LoginForm v-if="!authState.isAuthenticated" />
 
-    <!-- Show the rest of the application if the user is authenticated -->
+    <!-- Główny interfejs aplikacji, gdy użytkownik jest zalogowany -->
     <div v-else class="flex h-screen w-screen">
       <Navbar class="w-64 bg-gray-800 text-white h-full flex-shrink-0" />
       <div class="flex-1 overflow-auto bg-gray-100">
