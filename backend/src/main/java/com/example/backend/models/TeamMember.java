@@ -40,7 +40,7 @@ public class TeamMember {
      */
     @ManyToOne
     @JoinColumn(name = "team_id", nullable = false)
-    @JsonBackReference
+    @JsonBackReference(value = "team-members")
     private Team team;
 
     /**
@@ -48,7 +48,7 @@ public class TeamMember {
      */
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonManagedReference
+    @JsonManagedReference(value = "user-team-memberships")
     private User user;
 
     /**

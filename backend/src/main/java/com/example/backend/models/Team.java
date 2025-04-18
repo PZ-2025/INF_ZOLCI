@@ -51,7 +51,7 @@ public class Team {
      */
     @ManyToOne
     @JoinColumn(name = "manager_id", nullable = false)
-    @JsonBackReference
+    @JsonBackReference(value = "user-managed-teams")
     private User manager;
 
     /**
@@ -74,7 +74,7 @@ public class Team {
      * Powiązane z encją {@link TeamMember}.
      */
     @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonManagedReference(value = "team-members")
     private Set<TeamMember> members = new HashSet<>();
 
     /**
@@ -82,7 +82,7 @@ public class Team {
      * Powiązane z encją {@link Task}.
      */
     @OneToMany(mappedBy = "team")
-    @JsonBackReference
+    @JsonBackReference(value = "team-tasks")
     private Set<Task> tasks = new HashSet<>();
 
     /**

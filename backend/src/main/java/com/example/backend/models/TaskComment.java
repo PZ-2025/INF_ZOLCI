@@ -1,6 +1,7 @@
 package  com.example.backend.models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -41,6 +42,7 @@ public class TaskComment {
      */
     @ManyToOne
     @JoinColumn(name = "task_id", nullable = false)
+    @JsonManagedReference(value = "task-comments")
     private Task task;
 
     /**
