@@ -1,13 +1,13 @@
-package  com.example.backend.controllers;
+package com.example.backend.controllers;
 
-import com.example.backend.models.Team;
-import com.example.backend.models.User;
+import com.example.backend.dto.TeamDTO;
 import com.example.backend.services.TeamService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.*;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.*;
@@ -24,19 +24,33 @@ class TeamControllerTest {
     private TeamController teamController;
 
     private AutoCloseable closeable;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
-
-    private User sampleManager;
+    private TeamDTO teamDTO1;
+    private TeamDTO teamDTO2;
+    private TeamDTO teamDTO3;
 
     @BeforeEach
     void setUp() {
         closeable = MockitoAnnotations.openMocks(this);
-        sampleManager = new User();
-        sampleManager.setId(1);
-        sampleManager.setFirstName("Anna");
-        sampleManager.setLastName("Nowak");
-        sampleManager.setEmail("anna.nowak@example.com");
+
+        // Przygotowanie przykładowych DTO
+        teamDTO1 = new TeamDTO();
+        teamDTO1.setId(1);
+        teamDTO1.setName("Alpha");
+        teamDTO1.setManagerId(1);
+        teamDTO1.setIsActive(true);
+
+        teamDTO2 = new TeamDTO();
+        teamDTO2.setId(2);
+        teamDTO2.setName("Beta");
+        teamDTO2.setManagerId(1);
+        teamDTO2.setIsActive(true);
+
+        teamDTO3 = new TeamDTO();
+        teamDTO3.setId(3);
+        teamDTO3.setName("Gamma");
+        teamDTO3.setManagerId(1);
+        teamDTO3.setIsActive(false);
     }
 
     @AfterEach
@@ -45,163 +59,189 @@ class TeamControllerTest {
     }
 
     @Test
-    void getAllTeams() {
-        Team team1 = new Team();
-        team1.setId(1);
-        team1.setName("Alpha");
-        team1.setManager(sampleManager);
+    void getAllTeams_ShouldReturnListOfTeamDTOs() {
+        // Given
+        when(teamService.getAllTeams()).thenReturn(List.of(teamDTO1, teamDTO2, teamDTO3));
 
-        Team team2 = new Team();
-        team2.setId(2);
-        team2.setName("Beta");
-        team2.setManager(sampleManager);
+        // When
+        ResponseEntity<List<TeamDTO>> response = teamController.getAllTeams();
 
-        Team team3 = new Team();
-        team3.setId(3);
-        team3.setName("Gamma");
-        team3.setManager(sampleManager);
-
-        when(teamService.getAllTeams()).thenReturn(List.of(team1, team2, team3));
-
-        ResponseEntity<List<Team>> response = teamController.getAllTeams();
-
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(3, response.getBody().size());
         assertEquals("Alpha", response.getBody().get(0).getName());
         assertEquals("Beta", response.getBody().get(1).getName());
         assertEquals("Gamma", response.getBody().get(2).getName());
-    }
-
-
-    @Test
-    void getTeamById() {
-        Team team = new Team();
-        team.setId(2);
-        team.setName("Beta");
-        team.setManager(sampleManager);
-
-        when(teamService.getTeamById(2)).thenReturn(Optional.of(team));
-
-        ResponseEntity<Team> response = teamController.getTeamById(2);
-        assertEquals("Beta", response.getBody().getName());
-        assertEquals(2, response.getBody().getId());
+        verify(teamService).getAllTeams();
     }
 
     @Test
-    void createTeam() {
-        Team newTeam = new Team();
-        newTeam.setName("Gamma");
-        newTeam.setManager(sampleManager);
+    void getTeamById_WhenTeamExists_ShouldReturnTeamDTO() {
+        // Given
+        when(teamService.getTeamById(1)).thenReturn(Optional.of(teamDTO1));
 
-        Team saved = new Team();
-        saved.setId(3);
-        saved.setName("Gamma");
-        saved.setManager(sampleManager);
+        // When
+        ResponseEntity<TeamDTO> response = teamController.getTeamById(1);
 
-        when(teamService.saveTeam(any(Team.class))).thenReturn(saved);
-
-        ResponseEntity<Team> response = teamController.createTeam(newTeam);
-        assertEquals(201, response.getStatusCodeValue());
-        assertEquals("Gamma", response.getBody().getName());
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Alpha", response.getBody().getName());
+        verify(teamService).getTeamById(1);
     }
 
     @Test
-    void updateTeam() {
-        Team existing = new Team();
-        existing.setId(4);
-        existing.setName("Old");
-        existing.setManager(sampleManager);
+    void getTeamById_WhenTeamNotExists_ShouldReturnNotFound() {
+        // Given
+        when(teamService.getTeamById(999)).thenReturn(Optional.empty());
 
-        Team updated = new Team();
-        updated.setId(4);
-        updated.setName("Updated");
-        updated.setManager(sampleManager);
+        // When
+        ResponseEntity<TeamDTO> response = teamController.getTeamById(999);
 
-        when(teamService.getTeamById(4)).thenReturn(Optional.of(existing));
-        when(teamService.updateTeam(any(Team.class))).thenReturn(updated);
-
-        ResponseEntity<Team> response = teamController.updateTeam(4, updated);
-        assertEquals("Updated", response.getBody().getName());
+        // Then
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+        verify(teamService).getTeamById(999);
     }
 
     @Test
-    void deleteTeam() {
-        Team team = new Team();
-        team.setId(5);
-        team.setName("ToDelete");
-        team.setManager(sampleManager);
+    void createTeam_ShouldReturnCreatedTeamDTO() {
+        // Given
+        TeamDTO newTeam = new TeamDTO();
+        newTeam.setName("New Team");
+        newTeam.setManagerId(1);
+        newTeam.setIsActive(true);
 
-        when(teamService.getTeamById(5)).thenReturn(Optional.of(team));
-        doNothing().when(teamService).deleteTeam(5);
+        when(teamService.saveTeam(any(TeamDTO.class))).thenReturn(teamDTO1);
 
-        ResponseEntity<Void> response = teamController.deleteTeam(5);
-        assertEquals(204, response.getStatusCodeValue());
+        // When
+        ResponseEntity<TeamDTO> response = teamController.createTeam(newTeam);
+
+        // Then
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertNotNull(response.getBody());
+        verify(teamService).saveTeam(any(TeamDTO.class));
     }
 
     @Test
-    void getActiveTeams() {
-        Team activeTeam = new Team();
-        activeTeam.setId(6);
-        activeTeam.setName("Active");
-        activeTeam.setIsActive(true);
-        activeTeam.setManager(sampleManager);
+    void updateTeam_WhenTeamExists_ShouldReturnUpdatedTeamDTO() {
+        // Given
+        TeamDTO updateDTO = new TeamDTO();
+        updateDTO.setName("Updated Alpha");
+        updateDTO.setManagerId(1);
+        updateDTO.setIsActive(true);
 
-        when(teamService.getActiveTeams()).thenReturn(List.of(activeTeam));
+        when(teamService.getTeamById(1)).thenReturn(Optional.of(teamDTO1));
+        when(teamService.updateTeam(any(TeamDTO.class))).thenReturn(updateDTO);
 
-        ResponseEntity<List<Team>> response = teamController.getActiveTeams();
-        assertTrue(response.getBody().get(0).getIsActive());
+        // When
+        ResponseEntity<TeamDTO> response = teamController.updateTeam(1, updateDTO);
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Updated Alpha", response.getBody().getName());
+        verify(teamService).updateTeam(any(TeamDTO.class));
     }
 
     @Test
-    void getTeamsByActiveStatus() {
-        Team inactiveTeam = new Team();
-        inactiveTeam.setId(7);
-        inactiveTeam.setName("Inactive");
-        inactiveTeam.setIsActive(false);
-        inactiveTeam.setManager(sampleManager);
+    void updateTeam_WhenTeamNotExists_ShouldReturnNotFound() {
+        // Given
+        when(teamService.getTeamById(999)).thenReturn(Optional.empty());
 
-        when(teamService.getTeamsByActiveStatus(false)).thenReturn(List.of(inactiveTeam));
+        // When
+        ResponseEntity<TeamDTO> response = teamController.updateTeam(999, new TeamDTO());
 
-        ResponseEntity<List<Team>> response = teamController.getTeamsByActiveStatus(false);
+        // Then
+        assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
+    }
+
+    @Test
+    void deleteTeam_WhenTeamExists_ShouldReturnNoContent() {
+        // Given
+        when(teamService.getTeamById(1)).thenReturn(Optional.of(teamDTO1));
+        doNothing().when(teamService).deleteTeam(1);
+
+        // When
+        ResponseEntity<Void> response = teamController.deleteTeam(1);
+
+        // Then
+        assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        verify(teamService).deleteTeam(1);
+    }
+
+    @Test
+    void getActiveTeams_ShouldReturnOnlyActiveTeams() {
+        // Given
+        List<TeamDTO> activeTeams = Arrays.asList(teamDTO1, teamDTO2);
+        when(teamService.getActiveTeams()).thenReturn(activeTeams);
+
+        // When
+        ResponseEntity<List<TeamDTO>> response = teamController.getActiveTeams();
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(2, response.getBody().size());
+        assertTrue(response.getBody().stream().allMatch(TeamDTO::getIsActive));
+        verify(teamService).getActiveTeams();
+    }
+
+    @Test
+    void getTeamsByActiveStatus_ShouldReturnFilteredTeams() {
+        // Given
+        when(teamService.getTeamsByActiveStatus(false)).thenReturn(List.of(teamDTO3));
+
+        // When
+        ResponseEntity<List<TeamDTO>> response = teamController.getTeamsByActiveStatus(false);
+
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertFalse(response.getBody().get(0).getIsActive());
+        verify(teamService).getTeamsByActiveStatus(false);
     }
 
     @Test
-    void getTeamByName() {
-        Team team = new Team();
-        team.setId(8);
-        team.setName("Zespół X");
-        team.setManager(sampleManager);
+    void getTeamByName_WhenTeamExists_ShouldReturnTeamDTO() {
+        // Given
+        when(teamService.getTeamByName("Alpha")).thenReturn(Optional.of(teamDTO1));
 
-        when(teamService.getTeamByName("Zespół X")).thenReturn(Optional.of(team));
+        // When
+        ResponseEntity<TeamDTO> response = teamController.getTeamByName("Alpha");
 
-        ResponseEntity<Object> response = teamController.getTeamByName("Zespół X");
-        assertEquals("Zespół X", team.getName());
-
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals("Alpha", response.getBody().getName());
+        verify(teamService).getTeamByName("Alpha");
     }
 
     @Test
-    void activateTeam() {
-        Team team = new Team();
-        team.setId(9);
-        team.setIsActive(true);
-        team.setManager(sampleManager);
+    void activateTeam_WhenTeamExists_ShouldReturnActivatedTeam() {
+        // Given
+        TeamDTO activatedTeam = new TeamDTO();
+        activatedTeam.setId(1);
+        activatedTeam.setIsActive(true);
+        when(teamService.activateTeam(1)).thenReturn(Optional.of(activatedTeam));
 
-        when(teamService.activateTeam(9)).thenReturn(Optional.of(team));
+        // When
+        ResponseEntity<TeamDTO> response = teamController.activateTeam(1);
 
-        ResponseEntity<Team> response = teamController.activateTeam(9);
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue(response.getBody().getIsActive());
+        verify(teamService).activateTeam(1);
     }
 
     @Test
-    void deactivateTeam() {
-        Team team = new Team();
-        team.setId(10);
-        team.setIsActive(false);
-        team.setManager(sampleManager);
+    void deactivateTeam_WhenTeamExists_ShouldReturnDeactivatedTeam() {
+        // Given
+        TeamDTO deactivatedTeam = new TeamDTO();
+        deactivatedTeam.setId(1);
+        deactivatedTeam.setIsActive(false);
+        when(teamService.deactivateTeam(1)).thenReturn(Optional.of(deactivatedTeam));
 
-        when(teamService.deactivateTeam(10)).thenReturn(Optional.of(team));
+        // When
+        ResponseEntity<TeamDTO> response = teamController.deactivateTeam(1);
 
-        ResponseEntity<Team> response = teamController.deactivateTeam(10);
+        // Then
+        assertEquals(HttpStatus.OK, response.getStatusCode());
         assertFalse(response.getBody().getIsActive());
+        verify(teamService).deactivateTeam(1);
     }
 }
