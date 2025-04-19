@@ -69,5 +69,12 @@ public interface TeamMemberRepository extends JpaRepository<TeamMember, Integer>
     List<TeamMember> findAllByTeam(Team team);
 
     Optional<TeamMember> findById(Long id);
+
+    /**
+     * Usuwa wszystkich członków zespołu przypisanych do konkretnego zespołu.
+     *
+     * @param team Zespół, którego członkowie mają zostać usunięci.
+     */
+    void deleteAllByTeam(Team team);
 }
 

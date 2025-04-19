@@ -91,4 +91,11 @@ public interface TaskRepository extends JpaRepository<Task, Integer> {
      * @return Lista zadań o określonym priorytecie.
      */
     List<Task> findByPriorityId(Integer priorityId);
+
+    /**
+     * Usuwa wszystkie zadania przypisane do konkretnego zespołu.
+     *
+     * @param team Zespół, do którego przypisane są zadania.
+     */
+    void deleteAllByTeam(Team team);
 }
