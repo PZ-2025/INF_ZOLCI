@@ -1,12 +1,14 @@
-package  com.example.backend.controllers;
+package com.example.backend.controllers;
 
-import com.example.backend.models.Team;
+import com.example.backend.dto.TeamDTO;
 import com.example.backend.services.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
 
 /**
@@ -21,7 +23,7 @@ import java.util.List;
  * @since 1.0.0
  */
 @RestController
-@RequestMapping("/database/teams")
+@RequestMapping(value = "/database/teams", produces = MediaType.APPLICATION_JSON_VALUE)
 public class TeamController {
 
     private final TeamService teamService;
@@ -42,8 +44,8 @@ public class TeamController {
      * @return Lista wszystkich zespołów
      */
     @GetMapping
-    public ResponseEntity<List<Team>> getAllTeams() {
-        List<Team> teams = teamService.getAllTeams();
+    public ResponseEntity<List<TeamDTO>> getAllTeams() {
+        List<TeamDTO> teams = teamService.getAllTeams();
         return new ResponseEntity<>(teams, HttpStatus.OK);
     }
 
@@ -54,7 +56,7 @@ public class TeamController {
      * @return Zespół lub status 404, jeśli nie istnieje
      */
     @GetMapping("/{id}")
-    public ResponseEntity<Team> getTeamById(@PathVariable Integer id) {
+    public ResponseEntity<TeamDTO> getTeamById(@PathVariable Integer id) {
         return teamService.getTeamById(id)
                 .map(team -> new ResponseEntity<>(team, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -63,28 +65,28 @@ public class TeamController {
     /**
      * Tworzy nowy zespół.
      *
-     * @param team Dane nowego zespołu
+     * @param teamDTO Dane nowego zespołu
      * @return Utworzony zespół
      */
-    @PostMapping
-    public ResponseEntity<Team> createTeam(@RequestBody Team team) {
-        Team savedTeam = teamService.saveTeam(team);
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TeamDTO> createTeam(@Valid @RequestBody TeamDTO teamDTO) {
+        TeamDTO savedTeam = teamService.saveTeam(teamDTO);
         return new ResponseEntity<>(savedTeam, HttpStatus.CREATED);
     }
 
     /**
      * Aktualizuje istniejący zespół.
      *
-     * @param id   Identyfikator zespołu
-     * @param team Zaktualizowane dane zespołu
+     * @param id      Identyfikator zespołu
+     * @param teamDTO Zaktualizowane dane zespołu
      * @return Zaktualizowany zespół lub status 404, jeśli nie istnieje
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<Team> updateTeam(@PathVariable Integer id, @RequestBody Team team) {
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TeamDTO> updateTeam(@PathVariable Integer id, @Valid @RequestBody TeamDTO teamDTO) {
+        teamDTO.setId(id);
         return teamService.getTeamById(id)
                 .map(existingTeam -> {
-                    team.setId(id);
-                    Team updatedTeam = teamService.updateTeam(team);
+                    TeamDTO updatedTeam = teamService.updateTeam(teamDTO);
                     return new ResponseEntity<>(updatedTeam, HttpStatus.OK);
                 })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -112,8 +114,8 @@ public class TeamController {
      * @return Lista aktywnych zespołów
      */
     @GetMapping("/active")
-    public ResponseEntity<List<Team>> getActiveTeams() {
-        List<Team> activeTeams = teamService.getActiveTeams();
+    public ResponseEntity<List<TeamDTO>> getActiveTeams() {
+        List<TeamDTO> activeTeams = teamService.getActiveTeams();
         return new ResponseEntity<>(activeTeams, HttpStatus.OK);
     }
 
@@ -124,8 +126,8 @@ public class TeamController {
      * @return Lista zespołów o określonym statusie aktywności
      */
     @GetMapping("/status")
-    public ResponseEntity<List<Team>> getTeamsByActiveStatus(@RequestParam boolean isActive) {
-        List<Team> teams = teamService.getTeamsByActiveStatus(isActive);
+    public ResponseEntity<List<TeamDTO>> getTeamsByActiveStatus(@RequestParam boolean isActive) {
+        List<TeamDTO> teams = teamService.getTeamsByActiveStatus(isActive);
         return new ResponseEntity<>(teams, HttpStatus.OK);
     }
 
@@ -136,7 +138,7 @@ public class TeamController {
      * @return Zespół lub status 404, jeśli nie istnieje
      */
     @GetMapping("/name/{name}")
-    public ResponseEntity<Object> getTeamByName(@PathVariable String name) {
+    public ResponseEntity<TeamDTO> getTeamByName(@PathVariable String name) {
         return teamService.getTeamByName(name)
                 .map(team -> new ResponseEntity<>(team, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -149,7 +151,7 @@ public class TeamController {
      * @return Zaktualizowany zespół lub status 404, jeśli nie istnieje
      */
     @PatchMapping("/{id}/activate")
-    public ResponseEntity<Team> activateTeam(@PathVariable Integer id) {
+    public ResponseEntity<TeamDTO> activateTeam(@PathVariable Integer id) {
         return teamService.activateTeam(id)
                 .map(team -> new ResponseEntity<>(team, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -162,7 +164,7 @@ public class TeamController {
      * @return Zaktualizowany zespół lub status 404, jeśli nie istnieje
      */
     @PatchMapping("/{id}/deactivate")
-    public ResponseEntity<Team> deactivateTeam(@PathVariable Integer id) {
+    public ResponseEntity<TeamDTO> deactivateTeam(@PathVariable Integer id) {
         return teamService.deactivateTeam(id)
                 .map(team -> new ResponseEntity<>(team, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));

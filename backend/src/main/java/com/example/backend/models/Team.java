@@ -1,12 +1,9 @@
-package  com.example.backend.models;
+package com.example.backend.models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -51,7 +48,6 @@ public class Team {
      */
     @ManyToOne
     @JoinColumn(name = "manager_id", nullable = false)
-    @JsonBackReference(value = "user-managed-teams")
     private User manager;
 
     /**
@@ -73,16 +69,14 @@ public class Team {
      * Zbiór członków zespołu. Każdy członek zespołu jest powiązany z tym zespołem.
      * Powiązane z encją {@link TeamMember}.
      */
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL)
-    @JsonManagedReference(value = "team-members")
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<TeamMember> members = new HashSet<>();
 
     /**
      * Zbiór zadań przypisanych do tego zespołu.
      * Powiązane z encją {@link Task}.
      */
-    @OneToMany(mappedBy = "team")
-    @JsonBackReference(value = "team-tasks")
+    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Task> tasks = new HashSet<>();
 
     /**
