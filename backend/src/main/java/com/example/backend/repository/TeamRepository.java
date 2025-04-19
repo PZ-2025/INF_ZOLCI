@@ -46,7 +46,7 @@ public interface TeamRepository extends JpaRepository<Team, Integer>
      * @param teamName Nazwa zespołu, który ma zostać znaleziony.
      * @return Opcjonalny zespół o podanej nazwie.
      */
-    Optional<Object> findByName(String teamName);
+    Optional<Team> findByName(String teamName);
 
     List<Team> findByIsActiveTrue();
 }

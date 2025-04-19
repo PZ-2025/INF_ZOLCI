@@ -1,5 +1,6 @@
 package  com.example.backend.controllers;
 
+import com.example.backend.dto.TeamDTO;
 import com.example.backend.models.Team;
 import com.example.backend.models.TeamMember;
 import com.example.backend.models.User;
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class TeamMemberControllerTest {
@@ -66,29 +68,45 @@ class TeamMemberControllerTest {
         verify(userService).getUserById(1);
     }
 
-    @Test
-    void getTeamMembersByTeam_returnsList() {
-        when(teamService.getTeamById(1)).thenReturn(Optional.of(team));
-        when(teamMemberService.getTeamMembersByTeam(team)).thenReturn(List.of(teamMember));
+@Test
+void getTeamMembersByTeam_returnsList() {
+    // Given
+    TeamDTO teamDTO = new TeamDTO();
+    teamDTO.setId(1);
+    teamDTO.setName("Team A");
+    teamDTO.setManagerId(1);
 
-        ResponseEntity<List<TeamMember>> response = teamMemberController.getTeamMembersByTeam(1L);
+    when(teamService.getTeamById(1)).thenReturn(Optional.of(teamDTO));
+    when(teamMemberService.getTeamMembersByTeam(team)).thenReturn(List.of(teamMember)); // używamy team zamiast id
 
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(1, response.getBody().size());
-        verify(teamService).getTeamById(1);
-    }
+    // When
+    ResponseEntity<List<TeamMember>> response = teamMemberController.getTeamMembersByTeam(1L);
 
-    @Test
-    void getTeamMembersByTeamAndActiveStatus_returnsList() {
-        when(teamService.getTeamById(1)).thenReturn(Optional.of(team));
-        when(teamMemberService.getTeamMembersByTeamAndActiveStatus(team, true)).thenReturn(List.of(teamMember));
+    // Then
+    assertEquals(200, response.getStatusCodeValue());
+    assertEquals(1, response.getBody().size());
+    verify(teamService).getTeamById(1);
+}
 
-        ResponseEntity<List<TeamMember>> response = teamMemberController.getTeamMembersByTeamAndActiveStatus(1L, true);
+@Test
+void getTeamMembersByTeamAndActiveStatus_returnsList() {
+    // Given
+    TeamDTO teamDTO = new TeamDTO();
+    teamDTO.setId(1);
+    teamDTO.setName("Team A");
+    teamDTO.setManagerId(1);
 
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(1, response.getBody().size());
-        assertTrue(response.getBody().get(0).getIsActive());
-    }
+    when(teamService.getTeamById(1)).thenReturn(Optional.of(teamDTO));
+    when(teamMemberService.getTeamMembersByTeamAndActiveStatus(team, true)).thenReturn(List.of(teamMember)); // używamy team zamiast id
+
+    // When
+    ResponseEntity<List<TeamMember>> response = teamMemberController.getTeamMembersByTeamAndActiveStatus(1L, true);
+
+    // Then
+    assertEquals(200, response.getStatusCodeValue());
+    assertEquals(1, response.getBody().size());
+    assertTrue(response.getBody().get(0).getIsActive());
+}
 
     @Test
     void createTeamMember_returnsCreated() {

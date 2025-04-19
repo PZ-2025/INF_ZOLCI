@@ -1,5 +1,6 @@
 package  com.example.backend.controllers;
 
+import com.example.backend.dto.TeamDTO;
 import com.example.backend.models.Team;
 import com.example.backend.models.TeamMember;
 import com.example.backend.models.User;
@@ -58,7 +59,9 @@ public class TeamMemberController {
      */
     @GetMapping("/team/{teamId}")
     public ResponseEntity<List<TeamMember>> getTeamMembersByTeam(@PathVariable Long teamId) {
-        Team team = teamService.getTeamById(Math.toIntExact(teamId))
+        TeamDTO teamDTO = teamService.getTeamById(Math.toIntExact(teamId))
+                .orElseThrow(() -> new RuntimeException("Zespół o ID: " + teamId + " nie istnieje"));
+        Team team = teamService.getTeamEntityById(Math.toIntExact(teamId))
                 .orElseThrow(() -> new RuntimeException("Zespół o ID: " + teamId + " nie istnieje"));
         return ResponseEntity.ok(teamMemberService.getTeamMembersByTeam(team));
     }
@@ -74,7 +77,7 @@ public class TeamMemberController {
     public ResponseEntity<List<TeamMember>> getTeamMembersByTeamAndActiveStatus(
             @PathVariable Long teamId,
             @PathVariable boolean isActive) {
-        Team team = teamService.getTeamById(Math.toIntExact(teamId))
+        Team team = teamService.getTeamEntityById(Math.toIntExact(teamId))
                 .orElseThrow(() -> new RuntimeException("Zespół o ID: " + teamId + " nie istnieje"));
         return ResponseEntity.ok(teamMemberService.getTeamMembersByTeamAndActiveStatus(team, isActive));
     }

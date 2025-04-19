@@ -111,9 +111,9 @@ public class DataBuildConfig  {
 
             // Usuwamy członkostwa w zespołach testowych
             for (String teamName : devTeamNames) {
-                Optional<Object> teamOptional = teamRepository.findByName(teamName);
-                if (teamOptional.isPresent() && teamOptional.get() instanceof Team) {
-                    Team team = (Team) teamOptional.get();
+                Optional<Team> teamOptional = teamRepository.findByName(teamName);
+                if (teamOptional.isPresent()) {
+                    Team team = teamOptional.get();
                     List<TeamMember> members = teamMemberRepository.findAllByTeam(team);
                     if (!members.isEmpty()) {
                         System.out.println("Usuwam " + members.size() + " członków zespołu: " + teamName);

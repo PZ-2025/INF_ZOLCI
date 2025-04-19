@@ -1,7 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import { reactive } from 'vue';
+
 import Teams from '@/components/Teams.vue';
-import AllEmployees from '@/components/Teams.vue';
+import AllEmployees from '@/components/AllEmployees.vue';
 import LoginForm from '@/components/LoginForm.vue';
 import RaportGenerate from '@/components/RaportGenerate.vue';
 import SystemConf from '@/components/SystemConf.vue';
@@ -13,20 +14,20 @@ import AllUsers from '@/components/AllUsers.vue';
 
 export const authState = reactive({
   isAuthenticated: false,
-  user: null, 
+  user: null,
 });
 
 const routes = [
-  { path: "/", component: LoginForm }, 
-  { path: "/teams", component: Teams, meta: { requiresAuth: true, roles: ['employee', 'manager'] } },
-  { path: '/allemployees', component: AllEmployees, meta: { requiresAuth: true, roles: ['manager'] } },
-  { path: '/raportgenerate', component: RaportGenerate, meta: { requiresAuth: true, roles: ['manager'] } },
-  { path: '/systemconf', component: SystemConf, meta: { requiresAuth: true, roles: ['manager'] } },
-  { path: '/taskshistory', component: TasksHistory, meta: { requiresAuth: true, roles: ['manager'] } },
-  { path: "/teamdetails", component: TeamDetails, meta: { requiresAuth: true, roles: ['employee', 'manager'] } },
-  { path: "/teamtasks", component: TeamsTasks, meta: { requiresAuth: true, roles: ['employee', 'manager'] } },
-  { path: '/settings', component: UserSettings, meta: { requiresAuth: true, roles: ['employee', 'manager'] } },
-  { path: '/allusers', component: AllUsers, meta: { requiresAuth: true, roles: ['manager'] } },
+  { path: "/", component: LoginForm },
+  { path: "/teams", name: "teams", component: Teams, meta: { requiresAuth: true }, props: true },
+  { path: "/teamdetails/:id", name: "teamDetails", component: TeamDetails, props: true },
+  { path: "/teamtasks/:id", name: "teamTasks", component: TeamsTasks, props: true, meta: { requiresAuth: true } },
+  { path: '/allemployees', name: "allEmployees", component: AllEmployees, meta: { requiresAuth: true, roles: ['manager'] } },
+  { path: '/raportgenerate', name: "raportGenerate", component: RaportGenerate, meta: { requiresAuth: true, roles: ['manager'] } },
+  { path: '/systemconf', name: "systemConf", component: SystemConf, meta: { requiresAuth: true, roles: ['manager'] } },
+  { path: '/taskshistory', name: "tasksHistory", component: TasksHistory, meta: { requiresAuth: true } },
+  { path: '/settings', name: "userSettings", component: UserSettings, meta: { requiresAuth: true } },
+  { path: '/allusers', name: "allUsers", component: AllUsers, meta: { requiresAuth: true, roles: ['manager'] } },
 ];
 
 const router = createRouter({
@@ -34,8 +35,14 @@ const router = createRouter({
   routes,
 });
 
-// Navigation guard
 router.beforeEach((to, from, next) => {
+  console.log(`Router: nawigacja z "${from.path}" do "${to.path}"`);
+  console.log("Parametry trasy:", to.params);
+
+  if (to.name === 'teamDetails' || to.path.startsWith('/teamdetails/')) {
+    console.log("DEBUG - TeamDetails route - ID param:", to.params.id);
+  }
+
   if (to.meta.requiresAuth) {
     if (!authState.isAuthenticated) {
       return next('/');
