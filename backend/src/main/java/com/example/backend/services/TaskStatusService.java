@@ -29,21 +29,22 @@ import java.util.stream.Collectors;
 public class TaskStatusService {
 
     private final TaskStatusRepository taskStatusRepository;
+    private final TaskRepository taskRepository;
 
-    @Autowired
-    private TaskRepository taskRepository; // dodaj tę zależność
-
-    @Value("${task.default-status-id:1}") // dodaj właściwość w application.properties
+    @Value("${task.default-status-id:1}")
     private Integer defaultStatusId;
 
     /**
-     * Konstruktor wstrzykujący zależność do repozytorium statusów zadań.
+     * Konstruktor wstrzykujący zależności do repozytoriów.
      *
      * @param taskStatusRepository Repozytorium statusów zadań
+     * @param taskRepository        Repozytorium zadań
      */
     @Autowired
-    public TaskStatusService(TaskStatusRepository taskStatusRepository) {
+    public TaskStatusService(TaskStatusRepository taskStatusRepository, 
+                              TaskRepository taskRepository) {
         this.taskStatusRepository = taskStatusRepository;
+        this.taskRepository = taskRepository;
     }
 
     private TaskStatusDTO mapToDTO(TaskStatus status) {
