@@ -1,9 +1,11 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.TaskHistoryDTO;
 import com.example.backend.models.Task;
 import com.example.backend.models.TaskHistory;
 import com.example.backend.models.User;
 import com.example.backend.repository.TaskHistoryRepository;
+import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Serwis obsługujący operacje dla encji {@link TaskHistory}.
@@ -28,69 +31,134 @@ import java.util.Optional;
 public class TaskHistoryService {
 
     private final TaskHistoryRepository taskHistoryRepository;
+    private final UserRepository userRepository;
 
     /**
      * Konstruktor wstrzykujący zależność do repozytorium historii zadań.
      *
      * @param taskHistoryRepository Repozytorium historii zadań
+     * @param userRepository Repozytorium użytkowników
      */
     @Autowired
-    public TaskHistoryService(TaskHistoryRepository taskHistoryRepository) {
+    public TaskHistoryService(TaskHistoryRepository taskHistoryRepository,
+                              UserRepository userRepository) {
         this.taskHistoryRepository = taskHistoryRepository;
+        this.userRepository = userRepository;
     }
 
     /**
-     * Pobiera wszystkie wpisy historii zmian zadań.
+     * Mapuje encję TaskHistory na obiekt DTO.
      *
-     * @return Lista wszystkich wpisów historii
+     * @param taskHistory Encja do mapowania
+     * @return Obiekt DTO reprezentujący historię zmian zadania
      */
-    public List<TaskHistory> getAllTaskHistory() {
-        return taskHistoryRepository.findAll();
+    private TaskHistoryDTO mapToDTO(TaskHistory taskHistory) {
+        if (taskHistory == null) return null;
+
+        TaskHistoryDTO dto = new TaskHistoryDTO();
+        dto.setId(taskHistory.getId());
+
+        if (taskHistory.getTask() != null) {
+            dto.setTaskId(taskHistory.getTask().getId());
+        }
+
+        dto.setChangedById(taskHistory.getChangedBy());
+        dto.setFieldName(taskHistory.getFieldName());
+        dto.setOldValue(taskHistory.getOldValue());
+        dto.setNewValue(taskHistory.getNewValue());
+        dto.setChangedAt(taskHistory.getChangedAt());
+
+        // Add user-related display fields if available
+        userRepository.findById(taskHistory.getChangedBy()).ifPresent(user -> {
+            dto.setChangedByUsername(user.getUsername());
+            dto.setChangedByFullName(user.getFirstName() + " " + user.getLastName());
+        });
+
+        return dto;
     }
 
     /**
-     * Pobiera wpis historii na podstawie jego identyfikatora.
+     * Mapuje obiekt DTO na encję TaskHistory.
+     *
+     * @param dto Obiekt DTO do mapowania
+     * @param task Zadanie, którego dotyczy historia
+     * @return Encja reprezentująca historię zmian zadania
+     */
+    private TaskHistory mapToEntity(TaskHistoryDTO dto, Task task) {
+        if (dto == null) return null;
+
+        TaskHistory entity = new TaskHistory();
+        entity.setId(dto.getId());
+        entity.setTask(task);
+        entity.setChangedBy(dto.getChangedById());
+        entity.setFieldName(dto.getFieldName());
+        entity.setOldValue(dto.getOldValue());
+        entity.setNewValue(dto.getNewValue());
+        entity.setChangedAt(dto.getChangedAt() != null ? dto.getChangedAt() : LocalDateTime.now());
+
+        return entity;
+    }
+
+    /**
+     * Pobiera wszystkie wpisy historii zmian zadań jako DTO.
+     *
+     * @return Lista wszystkich wpisów historii jako DTO
+     */
+    public List<TaskHistoryDTO> getAllTaskHistory() {
+        return taskHistoryRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Pobiera wpis historii na podstawie jego identyfikatora jako DTO.
      *
      * @param id Identyfikator wpisu historii
-     * @return Opcjonalny wpis historii, jeśli istnieje
+     * @return Opcjonalny wpis historii jako DTO, jeśli istnieje
      */
-    public Optional<TaskHistory> getTaskHistoryById(Integer id) {
-        return taskHistoryRepository.findById(id);
+    public Optional<TaskHistoryDTO> getTaskHistoryById(Integer id) {
+        return taskHistoryRepository.findById(id)
+                .map(this::mapToDTO);
     }
 
     /**
-     * Pobiera historię zmian dla określonego zadania.
+     * Pobiera historię zmian dla określonego zadania jako DTO.
      *
      * @param task Zadanie, którego historia ma zostać pobrana
-     * @return Lista wpisów historii dla zadania
+     * @return Lista wpisów historii dla zadania jako DTO
      */
-    public List<TaskHistory> getHistoryByTask(Task task) {
-        return taskHistoryRepository.findByTask(task);
+    public List<TaskHistoryDTO> getHistoryByTask(Task task) {
+        return taskHistoryRepository.findByTask(task).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Pobiera historię zmian dokonanych przez określonego użytkownika.
+     * Pobiera historię zmian dokonanych przez określonego użytkownika jako DTO.
      *
      * @param user Użytkownik, którego historia zmian ma zostać pobrana
-     * @return Lista wpisów historii dokonanych przez użytkownika
+     * @return Lista wpisów historii dokonanych przez użytkownika jako DTO
      */
-    public List<TaskHistory> getHistoryByUser(User user) {
-        return taskHistoryRepository.findByChangedBy(user);
+    public List<TaskHistoryDTO> getHistoryByUser(User user) {
+        return taskHistoryRepository.findByChangedBy(user).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Zapisuje nowy wpis historii lub aktualizuje istniejący.
-     * <p>
-     * Jeśli wpis jest nowy (bez identyfikatora), automatycznie ustawia datę zmiany.
+     * Zapisuje nowy wpis historii lub aktualizuje istniejący na podstawie DTO.
      *
-     * @param taskHistory Wpis historii do zapisania
-     * @return Zapisany wpis historii
+     * @param taskHistoryDTO DTO wpisu historii do zapisania
+     * @param task Zadanie, którego dotyczy wpis historii
+     * @return Zapisany wpis historii jako DTO
      */
-    public TaskHistory saveTaskHistory(TaskHistory taskHistory) {
+    public TaskHistoryDTO saveTaskHistory(TaskHistoryDTO taskHistoryDTO, Task task) {
+        TaskHistory taskHistory = mapToEntity(taskHistoryDTO, task);
         if (taskHistory.getChangedAt() == null) {
             taskHistory.setChangedAt(LocalDateTime.now());
         }
-        return taskHistoryRepository.save(taskHistory);
+        TaskHistory savedHistory = taskHistoryRepository.save(taskHistory);
+        return mapToDTO(savedHistory);
     }
 
     /**
@@ -101,19 +169,20 @@ public class TaskHistoryService {
      * @param fieldName Nazwa zmienionego pola
      * @param oldValue  Stara wartość pola
      * @param newValue  Nowa wartość pola
-     * @return Utworzony wpis historii
+     * @return Utworzony wpis historii jako DTO
      */
-    public TaskHistory logTaskChange(Task task, User user, String fieldName,
-                                     String oldValue, String newValue) {
+    public TaskHistoryDTO logTaskChange(Task task, User user, String fieldName,
+                                        String oldValue, String newValue) {
         TaskHistory history = new TaskHistory();
         history.setTask(task);
-        history.setChangedBy(user.getId());  // This is now correct since we changed the model field type
+        history.setChangedBy(user.getId());
         history.setFieldName(fieldName);
         history.setOldValue(oldValue);
         history.setNewValue(newValue);
         history.setChangedAt(LocalDateTime.now());
 
-        return taskHistoryRepository.save(history);
+        TaskHistory savedHistory = taskHistoryRepository.save(history);
+        return mapToDTO(savedHistory);
     }
 
     /**
