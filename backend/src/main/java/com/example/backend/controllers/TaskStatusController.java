@@ -24,9 +24,7 @@ import java.util.Map;
  * @since 1.0.0
  */
 @RestController
-@RequestMapping(value = "/database/task-statuses",
-                consumes = MediaType.APPLICATION_JSON_VALUE,
-                produces = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping("/database/task-statuses")
 public class TaskStatusController {
 
     private final TaskStatusService taskStatusService;
@@ -46,7 +44,7 @@ public class TaskStatusController {
      *
      * @return Lista wszystkich statusów zadań
      */
-    @GetMapping
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaskStatusDTO>> getAllTaskStatuses() {
         List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatuses();
         return new ResponseEntity<>(statuses, HttpStatus.OK);
@@ -57,7 +55,7 @@ public class TaskStatusController {
      *
      * @return Lista statusów zadań posortowanych według kolejności wyświetlania
      */
-    @GetMapping("/sorted")
+    @GetMapping(value = "/sorted", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaskStatusDTO>> getAllTaskStatusesSorted() {
         List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatusesSorted();
         return new ResponseEntity<>(statuses, HttpStatus.OK);
@@ -92,7 +90,8 @@ public class TaskStatusController {
      * @param taskStatus Dane nowego statusu zadania
      * @return Utworzony status zadania
      */
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, 
+                produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskStatusDTO> createTaskStatus(@Valid @RequestBody TaskStatusDTO taskStatus) {
         if (taskStatusService.existsByName(taskStatus.getName())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
