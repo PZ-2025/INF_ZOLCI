@@ -132,7 +132,7 @@ public class Task {
      * Relacja jednokierunkowa - jedno {@code Task} może mieć wiele {@code TaskComment}.
      */
     @OneToMany(mappedBy = "task")
-    @JsonIgnore
+//    @JsonIgnore
     private Set<TaskComment> comments = new HashSet<>();
 
     /**
@@ -140,7 +140,7 @@ public class Task {
      * Relacja jednokierunkowa - jedno {@code Task} może mieć wiele {@code TaskHistory}.
      */
     @OneToMany(mappedBy = "task")
-    @JsonIgnore
+//    @JsonIgnore
     private Set<TaskHistory> history = new HashSet<>();
 
     /**
