@@ -1,5 +1,6 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -66,7 +67,7 @@ public class TaskStatus {
      * Powiązane z encją {@link Task}.
      */
     @OneToMany(mappedBy = "status")
-    @JsonManagedReference(value = "status-tasks")
+    @JsonIgnore
     private Set<Task> tasks = new HashSet<>();
 
     /**
