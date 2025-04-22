@@ -1,6 +1,6 @@
-package  com.example.backend.controllers;
+package com.example.backend.controllers;
 
-import com.example.backend.dto.TeamDTO;
+import com.example.backend.dto.TeamMemberDTO;
 import com.example.backend.models.Team;
 import com.example.backend.models.TeamMember;
 import com.example.backend.models.User;
@@ -9,9 +9,11 @@ import com.example.backend.services.TeamService;
 import com.example.backend.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 
 /**
@@ -28,39 +30,19 @@ import java.util.List;
 public class TeamMemberController {
 
     private final TeamMemberService teamMemberService;
-    private final UserService userService;
     private final TeamService teamService;
 
     @Autowired
     public TeamMemberController(TeamMemberService teamMemberService, UserService userService, TeamService teamService) {
         this.teamMemberService = teamMemberService;
-        this.userService = userService;
         this.teamService = teamService;
     }
 
     /**
-     * Pobiera członków zespołu dla danego użytkownika.
-     *
-     * @param userId ID użytkownika
-     * @return ResponseEntity z listą członków zespołu
-     */
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<TeamMember>> getTeamMembersByUser(@PathVariable Long userId) {
-        User user = userService.getUserById(Math.toIntExact(userId))
-                .orElseThrow(() -> new RuntimeException("Użytkownik o ID: " + userId + " nie istnieje"));
-        return ResponseEntity.ok(teamMemberService.getTeamMembersByUser(user));
-    }
-
-    /**
      * Pobiera członków zespołu dla danego zespołu.
-     *
-     * @param teamId ID zespołu
-     * @return ResponseEntity z listą członków zespołu
      */
-    @GetMapping("/team/{teamId}")
-    public ResponseEntity<List<TeamMember>> getTeamMembersByTeam(@PathVariable Long teamId) {
-        TeamDTO teamDTO = teamService.getTeamById(Math.toIntExact(teamId))
-                .orElseThrow(() -> new RuntimeException("Zespół o ID: " + teamId + " nie istnieje"));
+    @GetMapping(value = "/team/{teamId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TeamMemberDTO>> getTeamMembersByTeam(@PathVariable Long teamId) {
         Team team = teamService.getTeamEntityById(Math.toIntExact(teamId))
                 .orElseThrow(() -> new RuntimeException("Zespół o ID: " + teamId + " nie istnieje"));
         return ResponseEntity.ok(teamMemberService.getTeamMembersByTeam(team));
@@ -68,13 +50,9 @@ public class TeamMemberController {
 
     /**
      * Pobiera aktywnych członków zespołu dla danego zespołu.
-     *
-     * @param teamId ID zespołu
-     * @param isActive Status aktywności
-     * @return ResponseEntity z listą członków zespołu
      */
-    @GetMapping("/team/{teamId}/active/{isActive}")
-    public ResponseEntity<List<TeamMember>> getTeamMembersByTeamAndActiveStatus(
+    @GetMapping(value = "/team/{teamId}/active/{isActive}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TeamMemberDTO>> getTeamMembersByTeamAndActiveStatus(
             @PathVariable Long teamId,
             @PathVariable boolean isActive) {
         Team team = teamService.getTeamEntityById(Math.toIntExact(teamId))
@@ -84,70 +62,50 @@ public class TeamMemberController {
 
     /**
      * Tworzy nowego członka zespołu.
-     *
-     * @param teamMember Dane nowego członka zespołu
-     * @return ResponseEntity z utworzonym członkiem zespołu
      */
-    @PostMapping
-    public ResponseEntity<TeamMember> createTeamMember(@RequestBody TeamMember teamMember) {
-        TeamMember createdTeamMember = teamMemberService.saveTeamMember(teamMember);
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TeamMemberDTO> createTeamMember(@Valid @RequestBody TeamMemberDTO teamMemberDTO) {
+        TeamMemberDTO createdTeamMember = teamMemberService.saveTeamMember(teamMemberDTO);
         return new ResponseEntity<>(createdTeamMember, HttpStatus.CREATED);
     }
 
     /**
      * Aktualizuje istniejącego członka zespołu.
-     *
-     * @param id ID członka zespołu
-     * @param teamMemberDetails Dane do aktualizacji
-     * @return ResponseEntity z zaktualizowanym członkiem zespołu
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<TeamMember> updateTeamMember(
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TeamMemberDTO> updateTeamMember(
             @PathVariable Long id,
-            @RequestBody TeamMember teamMemberDetails) {
+            @Valid @RequestBody TeamMemberDTO teamMemberDTO) {
         return teamMemberService.getTeamMemberById(id)
                 .map(existingTeamMember -> {
-                    // Aktualizacja tylko zmienionych pól
-                    if (teamMemberDetails.getUser() != null) {
-                        existingTeamMember.setUser(teamMemberDetails.getUser());
-                    }
-                    if (teamMemberDetails.getTeam() != null) {
-                        existingTeamMember.setTeam(teamMemberDetails.getTeam());
-                    }
-                    if (teamMemberDetails.getIsActive() != null) {
-                        existingTeamMember.setIsActive(teamMemberDetails.getIsActive());
-                    }
-                    // Dodaj aktualizację innych pól, jeśli istnieją
+                    // Zachowujemy ID
+                    teamMemberDTO.setId(Math.toIntExact(id));
 
-                    return ResponseEntity.ok(teamMemberService.saveTeamMember(existingTeamMember));
+                    // Zapisujemy zaktualizowanego członka zespołu
+                    TeamMemberDTO updatedMember = teamMemberService.saveTeamMember(teamMemberDTO);
+                    return ResponseEntity.ok(updatedMember);
                 })
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     /**
      * Usuwa członka zespołu.
-     *
-     * @param id ID członka zespołu
-     * @return ResponseEntity ze statusem operacji
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTeamMember(@PathVariable Long id) {
-        return teamMemberService.getTeamMemberById(id)
-                .map(teamMember -> {
-                    teamMemberService.deleteTeamMember(teamMember);
-                    return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
-                })
-                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        boolean deleted = teamMemberService.deleteTeamMemberById(id);
+        if (deleted) {
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } else {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
     }
 
     /**
      * Pobiera członka zespołu po ID.
-     *
-     * @param id ID członka zespołu
-     * @return ResponseEntity ze znalezionym członkiem zespołu
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<TeamMember> getTeamMemberById(@PathVariable Long id) {
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TeamMemberDTO> getTeamMemberById(@PathVariable Long id) {
         return teamMemberService.getTeamMemberById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
