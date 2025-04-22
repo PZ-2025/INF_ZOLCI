@@ -45,7 +45,7 @@ public class PriorityService {
      * @param priority Encja do mapowania
      * @return Obiekt DTO reprezentujący priorytet
      */
-    private PriorityDTO mapToDTO(Priority priority) {
+    protected PriorityDTO mapToDTO(Priority priority) {
         if (priority == null) return null;
 
         PriorityDTO dto = new PriorityDTO();
@@ -63,7 +63,7 @@ public class PriorityService {
      * @param dto Obiekt DTO do mapowania
      * @return Encja reprezentująca priorytet
      */
-    private Priority mapToEntity(PriorityDTO dto) {
+    protected Priority mapToEntity(PriorityDTO dto) {
         if (dto == null) return null;
 
         Priority priority = new Priority();
