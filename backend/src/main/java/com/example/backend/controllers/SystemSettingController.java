@@ -1,5 +1,6 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dto.UserDTO;
 import com.example.backend.models.SystemSetting;
 import com.example.backend.models.User;
 import com.example.backend.services.SystemSettingService;
@@ -133,7 +134,18 @@ public class SystemSettingController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        Optional<User> userOpt = userService.getUserById(updatedById);
+        Optional<UserDTO> userDtoOpt = userService.getUserById(updatedById);
+        Optional<User> userOpt = userDtoOpt.map(dto -> {
+            User user = new User();
+            user.setId(dto.getId());
+            user.setUsername(dto.getUsername());
+            user.setEmail(dto.getEmail());
+            user.setFirstName(dto.getFirstName());
+            user.setLastName(dto.getLastName());
+            user.setRole(dto.getRole());
+            user.setIsActive(dto.getIsActive());
+            return user;
+        });
         if (userOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
@@ -182,7 +194,18 @@ public class SystemSettingController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        Optional<User> userOpt = userService.getUserById(updatedById);
+        Optional<UserDTO> userDtoOpt = userService.getUserById(updatedById);
+        Optional<User> userOpt = userDtoOpt.map(dto -> {
+            User user = new User();
+            user.setId(dto.getId());
+            user.setUsername(dto.getUsername());
+            user.setEmail(dto.getEmail());
+            user.setFirstName(dto.getFirstName());
+            user.setLastName(dto.getLastName());
+            user.setRole(dto.getRole());
+            user.setIsActive(dto.getIsActive());
+            return user;
+        });
         if (userOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
