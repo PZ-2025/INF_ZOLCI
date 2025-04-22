@@ -103,43 +103,49 @@ public class User {
      * Zespoły, które są zarządzane przez tego użytkownika. Powiązane z encją {@code Team}.
      */
     @OneToMany(mappedBy = "manager")
+    @JsonIgnore
     private List<Team> managedTeams;
 
     /**
      * Członkostwa użytkownika w zespołach. Powiązane z encją {@link TeamMember}.
      */
     @OneToMany(mappedBy = "user")
+    @JsonIgnore
     private Set<TeamMember> teamMemberships = new HashSet<>();
 
     /**
      * Zadania utworzone przez użytkownika. Powiązane z encją {@link Task}.
      */
     @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore
     private Set<Task> createdTasks = new HashSet<>();
 
     /**
      * Komentarze użytkownika w zadaniach. Powiązane z encją {@link TaskComment}.
      */
     @OneToMany(mappedBy = "user")
-    @JsonIgnore // Zachowujemy, bo to relacja lazy-loaded
+    @JsonIgnore
     private Set<TaskComment> comments = new HashSet<>();
 
     /**
      * Historia zmian użytkownika w zadaniach. Powiązane z encją {@link TaskHistory}.
      */
     @OneToMany(mappedBy = "changedBy")
+    @JsonIgnore
     private Set<TaskHistory> taskChanges = new HashSet<>();
 
     /**
      * Raporty utworzone przez użytkownika. Powiązane z encją {@link Report}.
      */
     @OneToMany(mappedBy = "createdBy")
+    @JsonIgnore
     private Set<Report> reports = new HashSet<>();
 
     /**
      * Ustawienia systemowe zaktualizowane przez użytkownika. Powiązane z encją {@code SystemSetting}.
      */
     @OneToMany(mappedBy = "updatedBy")
+    @JsonIgnore
     private Set<SystemSetting> updatedSettings = new HashSet<>();
 
     /**
