@@ -80,21 +80,10 @@ public class PriorityService {
      *
      * @return Lista wszystkich priorytetów jako DTO
      */
-    public List<PriorityDTO> getAllPrioritiesDTO() {
+    public List<PriorityDTO> getAllPriorities() {
         return priorityRepository.findAll().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Pobiera wszystkie priorytety.
-     *
-     * @return Lista wszystkich priorytetów
-     * @deprecated Użyj {@link #getAllPrioritiesDTO()} zamiast tej metody
-     */
-    @Deprecated
-    public List<Priority> getAllPriorities() {
-        return priorityRepository.findAll();
     }
 
     /**
@@ -103,23 +92,10 @@ public class PriorityService {
      *
      * @return Lista priorytetów posortowanych według wartości jako DTO
      */
-    public List<PriorityDTO> getAllPrioritiesSortedByValueDTO() {
+    public List<PriorityDTO> getAllPrioritiesSortedByValue() {
         return priorityRepository.findAll().stream()
                 .sorted(Comparator.comparing(Priority::getValue).reversed())
                 .map(this::mapToDTO)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * Pobiera wszystkie priorytety posortowane według wartości (od najwyższego do najniższego).
-     *
-     * @return Lista priorytetów posortowanych według wartości
-     * @deprecated Użyj {@link #getAllPrioritiesSortedByValueDTO()} zamiast tej metody
-     */
-    @Deprecated
-    public List<Priority> getAllPrioritiesSortedByValue() {
-        return priorityRepository.findAll().stream()
-                .sorted(Comparator.comparing(Priority::getValue).reversed())
                 .collect(Collectors.toList());
     }
 
@@ -129,21 +105,9 @@ public class PriorityService {
      * @param id Identyfikator priorytetu
      * @return Opcjonalny priorytet jako DTO, jeśli istnieje
      */
-    public Optional<PriorityDTO> getPriorityDTOById(Integer id) {
+    public Optional<PriorityDTO> getPriorityById(Integer id) {
         return priorityRepository.findById(id)
                 .map(this::mapToDTO);
-    }
-
-    /**
-     * Pobiera priorytet na podstawie jego identyfikatora.
-     *
-     * @param id Identyfikator priorytetu
-     * @return Opcjonalny priorytet, jeśli istnieje
-     * @deprecated Użyj {@link #getPriorityDTOById(Integer)} zamiast tej metody
-     */
-    @Deprecated
-    public Optional<Priority> getPriorityById(Integer id) {
-        return priorityRepository.findById(id);
     }
 
     /**
@@ -152,21 +116,9 @@ public class PriorityService {
      * @param name Nazwa priorytetu
      * @return Opcjonalny priorytet jako DTO, jeśli istnieje
      */
-    public Optional<PriorityDTO> getPriorityDTOByName(String name) {
+    public Optional<PriorityDTO> getPriorityByName(String name) {
         return priorityRepository.findByName(name)
                 .map(this::mapToDTO);
-    }
-
-    /**
-     * Pobiera priorytet na podstawie jego nazwy.
-     *
-     * @param name Nazwa priorytetu
-     * @return Opcjonalny priorytet, jeśli istnieje
-     * @deprecated Użyj {@link #getPriorityDTOByName(String)} zamiast tej metody
-     */
-    @Deprecated
-    public Optional<Priority> getPriorityByName(String name) {
-        return priorityRepository.findByName(name);
     }
 
     /**
@@ -175,22 +127,10 @@ public class PriorityService {
      * @param priorityDTO DTO priorytetu do zapisania
      * @return Zapisany priorytet jako DTO
      */
-    public PriorityDTO savePriorityDTO(PriorityDTO priorityDTO) {
+    public PriorityDTO savePriority(PriorityDTO priorityDTO) {
         Priority priority = mapToEntity(priorityDTO);
         Priority savedPriority = priorityRepository.save(priority);
         return mapToDTO(savedPriority);
-    }
-
-    /**
-     * Zapisuje nowy priorytet lub aktualizuje istniejący.
-     *
-     * @param priority Priorytet do zapisania
-     * @return Zapisany priorytet
-     * @deprecated Użyj {@link #savePriorityDTO(PriorityDTO)} zamiast tej metody
-     */
-    @Deprecated
-    public Priority savePriority(Priority priority) {
-        return priorityRepository.save(priority);
     }
 
     /**
@@ -201,7 +141,7 @@ public class PriorityService {
      * @param colorCode Kod koloru w formacie HEX
      * @return Utworzony priorytet jako DTO
      */
-    public PriorityDTO createPriorityDTO(String name, Integer value, String colorCode) {
+    public PriorityDTO createPriority(String name, Integer value, String colorCode) {
         Priority priority = new Priority();
         priority.setName(name);
         priority.setValue(value);
@@ -209,25 +149,6 @@ public class PriorityService {
 
         Priority savedPriority = priorityRepository.save(priority);
         return mapToDTO(savedPriority);
-    }
-
-    /**
-     * Tworzy nowy priorytet z podanymi parametrami.
-     *
-     * @param name      Nazwa priorytetu
-     * @param value     Wartość liczbowa priorytetu
-     * @param colorCode Kod koloru w formacie HEX
-     * @return Utworzony priorytet
-     * @deprecated Użyj {@link #createPriorityDTO(String, Integer, String)} zamiast tej metody
-     */
-    @Deprecated
-    public Priority createPriority(String name, Integer value, String colorCode) {
-        Priority priority = new Priority();
-        priority.setName(name);
-        priority.setValue(value);
-        priority.setColorCode(colorCode);
-
-        return priorityRepository.save(priority);
     }
 
     /**
@@ -267,29 +188,12 @@ public class PriorityService {
      * @param colorCode Nowy kod koloru w formacie HEX
      * @return Zaktualizowany priorytet jako DTO lub Optional.empty() jeśli priorytet nie istnieje
      */
-    public Optional<PriorityDTO> updateColorDTO(Integer id, String colorCode) {
+    public Optional<PriorityDTO> updateColor(Integer id, String colorCode) {
         return priorityRepository.findById(id)
                 .map(priority -> {
                     priority.setColorCode(colorCode);
                     Priority updatedPriority = priorityRepository.save(priority);
                     return mapToDTO(updatedPriority);
-                });
-    }
-
-    /**
-     * Aktualizuje kolor priorytetu.
-     *
-     * @param id        Identyfikator priorytetu
-     * @param colorCode Nowy kod koloru w formacie HEX
-     * @return Zaktualizowany priorytet lub Optional.empty() jeśli priorytet nie istnieje
-     * @deprecated Użyj {@link #updateColorDTO(Integer, String)} zamiast tej metody
-     */
-    @Deprecated
-    public Optional<Priority> updateColor(Integer id, String colorCode) {
-        return priorityRepository.findById(id)
-                .map(priority -> {
-                    priority.setColorCode(colorCode);
-                    return priorityRepository.save(priority);
                 });
     }
 }
