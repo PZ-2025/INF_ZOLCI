@@ -1,11 +1,11 @@
 <template>
-  <div class="bg-primary text-white min-h-screen p-6">
-    <h1 class="text-3xl font-bold text-accent mb-6">Historia Zadań</h1>
+  <div class="bg-background text-text min-h-screen p-6">
+    <h1 class="text-3xl font-bold text-primary mb-6">Historia Zadań</h1>
 
-    <div class="flex justify-between items-center mb-6">
-      <div class="flex items-center">
-        <label for="team" class="mr-2 font-medium text-white">Zespół:</label>
-        <select v-model="filters.team" class="p-2 border rounded-md bg-secondary text-white">
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div class="flex flex-col">
+        <label class="mb-1 font-medium">Zespół:</label>
+        <select v-model="filters.team" class="p-2 border border-gray-300 rounded-md bg-white text-text">
           <option value="">Wszystkie</option>
           <option value="frontend">Frontend Devs</option>
           <option value="backend">Backend Engineers</option>
@@ -14,9 +14,9 @@
         </select>
       </div>
 
-      <div class="flex items-center">
-        <label for="priority" class="mr-2 font-medium text-white">Priorytet:</label>
-        <select v-model="filters.priority" class="p-2 border rounded-md bg-secondary text-white">
+      <div class="flex flex-col">
+        <label class="mb-1 font-medium">Priorytet:</label>
+        <select v-model="filters.priority" class="p-2 border border-gray-300 rounded-md bg-white text-text">
           <option value="">Wszystkie</option>
           <option value="high">Wysoki</option>
           <option value="medium">Średni</option>
@@ -24,9 +24,9 @@
         </select>
       </div>
 
-      <div class="flex items-center">
-        <label for="status" class="mr-2 font-medium text-white">Status:</label>
-        <select v-model="filters.status" class="p-2 border rounded-md bg-secondary text-white">
+      <div class="flex flex-col">
+        <label class="mb-1 font-medium">Status:</label>
+        <select v-model="filters.status" class="p-2 border border-gray-300 rounded-md bg-white text-text">
           <option value="">Wszystkie</option>
           <option value="open">Rozpoczęte</option>
           <option value="in_progress">W toku</option>
@@ -34,21 +34,21 @@
         </select>
       </div>
 
-      <div class="flex items-center">
-        <label for="deadline" class="mr-2 font-medium text-white">Deadline:</label>
-        <input type="date" v-model="filters.deadline" class="p-2 border rounded-md bg-secondary text-white" />
+      <div class="flex flex-col">
+        <label class="mb-1 font-medium">Deadline:</label>
+        <input type="date" v-model="filters.deadline" class="p-2 border border-gray-300 rounded-md bg-white text-text" />
       </div>
-
-      <button @click="filterTasks" class="bg-warning text-white p-2 rounded-md hover:bg-danger transition">Filtruj</button>
     </div>
 
+    <button @click="filterTasks" class="mb-6 bg-primary text-white px-6 py-2 rounded-md hover:bg-secondary transition">Filtruj</button>
+
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <div v-for="task in filteredTasks" :key="task.id" class="bg-secondary p-4 rounded-lg shadow-lg flex justify-between items-center hover:scale-105 transition">
+      <div v-for="task in filteredTasks" :key="task.id" class="bg-surface border border-gray-200 p-4 rounded-lg shadow hover:scale-105 transition">
         <div>
-          <h3 class="text-xl font-semibold text-accent">{{ task.name }}</h3>
-          <p class="text-white">{{ task.description }}</p>
+          <h3 class="text-xl font-semibold text-primary">{{ task.name }}</h3>
+          <p class="text-muted">{{ task.description }}</p>
         </div>
-        <button @click="openTaskDetails(task)" class="bg-warning text-white px-4 py-2 rounded-md hover:bg-danger transition">Szczegóły</button>
+        <button @click="openTaskDetails(task)" class="mt-4 bg-primary text-white px-4 py-2 rounded-md hover:bg-secondary transition">Szczegóły</button>
       </div>
     </div>
   </div>

@@ -1,5 +1,6 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,6 +41,7 @@ public class TaskHistory {
      */
     @ManyToOne
     @JoinColumn(name = "task_id", nullable = false)
+    @JsonManagedReference(value = "task-history")
     private Task task;
 
     /**

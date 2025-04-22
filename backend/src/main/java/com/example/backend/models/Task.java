@@ -1,5 +1,9 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -37,9 +41,12 @@ public class Task {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id", nullable = false)
     private Integer id;
+
     @ManyToOne
     @JoinColumn(name = "task_id", referencedColumnName = "id")
+    @JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
     private Task task;
+
     /**
      * Tytuł zadania, np. "Przygotowanie fundamentów".
      * Maksymalna długość: 100 znaków.
@@ -59,6 +66,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "team_id")
+    @JsonManagedReference(value = "team-tasks")
     private Team team;
 
     /**
@@ -67,6 +75,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "priority_id", nullable = false)
+    @JsonBackReference(value = "priority-tasks")
     private Priority priority;
 
     /**
@@ -75,6 +84,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "status_id", nullable = false)
+    @JsonBackReference(value = "status-tasks")
     private TaskStatus status;
 
     /**
@@ -103,6 +113,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "created_by", nullable = false)
+    @JsonManagedReference(value = "user-created-tasks")
     private User createdBy;
 
     /**
@@ -126,6 +137,7 @@ public class Task {
      * Relacja jednokierunkowa - jedno {@code Task} może mieć wiele {@code TaskComment}.
      */
     @OneToMany(mappedBy = "task")
+    @JsonBackReference(value = "task-comments")
     private Set<TaskComment> comments = new HashSet<>();
 
     /**
@@ -133,6 +145,7 @@ public class Task {
      * Relacja jednokierunkowa - jedno {@code Task} może mieć wiele {@code TaskHistory}.
      */
     @OneToMany(mappedBy = "task")
+    @JsonBackReference(value = "task-history")
     private Set<TaskHistory> history = new HashSet<>();
 
     /**

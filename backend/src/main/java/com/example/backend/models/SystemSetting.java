@@ -1,5 +1,6 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -61,6 +62,7 @@ public class SystemSetting {
      */
     @ManyToOne
     @JoinColumn(name = "updated_by")
+    @JsonManagedReference(value = "user-updated-settings")
     private User updatedBy;
 
     /**

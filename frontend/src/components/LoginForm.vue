@@ -1,36 +1,36 @@
 <template>
-  <div class="flex items-center justify-center h-full w-full bg-primary">
-    <div class="bg-primary p-8 rounded-lg shadow-lg w-96">
-      <h2 class="text-2xl font-bold text-center text-white mb-6">BuildTask</h2>
+  <div class="flex items-center justify-center h-full w-full bg-background">
+    <div class="bg-surface p-8 rounded-2xl shadow-xl w-96 border border-gray-200">
+      <h2 class="text-2xl font-bold text-center text-primary mb-6">BuildTask</h2>
 
       <form @submit.prevent="handleLogin">
         <div class="mb-4">
-          <label for="login" class="block text-white font-semibold mb-2">Login</label>
-          <input 
-            type="text" 
-            id="login" 
-            v-model="login" 
-            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent" 
+          <label for="login" class="block text-text font-semibold mb-2">Login</label>
+          <input
+            type="text"
+            id="login"
+            v-model="login"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-text"
             placeholder="Wpisz login"
             required
           >
         </div>
 
         <div class="mb-4">
-          <label for="password" class="block text-white font-semibold mb-2">Hasło</label>
-          <input 
-            type="password" 
-            id="password" 
-            v-model="password" 
-            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-accent" 
+          <label for="password" class="block text-text font-semibold mb-2">Hasło</label>
+          <input
+            type="password"
+            id="password"
+            v-model="password"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-text"
             placeholder="Wpisz hasło"
             required
           >
         </div>
 
-        <button 
-          type="submit" 
-          class="w-full bg-warning hover:bg-danger text-white font-bold py-2 rounded-lg transition"
+        <button
+          type="submit"
+          class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
         >
           Zaloguj
         </button>
@@ -38,6 +38,7 @@
     </div>
   </div>
 </template>
+
 
 <script>
 import { authState } from '../../router/router.js';

@@ -1,5 +1,7 @@
 package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -48,6 +50,7 @@ public class Report {
      */
     @ManyToOne
     @JoinColumn(name = "type_id", nullable = false)
+    @JsonBackReference(value = "report-type")
     private ReportType type;
 
     /**
@@ -56,6 +59,7 @@ public class Report {
      */
     @ManyToOne
     @JoinColumn(name = "created_by", nullable = false)
+    @JsonManagedReference(value = "user-created-reports")
     private User createdBy;
 
     /**
