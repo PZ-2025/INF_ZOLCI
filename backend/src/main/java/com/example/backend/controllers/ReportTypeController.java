@@ -71,7 +71,8 @@ public class ReportTypeController {
         if (reportTypeService.existsByName(reportTypeDTO.getName())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
-        return new ResponseEntity<>(reportTypeService.saveReportType(reportTypeDTO), HttpStatus.CREATED);
+        ReportTypeDTO savedDto = reportTypeService.mapToDTO(reportTypeService.saveReportType(reportTypeDTO));
+        return new ResponseEntity<>(savedDto, HttpStatus.CREATED);
     }
 
     /**
@@ -89,7 +90,8 @@ public class ReportTypeController {
             return ResponseEntity.notFound().build();
         }
         reportTypeDTO.setId(id);
-        return ResponseEntity.ok(reportTypeService.saveReportType(reportTypeDTO));
+        ReportTypeDTO savedDto = reportTypeService.mapToDTO(reportTypeService.saveReportType(reportTypeDTO));
+        return ResponseEntity.ok(savedDto);
     }
 
     /**
