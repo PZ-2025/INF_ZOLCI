@@ -81,21 +81,10 @@ public class TaskStatusService {
      *
      * @return Lista wszystkich statusów zadań jako DTO
      */
-    public List<TaskStatusDTO> getAllTaskStatusesDTO() {
+    public List<TaskStatusDTO> getAllTaskStatuses() {
         return taskStatusRepository.findAll().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Pobiera wszystkie statusy zadań.
-     *
-     * @return Lista wszystkich statusów zadań
-     * @deprecated Użyj {@link #getAllTaskStatusesDTO()} zamiast tej metody
-     */
-    @Deprecated
-    public List<TaskStatus> getAllTaskStatuses() {
-        return taskStatusRepository.findAll();
     }
 
     /**
@@ -103,21 +92,10 @@ public class TaskStatusService {
      *
      * @return Lista statusów zadań posortowanych według kolejności wyświetlania jako DTO
      */
-    public List<TaskStatusDTO> getAllTaskStatusesSortedDTO() {
+    public List<TaskStatusDTO> getAllTaskStatusesSorted() {
         return taskStatusRepository.findAllByOrderByDisplayOrderAsc().stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
-    }
-
-    /**
-     * Pobiera wszystkie statusy zadań posortowane według kolejności wyświetlania.
-     *
-     * @return Lista statusów zadań posortowanych według kolejności wyświetlania
-     * @deprecated Użyj {@link #getAllTaskStatusesSortedDTO()} zamiast tej metody
-     */
-    @Deprecated
-    public List<TaskStatus> getAllTaskStatusesSorted() {
-        return taskStatusRepository.findAllByOrderByDisplayOrderAsc();
     }
 
     /**
@@ -126,21 +104,9 @@ public class TaskStatusService {
      * @param id Identyfikator statusu zadania
      * @return Opcjonalny status zadania jako DTO, jeśli istnieje
      */
-    public Optional<TaskStatusDTO> getTaskStatusDTOById(Integer id) {
+    public Optional<TaskStatusDTO> getTaskStatusById(Integer id) {
         return taskStatusRepository.findById(id)
                 .map(this::mapToDTO);
-    }
-
-    /**
-     * Pobiera status zadania na podstawie jego identyfikatora.
-     *
-     * @param id Identyfikator statusu zadania
-     * @return Opcjonalny status zadania, jeśli istnieje
-     * @deprecated Użyj {@link #getTaskStatusDTOById(Integer)} zamiast tej metody
-     */
-    @Deprecated
-    public Optional<TaskStatus> getTaskStatusById(Integer id) {
-        return taskStatusRepository.findById(id);
     }
 
     /**
@@ -149,21 +115,9 @@ public class TaskStatusService {
      * @param name Nazwa statusu zadania
      * @return Opcjonalny status zadania jako DTO, jeśli istnieje
      */
-    public Optional<TaskStatusDTO> getTaskStatusDTOByName(String name) {
+    public Optional<TaskStatusDTO> getTaskStatusByName(String name) {
         return taskStatusRepository.findByName(name)
                 .map(this::mapToDTO);
-    }
-
-    /**
-     * Pobiera status zadania na podstawie jego nazwy.
-     *
-     * @param name Nazwa statusu zadania
-     * @return Opcjonalny status zadania, jeśli istnieje
-     * @deprecated Użyj {@link #getTaskStatusDTOByName(String)} zamiast tej metody
-     */
-    @Deprecated
-    public Optional<TaskStatus> getTaskStatusByName(String name) {
-        return taskStatusRepository.findByName(name);
     }
 
     /**
@@ -172,22 +126,10 @@ public class TaskStatusService {
      * @param taskStatusDTO DTO statusu zadania do zapisania
      * @return Zapisany status zadania jako DTO
      */
-    public TaskStatusDTO saveTaskStatusDTO(TaskStatusDTO taskStatusDTO) {
+    public TaskStatusDTO saveTaskStatus(TaskStatusDTO taskStatusDTO) {
         TaskStatus taskStatus = mapToEntity(taskStatusDTO);
         TaskStatus savedTaskStatus = taskStatusRepository.save(taskStatus);
         return mapToDTO(savedTaskStatus);
-    }
-
-    /**
-     * Zapisuje nowy status zadania lub aktualizuje istniejący.
-     *
-     * @param taskStatus Status zadania do zapisania
-     * @return Zapisany status zadania
-     * @deprecated Użyj {@link #saveTaskStatusDTO(TaskStatusDTO)} zamiast tej metody
-     */
-    @Deprecated
-    public TaskStatus saveTaskStatus(TaskStatus taskStatus) {
-        return taskStatusRepository.save(taskStatus);
     }
 
     /**
@@ -199,7 +141,7 @@ public class TaskStatusService {
      * @param displayOrder  Kolejność wyświetlania statusu
      * @return Utworzony status zadania jako DTO
      */
-    public TaskStatusDTO createTaskStatusDTO(String name, Integer progressMin,
+    public TaskStatusDTO createTaskStatus(String name, Integer progressMin,
                                              Integer progressMax, Integer displayOrder) {
         TaskStatus taskStatus = new TaskStatus();
         taskStatus.setName(name);
@@ -209,28 +151,6 @@ public class TaskStatusService {
 
         TaskStatus savedTaskStatus = taskStatusRepository.save(taskStatus);
         return mapToDTO(savedTaskStatus);
-    }
-
-    /**
-     * Tworzy nowy status zadania z podanymi parametrami.
-     *
-     * @param name          Nazwa statusu zadania
-     * @param progressMin   Minimalny procent postępu dla tego statusu
-     * @param progressMax   Maksymalny procent postępu dla tego statusu
-     * @param displayOrder  Kolejność wyświetlania statusu
-     * @return Utworzony status zadania
-     * @deprecated Użyj {@link #createTaskStatusDTO(String, Integer, Integer, Integer)} zamiast tej metody
-     */
-    @Deprecated
-    public TaskStatus createTaskStatus(String name, Integer progressMin,
-                                       Integer progressMax, Integer displayOrder) {
-        TaskStatus taskStatus = new TaskStatus();
-        taskStatus.setName(name);
-        taskStatus.setProgressMin(progressMin);
-        taskStatus.setProgressMax(progressMax);
-        taskStatus.setDisplayOrder(displayOrder);
-
-        return taskStatusRepository.save(taskStatus);
     }
 
     /**
@@ -270,29 +190,12 @@ public class TaskStatusService {
      * @param displayOrder Nowa kolejność wyświetlania
      * @return Zaktualizowany status zadania jako DTO lub Optional.empty() jeśli status nie istnieje
      */
-    public Optional<TaskStatusDTO> updateDisplayOrderDTO(Integer id, Integer displayOrder) {
+    public Optional<TaskStatusDTO> updateDisplayOrder(Integer id, Integer displayOrder) {
         return taskStatusRepository.findById(id)
                 .map(status -> {
                     status.setDisplayOrder(displayOrder);
                     TaskStatus updatedStatus = taskStatusRepository.save(status);
                     return mapToDTO(updatedStatus);
-                });
-    }
-
-    /**
-     * Aktualizuje kolejność wyświetlania statusu zadania.
-     *
-     * @param id           Identyfikator statusu zadania
-     * @param displayOrder Nowa kolejność wyświetlania
-     * @return Zaktualizowany status zadania lub Optional.empty() jeśli status nie istnieje
-     * @deprecated Użyj {@link #updateDisplayOrderDTO(Integer, Integer)} zamiast tej metody
-     */
-    @Deprecated
-    public Optional<TaskStatus> updateDisplayOrder(Integer id, Integer displayOrder) {
-        return taskStatusRepository.findById(id)
-                .map(status -> {
-                    status.setDisplayOrder(displayOrder);
-                    return taskStatusRepository.save(status);
                 });
     }
 }
