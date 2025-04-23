@@ -1,4 +1,4 @@
-package  com.example.backend.models;
+package com.example.backend.models;
 
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -37,8 +37,9 @@ public class SystemSetting {
     /**
      * Klucz identyfikujący ustawienie systemowe, np. "system_name".
      * Musi być unikalny i ma maksymalnie 100 znaków.
+     * Użycie `` wokół nazwy key, ponieważ jest to słowo zarezerwowane w SQL.
      */
-    @Column(name = "key", nullable = false, unique = true, length = 100)
+    @Column(name = "`key`", nullable = false, unique = true, length = 100)
     private String key;
 
     /**

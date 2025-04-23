@@ -4,7 +4,6 @@ import com.example.backend.dto.SystemSettingDTO;
 import com.example.backend.models.SystemSetting;
 import com.example.backend.models.User;
 import com.example.backend.repository.SystemSettingRepository;
-import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,19 +28,15 @@ import java.util.stream.Collectors;
 public class SystemSettingService {
 
     private final SystemSettingRepository systemSettingRepository;
-    private final UserRepository userRepository;
 
     /**
      * Konstruktor wstrzykujący zależność do repozytorium ustawień systemowych.
      *
      * @param systemSettingRepository Repozytorium ustawień systemowych
-     * @param userRepository Repozytorium użytkowników
      */
     @Autowired
-    public SystemSettingService(SystemSettingRepository systemSettingRepository,
-                                UserRepository userRepository) {
+    public SystemSettingService(SystemSettingRepository systemSettingRepository) {
         this.systemSettingRepository = systemSettingRepository;
-        this.userRepository = userRepository;
     }
 
     /**
@@ -75,19 +70,32 @@ public class SystemSettingService {
      * Mapuje obiekt DTO na encję SystemSetting.
      *
      * @param dto Obiekt DTO do mapowania
-     * @param updatedBy Użytkownik, który zaktualizował ustawienie
+     * @param updatedBy Użytkownik, który zaktualizował ustawienie (może być null)
      * @return Encja reprezentująca ustawienie systemowe
      */
     private SystemSetting mapToEntity(SystemSettingDTO dto, User updatedBy) {
         if (dto == null) return null;
 
-        SystemSetting entity = new SystemSetting();
-        entity.setId(dto.getId());
+        SystemSetting entity = null;
+
+        // Jeśli ID istnieje, próbujemy znaleźć istniejącą encję
+        if (dto.getId() != null) {
+            entity = systemSettingRepository.findById(dto.getId()).orElse(new SystemSetting());
+        } else {
+            entity = new SystemSetting();
+        }
+
         entity.setKey(dto.getKey());
         entity.setValue(dto.getValue());
         entity.setDescription(dto.getDescription());
         entity.setUpdatedBy(updatedBy);
-        entity.setUpdatedAt(dto.getUpdatedAt() != null ? dto.getUpdatedAt() : LocalDateTime.now());
+
+        // Aktualizuj datę tylko jeśli nie jest ustawiona lub jesteśmy w trybie aktualizacji
+        if (dto.getUpdatedAt() != null) {
+            entity.setUpdatedAt(dto.getUpdatedAt());
+        } else {
+            entity.setUpdatedAt(LocalDateTime.now());
+        }
 
         return entity;
     }
@@ -133,9 +141,21 @@ public class SystemSettingService {
      */
     public SystemSettingDTO saveSystemSetting(SystemSettingDTO systemSettingDTO) {
         User updatedBy = null;
-        if (systemSettingDTO.getUpdatedById() != null) {
-            updatedBy = userRepository.findById(systemSettingDTO.getUpdatedById())
-                    .orElse(null);
+
+        // Próbujemy znaleźć istniejące ustawienie, jeśli podano ID
+        SystemSetting existingEntity = null;
+        if (systemSettingDTO.getId() != null) {
+            existingEntity = systemSettingRepository.findById(systemSettingDTO.getId()).orElse(null);
+        }
+
+        // Jeśli nie znaleziono i klucz istnieje, szukamy po kluczu
+        if (existingEntity == null && systemSettingDTO.getKey() != null) {
+            existingEntity = systemSettingRepository.findByKey(systemSettingDTO.getKey()).orElse(null);
+        }
+
+        // Jeśli istnieje i ma updatedBy, zachowujemy tę wartość
+        if (existingEntity != null && existingEntity.getUpdatedBy() != null) {
+            updatedBy = existingEntity.getUpdatedBy();
         }
 
         SystemSetting entity = mapToEntity(systemSettingDTO, updatedBy);
