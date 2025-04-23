@@ -43,13 +43,6 @@ const apiService = {
     },
 
     /**
-     * Zwraca bazowy URL API
-     */
-    getBaseUrl() {
-        return this.apiUrl.value;
-    },
-
-    /**
      * Prosta metoda do sprawdzenia połączenia
      */
     async checkConnection() {
@@ -139,104 +132,6 @@ const apiService = {
             throw error;
         }
     },
-
-    /**
-     * Generic POST request method
-     * @param {string} endpoint - API endpoint path
-     * @param {Object} data - Request body
-     * @returns {Promise} - Promise resolving to the response data
-     */
-    async post(endpoint, data = {}) {
-        await this.ensureInit();
-
-        const url = `${this.apiUrl.value}${endpoint}`;
-
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status} ${response.statusText}`);
-            }
-
-            this.isConnected.value = true;
-            return await response.json();
-        } catch (error) {
-            console.error(`Error posting to ${endpoint}:`, error);
-            this.isConnected.value = false;
-            this.lastError.value = error;
-            throw error;
-        }
-    },
-
-    /**
-     * Generic PUT request method
-     * @param {string} endpoint - API endpoint path
-     * @param {Object} data - Request body
-     * @returns {Promise} - Promise resolving to the response data
-     */
-    async put(endpoint, data = {}) {
-        await this.ensureInit();
-
-        const url = `${this.apiUrl.value}${endpoint}`;
-
-        try {
-            const response = await fetch(url, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(data),
-            });
-
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status} ${response.statusText}`);
-            }
-
-            this.isConnected.value = true;
-            return await response.json();
-        } catch (error) {
-            console.error(`Error putting to ${endpoint}:`, error);
-            this.isConnected.value = false;
-            this.lastError.value = error;
-            throw error;
-        }
-    },
-
-    /**
-     * Generic DELETE request method
-     * @param {string} endpoint - API endpoint path
-     * @returns {Promise} - Promise resolving to the response data
-     */
-    async delete(endpoint) {
-        await this.ensureInit();
-
-        const url = `${this.apiUrl.value}${endpoint}`;
-
-        try {
-            const response = await fetch(url, {
-                method: 'DELETE',
-            });
-
-            if (!response.ok) {
-                throw new Error(`API Error: ${response.status} ${response.statusText}`);
-            }
-
-            this.isConnected.value = true;
-            return await response.json();
-        } catch (error) {
-            console.error(`Error deleting at ${endpoint}:`, error);
-            this.isConnected.value = false;
-            this.lastError.value = error;
-            throw error;
-        }
-    },
-
     /**
      * Ensure the API service is initialized
      * @private
