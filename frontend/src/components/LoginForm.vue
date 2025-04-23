@@ -27,6 +27,8 @@
           >
         </div>
 
+        <p v-if="errorMessage" class="text-red-500 text-sm mb-4">{{ errorMessage }}</p>
+
         <button
           type="submit"
           class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
@@ -48,10 +50,10 @@ export default {
     return {
       login: '',
       password: '',
+      errorMessage: '', // Add a reactive property for error messages
     };
   },
   methods: {
-    // przykładowi użytkownicy
     handleLogin() {
       const users = [
         { name: 'Jan Kowalski', login: 'jan', password: '1234', role: 'employee' },
@@ -63,8 +65,9 @@ export default {
         authState.isAuthenticated = true;
         authState.user = user;
         this.$router.push('/teams');
+        this.errorMessage = ''; // Clear error message on successful login
       } else {
-        alert('Invalid login or password');
+        this.errorMessage = 'Invalid login or password'; // Set error message
       }
     },
   },
