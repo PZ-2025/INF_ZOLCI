@@ -57,7 +57,7 @@ const apiService = {
             }
 
             // Użyj pełnego adresu do sprawdzenia połączenia
-            const checkUrl = `${this.apiUrl.value}/database/users`;
+            const checkUrl = `${this.apiUrl.value}/api/health`;
             console.log("Sprawdzanie połączenia z:", checkUrl);
 
             // Timeout + próba połączenia
