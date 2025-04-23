@@ -1,8 +1,7 @@
 <template>
   <div class="flex items-center justify-center h-full w-full bg-background">
     <div class="bg-surface p-8 rounded-2xl shadow-xl w-96 border border-gray-200">
-      <h2 class="text-2xl font-bold text-center text-primary mb-6">BuildTask</h2>
-
+      <img src="/src/assets/buildtask_logo_full.png" alt="BuildTask" />
       <form @submit.prevent="handleLogin">
         <div class="mb-4">
           <label for="login" class="block text-text font-semibold mb-2">Login</label>
