@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-screen bg-background text-text flex justify-center items-start px-4 py-10">
-    <div class="bg-surface rounded-lg shadow-md border border-gray-200 p-6 w-full max-w-6xl space-y-8">
+    <div class="bg-surface rounded-lg shadow-md border border-gray-200 p-6 w-full space-y-8">
 
       <h1 class="text-3xl font-bold text-primary">Historia Zadań</h1>
 
