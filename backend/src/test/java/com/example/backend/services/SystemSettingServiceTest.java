@@ -18,7 +18,6 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -155,7 +154,17 @@ class SystemSettingServiceTest {
     void saveSystemSetting_WithExistingId_ShouldUpdateAndSave() {
         // Arrange
         when(systemSettingRepository.findById(1)).thenReturn(Optional.of(systemSetting));
-        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(systemSetting);
+
+        // Set up mock to return an updated value when save is called
+        SystemSetting updatedSetting = new SystemSetting();
+        updatedSetting.setId(1);
+        updatedSetting.setKey("app.name");
+        updatedSetting.setValue("UpdatedValue");
+        updatedSetting.setDescription("Application name");
+        updatedSetting.setUpdatedBy(user);
+        updatedSetting.setUpdatedAt(LocalDateTime.now());
+
+        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(updatedSetting);
 
         // Update value in DTO
         systemSettingDTO.setValue("UpdatedValue");
@@ -166,22 +175,31 @@ class SystemSettingServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals("app.name", result.getKey());
-        assertEquals("BuildTask", result.getValue()); // Mock returns original setting
+        assertEquals("UpdatedValue", result.getValue()); // Now expecting the updated value
         verify(systemSettingRepository).save(any(SystemSetting.class));
     }
 
     @Test
     void saveSystemSetting_WithExistingKey_ShouldUpdateAndSave() {
         // Arrange
-        when(systemSettingRepository.findById(anyInt())).thenReturn(Optional.empty());
-        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(systemSetting));
-        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(systemSetting);
-
-        // Create DTO with existing key but no ID
+        // Prepare a DTO with an existing key but no ID
         SystemSettingDTO existingKeyDTO = new SystemSettingDTO();
-        existingKeyDTO.setKey("app.name");
+        existingKeyDTO.setKey("app.name");  // Existing key
         existingKeyDTO.setValue("UpdatedValue");
         existingKeyDTO.setUpdatedById(1);
+
+        // Set up mock to find setting by key
+        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(systemSetting));
+
+        // Set up mock to return updated setting when saved
+        SystemSetting updatedSetting = new SystemSetting();
+        updatedSetting.setId(1);
+        updatedSetting.setKey("app.name");
+        updatedSetting.setValue("UpdatedValue");
+        updatedSetting.setDescription("Application name");
+        updatedSetting.setUpdatedBy(user);
+        updatedSetting.setUpdatedAt(LocalDateTime.now());
+        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(updatedSetting);
 
         // Act
         SystemSettingDTO result = systemSettingService.saveSystemSetting(existingKeyDTO);
@@ -189,7 +207,7 @@ class SystemSettingServiceTest {
         // Assert
         assertNotNull(result);
         assertEquals("app.name", result.getKey());
-        assertEquals("BuildTask", result.getValue()); // Mock returns original setting
+        assertEquals("UpdatedValue", result.getValue());
         verify(systemSettingRepository).save(any(SystemSetting.class));
     }
 
@@ -214,7 +232,17 @@ class SystemSettingServiceTest {
     void updateValue_WhenSettingExists_ShouldUpdateAndReturnSetting() {
         // Arrange
         when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(systemSetting));
-        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(systemSetting);
+
+        // Set up mock to return an updated value when save is called
+        SystemSetting updatedSetting = new SystemSetting();
+        updatedSetting.setId(1);
+        updatedSetting.setKey("app.name");
+        updatedSetting.setValue("NewAppName");
+        updatedSetting.setDescription("Application name");
+        updatedSetting.setUpdatedBy(user);
+        updatedSetting.setUpdatedAt(LocalDateTime.now());
+
+        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(updatedSetting);
 
         // Act
         Optional<SystemSettingDTO> result = systemSettingService.updateValue("app.name", "NewAppName", user);
@@ -222,7 +250,7 @@ class SystemSettingServiceTest {
         // Assert
         assertTrue(result.isPresent());
         assertEquals("app.name", result.get().getKey());
-        assertEquals("BuildTask", result.get().getValue()); // Mock returns original setting
+        assertEquals("NewAppName", result.get().getValue()); // Now expecting the updated app name
         verify(systemSettingRepository).save(any(SystemSetting.class));
     }
 
