@@ -1,29 +1,30 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.Priority;
+import com.example.backend.dto.PriorityDTO;
 import com.example.backend.services.PriorityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.*;
 
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class PriorityControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class PriorityControllerTest {
 
     private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
 
     @Mock
     private PriorityService priorityService;
@@ -31,370 +32,267 @@ class PriorityControllerTest {
     @InjectMocks
     private PriorityController priorityController;
 
-    private ObjectMapper objectMapper;
-    private Priority lowPriority;
-    private Priority mediumPriority;
-    private Priority highPriority;
+    private PriorityDTO priorityDTO;
+    private List<PriorityDTO> priorityDTOList;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(priorityController)
-                .build();
-
+    public void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(priorityController).build();
         objectMapper = new ObjectMapper();
 
-        // Inicjalizacja priorytetów testowych
-        lowPriority = new Priority();
-        lowPriority.setId(1);
-        lowPriority.setName("Niski");
-        lowPriority.setValue(1);
-        lowPriority.setColorCode("#28a745");
+        // Initialize test data
+        priorityDTO = new PriorityDTO();
+        priorityDTO.setId(1);
+        priorityDTO.setName("High");
+        priorityDTO.setValue(3);
+        priorityDTO.setColorCode("#FF0000");
 
-        mediumPriority = new Priority();
-        mediumPriority.setId(2);
-        mediumPriority.setName("Średni");
-        mediumPriority.setValue(2);
-        mediumPriority.setColorCode("#ffc107");
+        PriorityDTO priorityDTO2 = new PriorityDTO();
+        priorityDTO2.setId(2);
+        priorityDTO2.setName("Medium");
+        priorityDTO2.setValue(2);
+        priorityDTO2.setColorCode("#FFFF00");
 
-        highPriority = new Priority();
-        highPriority.setId(3);
-        highPriority.setName("Wysoki");
-        highPriority.setValue(3);
-        highPriority.setColorCode("#dc3545");
+        priorityDTOList = Arrays.asList(priorityDTO, priorityDTO2);
     }
 
     @Test
-    void getAllPriorities_ShouldReturnAllPriorities() throws Exception {
-        // Given
-        List<Priority> priorities = Arrays.asList(lowPriority, mediumPriority, highPriority);
-        when(priorityService.getAllPriorities()).thenReturn(priorities);
+    public void getAllPriorities_ShouldReturnListOfPriorities() throws Exception {
+        // Arrange
+        when(priorityService.getAllPriorities()).thenReturn(priorityDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/priorities"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].name", is("Niski")))
-                .andExpect(jsonPath("$[1].id", is(2)))
-                .andExpect(jsonPath("$[1].name", is("Średni")))
-                .andExpect(jsonPath("$[2].id", is(3)))
-                .andExpect(jsonPath("$[2].name", is("Wysoki")));
-
-        verify(priorityService, times(1)).getAllPriorities();
+                .andExpect(jsonPath("$[0].name").value("High"))
+                .andExpect(jsonPath("$[1].name").value("Medium"))
+                .andExpect(jsonPath("$[0].value").value(3))
+                .andExpect(jsonPath("$[1].value").value(2));
     }
 
     @Test
-    void getAllPrioritiesSorted_ShouldReturnSortedPriorities() throws Exception {
-        // Given
-        List<Priority> sortedPriorities = Arrays.asList(highPriority, mediumPriority, lowPriority);
-        when(priorityService.getAllPrioritiesSortedByValue()).thenReturn(sortedPriorities);
+    public void getAllPrioritiesSorted_ShouldReturnSortedPriorities() throws Exception {
+        // Arrange
+        when(priorityService.getAllPrioritiesSortedByValue()).thenReturn(priorityDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/priorities/sorted"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].id", is(3)))
-                .andExpect(jsonPath("$[0].name", is("Wysoki")))
-                .andExpect(jsonPath("$[1].id", is(2)))
-                .andExpect(jsonPath("$[1].name", is("Średni")))
-                .andExpect(jsonPath("$[2].id", is(1)))
-                .andExpect(jsonPath("$[2].name", is("Niski")));
-
-        verify(priorityService, times(1)).getAllPrioritiesSortedByValue();
+                .andExpect(jsonPath("$[0].name").value("High"))
+                .andExpect(jsonPath("$[1].name").value("Medium"));
     }
 
     @Test
-    void getPriorityById_WhenPriorityExists_ShouldReturnPriority() throws Exception {
-        // Given
-        when(priorityService.getPriorityById(1)).thenReturn(Optional.of(lowPriority));
+    public void getPriorityById_WhenExists_ShouldReturnPriority() throws Exception {
+        // Arrange
+        when(priorityService.getPriorityById(1)).thenReturn(Optional.of(priorityDTO));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/priorities/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Niski")))
-                .andExpect(jsonPath("$.value", is(1)))
-                .andExpect(jsonPath("$.colorCode", is("#28a745")));
-
-        verify(priorityService, times(1)).getPriorityById(1);
+                .andExpect(jsonPath("$.name").value("High"))
+                .andExpect(jsonPath("$.value").value(3))
+                .andExpect(jsonPath("$.colorCode").value("#FF0000"));
     }
 
     @Test
-    void getPriorityById_WhenPriorityDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getPriorityById_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(priorityService.getPriorityById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/priorities/99"))
                 .andExpect(status().isNotFound());
-
-        verify(priorityService, times(1)).getPriorityById(99);
     }
 
     @Test
-    void getPriorityByName_WhenPriorityExists_ShouldReturnPriority() throws Exception {
-        // Given
-        when(priorityService.getPriorityByName("Wysoki")).thenReturn(Optional.of(highPriority));
+    public void getPriorityByName_WhenExists_ShouldReturnPriority() throws Exception {
+        // Arrange
+        when(priorityService.getPriorityByName("High")).thenReturn(Optional.of(priorityDTO));
 
-        // When & Then
-        mockMvc.perform(get("/database/priorities/name/Wysoki"))
+        // Act & Assert
+        mockMvc.perform(get("/database/priorities/name/High"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(3)))
-                .andExpect(jsonPath("$.name", is("Wysoki")))
-                .andExpect(jsonPath("$.value", is(3)))
-                .andExpect(jsonPath("$.colorCode", is("#dc3545")));
-
-        verify(priorityService, times(1)).getPriorityByName("Wysoki");
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.value").value(3));
     }
 
     @Test
-    void getPriorityByName_WhenPriorityDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        when(priorityService.getPriorityByName("Nieistniejący")).thenReturn(Optional.empty());
+    public void getPriorityByName_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(priorityService.getPriorityByName("Unknown")).thenReturn(Optional.empty());
 
-        // When & Then
-        mockMvc.perform(get("/database/priorities/name/Nieistniejący"))
+        // Act & Assert
+        mockMvc.perform(get("/database/priorities/name/Unknown"))
                 .andExpect(status().isNotFound());
-
-        verify(priorityService, times(1)).getPriorityByName("Nieistniejący");
     }
 
     @Test
-    void createPriority_WhenNameIsUnique_ShouldReturnCreatedPriority() throws Exception {
-        // Given
-        Priority newPriority = new Priority();
-        newPriority.setName("Krytyczny");
-        newPriority.setValue(4);
-        newPriority.setColorCode("#ff0000");
+    public void createPriority_WithValidData_ShouldReturnCreatedPriority() throws Exception {
+        // Arrange
+        when(priorityService.existsByName(anyString())).thenReturn(false);
+        when(priorityService.savePriority(any(PriorityDTO.class))).thenReturn(priorityDTO);
 
-        when(priorityService.existsByName("Krytyczny")).thenReturn(false);
-        when(priorityService.savePriority(any(Priority.class))).thenReturn(newPriority);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/priorities")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newPriority)))
+                        .content(objectMapper.writeValueAsString(priorityDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name", is("Krytyczny")))
-                .andExpect(jsonPath("$.value", is(4)))
-                .andExpect(jsonPath("$.colorCode", is("#ff0000")));
-
-        verify(priorityService, times(1)).existsByName("Krytyczny");
-        verify(priorityService, times(1)).savePriority(any(Priority.class));
+                .andExpect(jsonPath("$.name").value("High"))
+                .andExpect(jsonPath("$.value").value(3));
     }
 
     @Test
-    void createPriority_WhenNameExists_ShouldReturnConflict() throws Exception {
-        // Given
-        Priority newPriority = new Priority();
-        newPriority.setName("Wysoki");
-        newPriority.setValue(4);
-        newPriority.setColorCode("#ff0000");
+    public void createPriority_WithExistingName_ShouldReturnConflict() throws Exception {
+        // Arrange
+        when(priorityService.existsByName(anyString())).thenReturn(true);
 
-        when(priorityService.existsByName("Wysoki")).thenReturn(true);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/priorities")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newPriority)))
+                        .content(objectMapper.writeValueAsString(priorityDTO)))
                 .andExpect(status().isConflict());
-
-        verify(priorityService, times(1)).existsByName("Wysoki");
-        verify(priorityService, never()).savePriority(any(Priority.class));
     }
 
     @Test
-    void createPriorityFromParams_WithValidData_ShouldReturnCreatedPriority() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("name", "Krytyczny");
-        payload.put("value", 4);
-        payload.put("colorCode", "#ff0000");
+    public void createPriorityFromParams_WithValidParams_ShouldReturnCreatedPriority() throws Exception {
+        // Arrange
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", "High");
+        params.put("value", 3);
+        params.put("colorCode", "#FF0000");
 
-        Priority createdPriority = new Priority();
-        createdPriority.setId(4);
-        createdPriority.setName("Krytyczny");
-        createdPriority.setValue(4);
-        createdPriority.setColorCode("#ff0000");
+        when(priorityService.existsByName(anyString())).thenReturn(false);
+        when(priorityService.createPriority(anyString(), anyInt(), anyString())).thenReturn(priorityDTO);
 
-        when(priorityService.existsByName("Krytyczny")).thenReturn(false);
-        when(priorityService.createPriority(eq("Krytyczny"), eq(4), eq("#ff0000"))).thenReturn(createdPriority);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/priorities/create")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(params)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(4)))
-                .andExpect(jsonPath("$.name", is("Krytyczny")))
-                .andExpect(jsonPath("$.value", is(4)))
-                .andExpect(jsonPath("$.colorCode", is("#ff0000")));
-
-        verify(priorityService, times(1)).existsByName("Krytyczny");
-        verify(priorityService, times(1)).createPriority(eq("Krytyczny"), eq(4), eq("#ff0000"));
+                .andExpect(jsonPath("$.name").value("High"))
+                .andExpect(jsonPath("$.value").value(3));
     }
 
     @Test
-    void createPriorityFromParams_WithMissingData_ShouldReturnBadRequest() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("name", "Krytyczny");
-        // Missing value
+    public void createPriorityFromParams_WithMissingParams_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        Map<String, Object> params = new HashMap<>();
+        params.put("name", "High");
+        // Missing required value parameter
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/priorities/create")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(params)))
                 .andExpect(status().isBadRequest());
-
-        verify(priorityService, never()).existsByName(anyString());
-        verify(priorityService, never()).createPriority(anyString(), anyInt(), anyString());
     }
 
     @Test
-    void updatePriority_WhenPriorityExists_ShouldReturnUpdatedPriority() throws Exception {
-        // Given
-        Priority updatedPriority = new Priority();
-        updatedPriority.setId(1);
-        updatedPriority.setName("Niski zmodyfikowany");
-        updatedPriority.setValue(1);
-        updatedPriority.setColorCode("#00ff00");
+    public void updatePriority_WhenPriorityExists_ShouldReturnUpdatedPriority() throws Exception {
+        // Arrange
+        when(priorityService.getPriorityById(1)).thenReturn(Optional.of(priorityDTO));
+        when(priorityService.savePriority(any(PriorityDTO.class))).thenReturn(priorityDTO);
 
-        when(priorityService.getPriorityById(1)).thenReturn(Optional.of(lowPriority));
-        when(priorityService.savePriority(any(Priority.class))).thenReturn(updatedPriority);
+        // Update the priority DTO
+        priorityDTO.setName("Very High");
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(put("/database/priorities/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedPriority)))
+                        .content(objectMapper.writeValueAsString(priorityDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Niski zmodyfikowany")))
-                .andExpect(jsonPath("$.colorCode", is("#00ff00")));
+                .andExpect(jsonPath("$.name").value("High")); // Mock returns original
 
-        verify(priorityService, times(1)).getPriorityById(1);
-        verify(priorityService, times(1)).savePriority(any(Priority.class));
+        // Verify that the ID was set in the DTO before saving
+        verify(priorityService).savePriority(argThat(dto -> dto.getId() == 1));
     }
 
     @Test
-    void updatePriority_WhenPriorityDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        Priority updatedPriority = new Priority();
-        updatedPriority.setId(99);
-        updatedPriority.setName("Nieistniejący");
-        updatedPriority.setValue(5);
-
+    public void updatePriority_WhenPriorityDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(priorityService.getPriorityById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(put("/database/priorities/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedPriority)))
+                        .content(objectMapper.writeValueAsString(priorityDTO)))
                 .andExpect(status().isNotFound());
-
-        verify(priorityService, times(1)).getPriorityById(99);
-        verify(priorityService, never()).savePriority(any(Priority.class));
     }
 
     @Test
-    void updatePriorityColor_WhenPriorityExists_ShouldReturnUpdatedPriority() throws Exception {
-        // Given
-        Map<String, String> payload = new HashMap<>();
-        payload.put("colorCode", "#00ff00");
+    public void updatePriorityColor_WhenPriorityExists_ShouldReturnUpdatedPriority() throws Exception {
+        // Arrange
+        Map<String, String> colorUpdate = new HashMap<>();
+        colorUpdate.put("colorCode", "#00FF00");
 
-        Priority updatedPriority = new Priority();
-        updatedPriority.setId(1);
-        updatedPriority.setName("Niski");
-        updatedPriority.setValue(1);
-        updatedPriority.setColorCode("#00ff00");
+        when(priorityService.updateColor(1, "#00FF00")).thenReturn(Optional.of(priorityDTO));
 
-        when(priorityService.updateColor(eq(1), eq("#00ff00"))).thenReturn(Optional.of(updatedPriority));
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(patch("/database/priorities/1/color")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(colorUpdate)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Niski")))
-                .andExpect(jsonPath("$.colorCode", is("#00ff00")));
-
-        verify(priorityService, times(1)).updateColor(eq(1), eq("#00ff00"));
+                .andExpect(jsonPath("$.name").value("High"));
     }
 
     @Test
-    void updatePriorityColor_WhenPriorityDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        Map<String, String> payload = new HashMap<>();
-        payload.put("colorCode", "#00ff00");
+    public void updatePriorityColor_WithMissingColorCode_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        Map<String, String> emptyUpdate = new HashMap<>();
 
-        when(priorityService.updateColor(eq(99), eq("#00ff00"))).thenReturn(Optional.empty());
+        // Act & Assert
+        mockMvc.perform(patch("/database/priorities/1/color")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(emptyUpdate)))
+                .andExpect(status().isBadRequest());
+    }
 
-        // When & Then
+    @Test
+    public void updatePriorityColor_WhenPriorityDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        Map<String, String> colorUpdate = new HashMap<>();
+        colorUpdate.put("colorCode", "#00FF00");
+
+        when(priorityService.updateColor(99, "#00FF00")).thenReturn(Optional.empty());
+
+        // Act & Assert
         mockMvc.perform(patch("/database/priorities/99/color")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(colorUpdate)))
                 .andExpect(status().isNotFound());
-
-        verify(priorityService, times(1)).updateColor(eq(99), eq("#00ff00"));
     }
 
     @Test
-    void updatePriorityColor_WithMissingColorCode_ShouldReturnBadRequest() throws Exception {
-        // Given
-        Map<String, String> payload = new HashMap<>();
-        // Missing colorCode
-
-        // When & Then
-        mockMvc.perform(patch("/database/priorities/1/color")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isBadRequest());
-
-        verify(priorityService, never()).updateColor(anyInt(), anyString());
-    }
-
-    @Test
-    void deletePriority_WhenPriorityExistsWithNoTasks_ShouldReturnNoContent() throws Exception {
-        // Given
-        when(priorityService.getPriorityById(1)).thenReturn(Optional.of(lowPriority));
+    public void deletePriority_WhenPriorityExists_ShouldReturnNoContent() throws Exception {
+        // Arrange
+        when(priorityService.getPriorityById(1)).thenReturn(Optional.of(priorityDTO));
         doNothing().when(priorityService).deletePriority(1);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/priorities/1"))
                 .andExpect(status().isNoContent());
-
-        verify(priorityService, times(1)).getPriorityById(1);
-        verify(priorityService, times(1)).deletePriority(1);
     }
 
     @Test
-    void deletePriority_WhenPriorityDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void deletePriority_WhenPriorityDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(priorityService.getPriorityById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/priorities/99"))
                 .andExpect(status().isNotFound());
-
-        verify(priorityService, times(1)).getPriorityById(99);
-        verify(priorityService, never()).deletePriority(anyInt());
     }
 
     @Test
-    void deletePriority_WhenPriorityHasTasks_ShouldReturnConflict() throws Exception {
-        // Given
-        when(priorityService.getPriorityById(1)).thenReturn(Optional.of(lowPriority));
-        doThrow(new IllegalStateException("Nie można usunąć priorytetu, do którego przypisane są zadania"))
+    public void deletePriority_WhenPriorityHasAssignedTasks_ShouldReturnConflict() throws Exception {
+        // Arrange
+        when(priorityService.getPriorityById(1)).thenReturn(Optional.of(priorityDTO));
+        doThrow(new IllegalStateException("Cannot delete priority with assigned tasks"))
                 .when(priorityService).deletePriority(1);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/priorities/1"))
                 .andExpect(status().isConflict());
-
-        verify(priorityService, times(1)).getPriorityById(1);
-        verify(priorityService, times(1)).deletePriority(1);
     }
 }

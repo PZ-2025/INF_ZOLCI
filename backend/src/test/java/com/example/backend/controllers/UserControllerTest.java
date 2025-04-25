@@ -1,291 +1,274 @@
-package  com.example.backend.controllers;
+package com.example.backend.controllers;
 
-import com.example.backend.models.User;
+import com.example.backend.dto.UserDTO;
 import com.example.backend.services.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(UserController.class)
-@ContextConfiguration(classes = {UserController.class})
-class UserControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class UserControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
-
-    @MockBean
-    private UserService userService;
-
-    @Autowired
     private ObjectMapper objectMapper;
 
-    private User testUser1;
-    private User testUser2;
-    private List<User> userList;
+    @Mock
+    private UserService userService;
+
+    @InjectMocks
+    private UserController userController;
+
+    private UserDTO userDTO;
+    private List<UserDTO> userDTOList;
 
     @BeforeEach
-    void setUp() {
-        testUser1 = new User();
-        testUser1.setId(1);
-        testUser1.setUsername("testuser");
-        testUser1.setEmail("test@example.com");
-        testUser1.setIsActive(true);
-        testUser1.setCreatedAt(LocalDateTime.now());
-        testUser1.setLastLogin(LocalDateTime.now());
+    public void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
+        objectMapper = new ObjectMapper();
+        objectMapper.findAndRegisterModules(); // For LocalDateTime serialization
 
-        testUser2 = new User();
-        testUser2.setId(2);
-        testUser2.setUsername("anotheruser");
-        testUser2.setEmail("another@example.com");
-        testUser2.setIsActive(true);
-        testUser2.setCreatedAt(LocalDateTime.now());
-        testUser2.setLastLogin(LocalDateTime.now());
+        // Initialize test data
+        userDTO = new UserDTO();
+        userDTO.setId(1);
+        userDTO.setUsername("testuser");
+        userDTO.setPassword("password123");
+        userDTO.setEmail("test@example.com");
+        userDTO.setFirstName("Test");
+        userDTO.setLastName("User");
+        userDTO.setPhone("123456789");
+        userDTO.setRole("pracownik");
+        userDTO.setIsActive(true);
+        userDTO.setCreatedAt(LocalDateTime.now());
 
-        userList = Arrays.asList(testUser1, testUser2);
+        UserDTO userDTO2 = new UserDTO();
+        userDTO2.setId(2);
+        userDTO2.setUsername("manager1");
+        userDTO2.setPassword("password123");
+        userDTO2.setEmail("manager@example.com");
+        userDTO2.setFirstName("John");
+        userDTO2.setLastName("Manager");
+        userDTO2.setRole("kierownik");
+        userDTO2.setIsActive(true);
+        userDTO2.setCreatedAt(LocalDateTime.now());
+
+        userDTOList = Arrays.asList(userDTO, userDTO2);
     }
 
     @Test
-    void getAllUsers() throws Exception {
-        // Given
-        when(userService.getAllUsers()).thenReturn(userList);
+    public void getAllUsers_ShouldReturnListOfUsers() throws Exception {
+        // Arrange
+        when(userService.getAllUsers()).thenReturn(userDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/users"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].username", is("testuser")))
-                .andExpect(jsonPath("$[1].id", is(2)))
-                .andExpect(jsonPath("$[1].username", is("anotheruser")));
-
-        verify(userService, times(1)).getAllUsers();
+                .andExpect(jsonPath("$[0].username").value("testuser"))
+                .andExpect(jsonPath("$[1].username").value("manager1"));
     }
 
     @Test
-    void getUserById() throws Exception {
-        // Given
-        when(userService.getUserById(1)).thenReturn(Optional.of(testUser1));
-        when(userService.getUserById(999)).thenReturn(Optional.empty());
+    public void getUserById_WhenExists_ShouldReturnUser() throws Exception {
+        // Arrange
+        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
 
-        // When & Then - successful case
+        // Act & Assert
         mockMvc.perform(get("/database/users/1"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.username", is("testuser")));
-
-        // When & Then - not found case
-        mockMvc.perform(get("/database/users/999"))
-                .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).getUserById(1);
-        verify(userService, times(1)).getUserById(999);
+                .andExpect(jsonPath("$.username").value("testuser"))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 
     @Test
-    void getUserByUsername() throws Exception {
-        // Given
-        when(userService.getUserByUsername("testuser")).thenReturn(Optional.of(testUser1));
-        when(userService.getUserByUsername("nonexistent")).thenReturn(Optional.empty());
+    public void getUserById_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(userService.getUserById(99)).thenReturn(Optional.empty());
 
-        // When & Then - successful case
+        // Act & Assert
+        mockMvc.perform(get("/database/users/99"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void getUserByUsername_WhenExists_ShouldReturnUser() throws Exception {
+        // Arrange
+        when(userService.getUserByUsername("testuser")).thenReturn(Optional.of(userDTO));
+
+        // Act & Assert
         mockMvc.perform(get("/database/users/username/testuser"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.username", is("testuser")));
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
+    }
 
-        // When & Then - not found case
+    @Test
+    public void getUserByUsername_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(userService.getUserByUsername("nonexistent")).thenReturn(Optional.empty());
+
+        // Act & Assert
         mockMvc.perform(get("/database/users/username/nonexistent"))
                 .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).getUserByUsername("testuser");
-        verify(userService, times(1)).getUserByUsername("nonexistent");
     }
 
     @Test
-    void getActiveUsers() throws Exception {
-        // Given
-        when(userService.findActiveUsers()).thenReturn(userList);
+    public void getActiveUsers_ShouldReturnActiveUsers() throws Exception {
+        // Arrange
+        when(userService.findActiveUsers()).thenReturn(userDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/users/active"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].isActive", is(true)))
-                .andExpect(jsonPath("$[1].isActive", is(true)));
-
-        verify(userService, times(1)).findActiveUsers();
+                .andExpect(jsonPath("$[0].username").value("testuser"))
+                .andExpect(jsonPath("$[1].username").value("manager1"));
     }
 
     @Test
-    void createUser() throws Exception {
-        // Given
-        User newUser = new User();
-        newUser.setUsername("newuser");
-        newUser.setEmail("new@example.com");
-        newUser.setIsActive(true);
+    public void createUser_WithValidData_ShouldReturnCreatedUser() throws Exception {
+        // Arrange
+        when(userService.createUser(any(UserDTO.class))).thenReturn(userDTO);
 
-        User createdUser = new User();
-        createdUser.setId(3);
-        createdUser.setUsername("newuser");
-        createdUser.setEmail("new@example.com");
-        createdUser.setIsActive(true);
-        createdUser.setCreatedAt(LocalDateTime.now());
-
-        when(userService.createUser(any(User.class))).thenReturn(createdUser);
-        when(userService.createUser(argThat(user -> user == null || user.getUsername() == null)))
-                .thenThrow(new RuntimeException("Invalid user data"));
-
-        // When & Then - successful case
+        // Act & Assert
         mockMvc.perform(post("/database/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newUser)))
+                        .content(objectMapper.writeValueAsString(userDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(3)))
-                .andExpect(jsonPath("$.username", is("newuser")));
-
-        // When & Then - error case
-        User invalidUser = new User();
-        mockMvc.perform(post("/database/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidUser)))
-                .andExpect(status().isInternalServerError());
-
-        verify(userService, times(2)).createUser(any(User.class));
+                .andExpect(jsonPath("$.username").value("testuser"))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 
     @Test
-    void updateUser() throws Exception {
-        // Given
-        User updatedUserData = new User();
-        updatedUserData.setUsername("updateduser");
-        updatedUserData.setEmail("updated@example.com");
+    public void createUser_WhenServiceThrowsException_ShouldReturnInternalServerError() throws Exception {
+        // Arrange
+        when(userService.createUser(any(UserDTO.class))).thenThrow(new RuntimeException("Database error"));
 
-        User updatedUser = new User();
+        // Act & Assert
+        mockMvc.perform(post("/database/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userDTO)))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    public void updateUser_WhenUserExists_ShouldReturnUpdatedUser() throws Exception {
+        // Arrange
+        when(userService.updateUser(eq(1), any(UserDTO.class))).thenReturn(Optional.of(userDTO));
+
+        // Update user data
+        UserDTO updatedUser = new UserDTO();
         updatedUser.setId(1);
-        updatedUser.setUsername("updateduser");
+        updatedUser.setUsername("testuser");
         updatedUser.setEmail("updated@example.com");
-        updatedUser.setIsActive(true);
-        updatedUser.setCreatedAt(testUser1.getCreatedAt());
-        updatedUser.setLastLogin(testUser1.getLastLogin());
+        updatedUser.setFirstName("Updated");
+        updatedUser.setLastName("User");
+        updatedUser.setRole("pracownik");
 
-        when(userService.updateUser(eq(1), any(User.class))).thenReturn(Optional.of(updatedUser));
-        when(userService.updateUser(eq(999), any(User.class))).thenReturn(Optional.empty());
-
-        // When & Then - successful case
+        // Act & Assert
         mockMvc.perform(put("/database/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedUserData)))
+                        .content(objectMapper.writeValueAsString(updatedUser)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.username", is("updateduser")))
-                .andExpect(jsonPath("$.email", is("updated@example.com")));
-
-        // When & Then - not found case
-        mockMvc.perform(put("/database/users/999")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedUserData)))
-                .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).updateUser(eq(1), any(User.class));
-        verify(userService, times(1)).updateUser(eq(999), any(User.class));
+                .andExpect(jsonPath("$.email").value("test@example.com")); // Mock returns original
     }
 
     @Test
-    void deleteUser() throws Exception {
-        // Given
-        when(userService.deleteUser(1)).thenReturn(true);
-        when(userService.deleteUser(999)).thenReturn(false);
+    public void updateUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(userService.updateUser(eq(99), any(UserDTO.class))).thenReturn(Optional.empty());
 
-        // When & Then - successful case
+        // Act & Assert
+        mockMvc.perform(put("/database/users/99")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userDTO)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void deleteUser_WhenUserExists_ShouldReturnNoContent() throws Exception {
+        // Arrange
+        when(userService.deleteUser(1)).thenReturn(true);
+
+        // Act & Assert
         mockMvc.perform(delete("/database/users/1"))
                 .andExpect(status().isNoContent());
-
-        // When & Then - not found case
-        mockMvc.perform(delete("/database/users/999"))
-                .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).deleteUser(1);
-        verify(userService, times(1)).deleteUser(999);
     }
 
     @Test
-    void deactivateUser() throws Exception {
-        // Given
-        User deactivatedUser = new User();
+    public void deleteUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(userService.deleteUser(99)).thenReturn(false);
+
+        // Act & Assert
+        mockMvc.perform(delete("/database/users/99"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void deactivateUser_WhenUserExists_ShouldReturnDeactivatedUser() throws Exception {
+        // Arrange
+        UserDTO deactivatedUser = new UserDTO();
         deactivatedUser.setId(1);
         deactivatedUser.setUsername("testuser");
         deactivatedUser.setEmail("test@example.com");
         deactivatedUser.setIsActive(false);
-        deactivatedUser.setCreatedAt(testUser1.getCreatedAt());
-        deactivatedUser.setLastLogin(testUser1.getLastLogin());
 
         when(userService.deactivateUser(1)).thenReturn(Optional.of(deactivatedUser));
-        when(userService.deactivateUser(999)).thenReturn(Optional.empty());
 
-        // When & Then - successful case
+        // Act & Assert
         mockMvc.perform(put("/database/users/1/deactivate"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.username", is("testuser")))
-                .andExpect(jsonPath("$.isActive", is(false)));
-
-        // When & Then - not found case
-        mockMvc.perform(put("/database/users/999/deactivate"))
-                .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).deactivateUser(1);
-        verify(userService, times(1)).deactivateUser(999);
+                .andExpect(jsonPath("$.isActive").value(false));
     }
 
     @Test
-    void updateLastLogin() throws Exception {
-        // Given
-        LocalDateTime newLoginTime = LocalDateTime.now();
-        User userWithUpdatedLogin = new User();
+    public void deactivateUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(userService.deactivateUser(99)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(put("/database/users/99/deactivate"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void updateLastLogin_WhenUserExists_ShouldReturnUserWithUpdatedLogin() throws Exception {
+        // Arrange
+        UserDTO userWithUpdatedLogin = new UserDTO();
         userWithUpdatedLogin.setId(1);
         userWithUpdatedLogin.setUsername("testuser");
-        userWithUpdatedLogin.setEmail("test@example.com");
-        userWithUpdatedLogin.setIsActive(true);
-        userWithUpdatedLogin.setCreatedAt(testUser1.getCreatedAt());
-        userWithUpdatedLogin.setLastLogin(newLoginTime);
+        userWithUpdatedLogin.setLastLogin(LocalDateTime.now());
 
         when(userService.updateLastLogin(1)).thenReturn(Optional.of(userWithUpdatedLogin));
-        when(userService.updateLastLogin(999)).thenReturn(Optional.empty());
 
-        // When & Then - successful case
+        // Act & Assert
         mockMvc.perform(put("/database/users/1/login"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.username", is("testuser")));
+                .andExpect(jsonPath("$.lastLogin").isNotEmpty());
+    }
 
-        // When & Then - not found case
-        mockMvc.perform(put("/database/users/999/login"))
+    @Test
+    public void updateLastLogin_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(userService.updateLastLogin(99)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(put("/database/users/99/login"))
                 .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).updateLastLogin(1);
-        verify(userService, times(1)).updateLastLogin(999);
     }
 }

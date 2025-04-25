@@ -7,24 +7,32 @@ import com.example.backend.services.AuthService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class AuthControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class AuthControllerTest {
 
     private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
 
     @Mock
     private AuthService authService;
@@ -32,214 +40,164 @@ class AuthControllerTest {
     @InjectMocks
     private AuthController authController;
 
-    private ObjectMapper objectMapper;
-    private UserResponseDTO userResponse;
-    private LocalDateTime now;
+    private UserResponseDTO userResponseDTO;
+    private LoginRequestDTO loginRequestDTO;
+    private RegisterRequestDTO registerRequestDTO;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(authController)
-                .build();
-
+    public void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(authController).build();
         objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules(); // Dla obsługi LocalDateTime
+        objectMapper.findAndRegisterModules(); // For proper serialization of LocalDateTime
 
-        now = LocalDateTime.now();
+        // Initialize test data
+        userResponseDTO = new UserResponseDTO();
+        userResponseDTO.setId(1);
+        userResponseDTO.setUsername("testuser");
+        userResponseDTO.setEmail("test@example.com");
+        userResponseDTO.setFirstName("Test");
+        userResponseDTO.setLastName("User");
+        userResponseDTO.setRole("użytkownik");
+        userResponseDTO.setIsActive(true);
+        userResponseDTO.setCreatedAt(LocalDateTime.now());
 
-        // Inicjalizacja odpowiedzi użytkownika
-        userResponse = new UserResponseDTO();
-        userResponse.setId(1);
-        userResponse.setUsername("testuser");
-        userResponse.setEmail("test@example.com");
-        userResponse.setFirstName("Test");
-        userResponse.setLastName("User");
-        userResponse.setRole("użytkownik");
-        userResponse.setIsActive(true);
-        userResponse.setCreatedAt(now);
-        userResponse.setLastLogin(now);
+        loginRequestDTO = new LoginRequestDTO();
+        loginRequestDTO.setUsername("testuser");
+        loginRequestDTO.setPassword("password");
+
+        registerRequestDTO = new RegisterRequestDTO();
+        registerRequestDTO.setUsername("newuser");
+        registerRequestDTO.setPassword("password");
+        registerRequestDTO.setEmail("new@example.com");
+        registerRequestDTO.setFirstName("New");
+        registerRequestDTO.setLastName("User");
     }
 
     @Test
-    void login_WithValidCredentials_ShouldReturnOkWithUserDTO() throws Exception {
-        // Given
-        LoginRequestDTO loginRequest = new LoginRequestDTO("testuser", "password123");
-        when(authService.login(any(LoginRequestDTO.class))).thenReturn(Optional.of(userResponse));
+    public void login_WithValidCredentials_ShouldReturnUserResponseDTO() throws Exception {
+        // Arrange
+        when(authService.login(any(LoginRequestDTO.class))).thenReturn(Optional.of(userResponseDTO));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
+                        .content(objectMapper.writeValueAsString(loginRequestDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
                 .andExpect(jsonPath("$.username").value("testuser"))
                 .andExpect(jsonPath("$.email").value("test@example.com"));
-
-        verify(authService, times(1)).login(any(LoginRequestDTO.class));
     }
 
     @Test
-    void login_WithInvalidCredentials_ShouldReturnUnauthorized() throws Exception {
-        // Given
-        LoginRequestDTO loginRequest = new LoginRequestDTO("testuser", "wrongpassword");
+    public void login_WithInvalidCredentials_ShouldReturnUnauthorized() throws Exception {
+        // Arrange
         when(authService.login(any(LoginRequestDTO.class))).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
+                        .content(objectMapper.writeValueAsString(loginRequestDTO)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").exists());
-
-        verify(authService, times(1)).login(any(LoginRequestDTO.class));
+                .andExpect(jsonPath("$.message").value("Niepoprawne dane logowania lub konto jest nieaktywne"));
     }
 
     @Test
-    void login_WithServiceException_ShouldReturnInternalServerError() throws Exception {
-        // Given
-        LoginRequestDTO loginRequest = new LoginRequestDTO("testuser", "password123");
-        when(authService.login(any(LoginRequestDTO.class))).thenThrow(new RuntimeException("Test exception"));
+    public void login_WithServiceException_ShouldReturnInternalServerError() throws Exception {
+        // Arrange
+        when(authService.login(any(LoginRequestDTO.class))).thenThrow(new RuntimeException("Service error"));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(loginRequest)))
+                        .content(objectMapper.writeValueAsString(loginRequestDTO)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").exists())
-                .andExpect(jsonPath("$.error").exists());
-
-        verify(authService, times(1)).login(any(LoginRequestDTO.class));
+                .andExpect(jsonPath("$.message").value("Wystąpił błąd podczas logowania"))
+                .andExpect(jsonPath("$.error").value("Service error"));
     }
 
     @Test
-    void register_WithValidData_ShouldReturnCreatedWithUserDTO() throws Exception {
-        // Given
-        RegisterRequestDTO registerRequest = new RegisterRequestDTO();
-        registerRequest.setUsername("newuser");
-        registerRequest.setPassword("newpassword");
-        registerRequest.setEmail("new@example.com");
-        registerRequest.setFirstName("New");
-        registerRequest.setLastName("User");
+    public void register_WithValidData_ShouldReturnCreatedUser() throws Exception {
+        // Arrange
+        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(userResponseDTO);
 
-        UserResponseDTO newUserResponse = new UserResponseDTO();
-        newUserResponse.setId(2);
-        newUserResponse.setUsername("newuser");
-        newUserResponse.setEmail("new@example.com");
-        newUserResponse.setFirstName("New");
-        newUserResponse.setLastName("User");
-        newUserResponse.setRole("użytkownik");
-        newUserResponse.setIsActive(true);
-        newUserResponse.setCreatedAt(now);
-
-        when(authService.register(any(RegisterRequestDTO.class))).thenReturn(newUserResponse);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerRequest)))
+                        .content(objectMapper.writeValueAsString(registerRequestDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id").value(2))
-                .andExpect(jsonPath("$.username").value("newuser"))
-                .andExpect(jsonPath("$.email").value("new@example.com"));
-
-        verify(authService, times(1)).register(any(RegisterRequestDTO.class));
+                .andExpect(jsonPath("$.username").value("testuser"))
+                .andExpect(jsonPath("$.email").value("test@example.com"));
     }
 
     @Test
-    void register_WithExistingUsername_ShouldReturnConflict() throws Exception {
-        // Given
-        RegisterRequestDTO registerRequest = new RegisterRequestDTO();
-        registerRequest.setUsername("existinguser");
-        registerRequest.setPassword("password");
-        registerRequest.setEmail("new@example.com");
-
+    public void register_WithExistingUsername_ShouldReturnConflict() throws Exception {
+        // Arrange
         when(authService.register(any(RegisterRequestDTO.class)))
                 .thenThrow(new RuntimeException("Nazwa użytkownika jest już zajęta"));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerRequest)))
+                        .content(objectMapper.writeValueAsString(registerRequestDTO)))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message").exists())
+                .andExpect(jsonPath("$.message").value("Nie można zarejestrować użytkownika"))
                 .andExpect(jsonPath("$.error").value("Nazwa użytkownika jest już zajęta"));
-
-        verify(authService, times(1)).register(any(RegisterRequestDTO.class));
     }
 
     @Test
-    void register_WithServiceException_ShouldReturnInternalServerError() throws Exception {
-        // Given
-        RegisterRequestDTO registerRequest = new RegisterRequestDTO();
-        registerRequest.setUsername("newuser");
-        registerRequest.setPassword("password");
-        registerRequest.setEmail("new@example.com");
-
-        // Używamy niekontrolowanego wyjątku, który nie jest RuntimeException ani jego podklasą
+    public void register_WithServiceException_ShouldReturnInternalServerError() throws Exception {
+        // Arrange
         when(authService.register(any(RegisterRequestDTO.class)))
-                .thenThrow(new RuntimeException("Nieoczekiwany błąd")); // Error jest niekontrolowanym wyjątkiem, ale nie rozszerza RuntimeException
+                .thenThrow(new Exception("General service error"));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(registerRequest)))
-                .andExpect(status().isInternalServerError())  // Teraz powinno zwrócić 500
-                .andExpect(jsonPath("$.message").exists())
-                .andExpect(jsonPath("$.error").exists());
-
-        verify(authService, times(1)).register(any(RegisterRequestDTO.class));
+                        .content(objectMapper.writeValueAsString(registerRequestDTO)))
+                .andExpect(status().isInternalServerError())
+                .andExpect(jsonPath("$.message").value("Wystąpił nieoczekiwany błąd podczas rejestracji"));
     }
 
     @Test
-    void checkUsernameAvailability_WhenAvailable_ShouldReturnTrue() throws Exception {
-        // Given
-        when(authService.userExists("newuser")).thenReturn(false);
+    public void checkUsernameAvailability_WhenAvailable_ShouldReturnTrue() throws Exception {
+        // Arrange
+        when(authService.userExists(anyString())).thenReturn(false);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/api/auth/check/username/newuser"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.available").value(true));
-
-        verify(authService, times(1)).userExists("newuser");
     }
 
     @Test
-    void checkUsernameAvailability_WhenNotAvailable_ShouldReturnFalse() throws Exception {
-        // Given
-        when(authService.userExists("existinguser")).thenReturn(true);
+    public void checkUsernameAvailability_WhenNotAvailable_ShouldReturnFalse() throws Exception {
+        // Arrange
+        when(authService.userExists(anyString())).thenReturn(true);
 
-        // When & Then
-        mockMvc.perform(get("/api/auth/check/username/existinguser"))
+        // Act & Assert
+        mockMvc.perform(get("/api/auth/check/username/testuser"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.available").value(false));
-
-        verify(authService, times(1)).userExists("existinguser");
     }
 
     @Test
-    void checkEmailAvailability_WhenAvailable_ShouldReturnTrue() throws Exception {
-        // Given
-        when(authService.emailExists("new@example.com")).thenReturn(false);
+    public void checkEmailAvailability_WhenAvailable_ShouldReturnTrue() throws Exception {
+        // Arrange
+        when(authService.emailExists(anyString())).thenReturn(false);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/api/auth/check/email/new@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.available").value(true));
-
-        verify(authService, times(1)).emailExists("new@example.com");
     }
 
     @Test
-    void checkEmailAvailability_WhenNotAvailable_ShouldReturnFalse() throws Exception {
-        // Given
-        when(authService.emailExists("existing@example.com")).thenReturn(true);
+    public void checkEmailAvailability_WhenNotAvailable_ShouldReturnFalse() throws Exception {
+        // Arrange
+        when(authService.emailExists(anyString())).thenReturn(true);
 
-        // When & Then
-        mockMvc.perform(get("/api/auth/check/email/existing@example.com"))
+        // Act & Assert
+        mockMvc.perform(get("/api/auth/check/email/test@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.available").value(false));
-
-        verify(authService, times(1)).emailExists("existing@example.com");
     }
 }

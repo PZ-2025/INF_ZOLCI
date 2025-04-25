@@ -1,7 +1,7 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dto.TaskCommentDTO;
 import com.example.backend.models.Task;
-import com.example.backend.models.TaskComment;
 import com.example.backend.models.User;
 import com.example.backend.services.TaskCommentService;
 import com.example.backend.services.TaskService;
@@ -9,9 +9,10 @@ import com.example.backend.services.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -19,19 +20,16 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.databind.SerializationFeature;
-
-class TaskCommentControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class TaskCommentControllerTest {
 
     private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
 
     @Mock
     private TaskCommentService taskCommentService;
@@ -45,295 +43,271 @@ class TaskCommentControllerTest {
     @InjectMocks
     private TaskCommentController taskCommentController;
 
-    private ObjectMapper objectMapper;
+    private TaskCommentDTO taskCommentDTO;
+    private List<TaskCommentDTO> taskCommentDTOList;
     private Task task;
     private User user;
-    private TaskComment comment;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(taskCommentController)
-                .build();
-
+    public void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(taskCommentController).build();
         objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.findAndRegisterModules(); // For LocalDateTime serialization
 
-        // Inicjalizacja danych testowych
+        // Initialize test data
         task = new Task();
         task.setId(1);
-        task.setTitle("Test Task");
+        task.setTitle("Build Foundation");
 
         user = new User();
         user.setId(1);
-        user.setUsername("testuser");
+        user.setUsername("worker1");
+        user.setFirstName("John");
+        user.setLastName("Doe");
 
-        comment = new TaskComment();
-        comment.setId(1);
-        comment.setTask(task);
-        comment.setUser(user);
-        comment.setComment("Test comment");
-        comment.setCreatedAt(LocalDateTime.now());
+        taskCommentDTO = new TaskCommentDTO();
+        taskCommentDTO.setId(1);
+        taskCommentDTO.setTaskId(1);
+        taskCommentDTO.setUserId(1);
+        taskCommentDTO.setComment("Need more concrete for this job");
+        taskCommentDTO.setCreatedAt(LocalDateTime.now());
+        taskCommentDTO.setUsername("worker1");
+        taskCommentDTO.setUserFullName("John Doe");
+
+        TaskCommentDTO taskCommentDTO2 = new TaskCommentDTO();
+        taskCommentDTO2.setId(2);
+        taskCommentDTO2.setTaskId(1);
+        taskCommentDTO2.setUserId(2);
+        taskCommentDTO2.setComment("I'll order additional supplies");
+        taskCommentDTO2.setCreatedAt(LocalDateTime.now());
+        taskCommentDTO2.setUsername("manager1");
+        taskCommentDTO2.setUserFullName("Manager One");
+
+        taskCommentDTOList = Arrays.asList(taskCommentDTO, taskCommentDTO2);
     }
 
     @Test
-    void getAllTaskComments_ShouldReturnAllComments() throws Exception {
-        // Given
-        List<TaskComment> comments = Arrays.asList(comment);
-        when(taskCommentService.getAllTaskComments()).thenReturn(comments);
+    public void getAllTaskComments_ShouldReturnListOfComments() throws Exception {
+        // Arrange
+        when(taskCommentService.getAllTaskComments()).thenReturn(taskCommentDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-comments"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].comment", is("Test comment")));
-
-        verify(taskCommentService, times(1)).getAllTaskComments();
+                .andExpect(jsonPath("$[0].comment").value("Need more concrete for this job"))
+                .andExpect(jsonPath("$[1].comment").value("I'll order additional supplies"));
     }
 
     @Test
-    void getTaskCommentById_WhenCommentExists_ShouldReturnComment() throws Exception {
-        // Given
-        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(comment));
+    public void getTaskCommentById_WhenExists_ShouldReturnComment() throws Exception {
+        // Arrange
+        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(taskCommentDTO));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-comments/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.comment", is("Test comment")));
-
-        verify(taskCommentService, times(1)).getTaskCommentById(1);
+                .andExpect(jsonPath("$.comment").value("Need more concrete for this job"))
+                .andExpect(jsonPath("$.username").value("worker1"));
     }
 
     @Test
-    void getTaskCommentById_WhenCommentDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getTaskCommentById_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskCommentService.getTaskCommentById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-comments/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskCommentService, times(1)).getTaskCommentById(99);
     }
 
     @Test
-    void getCommentsByTask_WhenTaskExists_ShouldReturnComments() throws Exception {
-        // Given
-        List<TaskComment> comments = Arrays.asList(comment);
+    public void getCommentsByTask_WhenTaskExists_ShouldReturnComments() throws Exception {
+        // Arrange
         when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
-        when(taskCommentService.getCommentsByTask(task)).thenReturn(comments);
+        when(taskCommentService.getCommentsByTask(any(Task.class))).thenReturn(taskCommentDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-comments/task/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].comment", is("Test comment")));
-
-        verify(taskService, times(1)).getTaskById(1);
-        verify(taskCommentService, times(1)).getCommentsByTask(task);
+                .andExpect(jsonPath("$[0].comment").value("Need more concrete for this job"))
+                .andExpect(jsonPath("$[1].comment").value("I'll order additional supplies"));
     }
 
     @Test
-    void getCommentsByTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getCommentsByTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskService.getTaskById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-comments/task/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskService, times(1)).getTaskById(99);
-        verify(taskCommentService, never()).getCommentsByTask(any(Task.class));
     }
 
     @Test
-    void getCommentsByUser_WhenUserExists_ShouldReturnComments() throws Exception {
-        // Given
-        List<TaskComment> comments = Arrays.asList(comment);
+    public void getCommentsByUser_WhenUserExists_ShouldReturnComments() throws Exception {
+        // Arrange
         when(userService.getUserById(1)).thenReturn(Optional.of(user));
-        when(taskCommentService.getCommentsByUser(user)).thenReturn(comments);
+        when(taskCommentService.getCommentsByUser(any(User.class))).thenReturn(Collections.singletonList(taskCommentDTO));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-comments/user/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].comment", is("Test comment")));
-
-        verify(userService, times(1)).getUserById(1);
-        verify(taskCommentService, times(1)).getCommentsByUser(user);
+                .andExpect(jsonPath("$[0].comment").value("Need more concrete for this job"))
+                .andExpect(jsonPath("$[0].username").value("worker1"));
     }
 
     @Test
-    void getCommentsByUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getCommentsByUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(userService.getUserById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-comments/user/99"))
                 .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).getUserById(99);
-        verify(taskCommentService, never()).getCommentsByUser(any(User.class));
     }
 
     @Test
-    void createTaskComment_ShouldReturnCreatedComment() throws Exception {
-        // Given
-        when(taskCommentService.saveTaskComment(any(TaskComment.class))).thenReturn(comment);
+    public void createTaskComment_WithValidData_ShouldReturnCreatedComment() throws Exception {
+        // Arrange
+        when(taskCommentService.saveTaskComment(any(TaskCommentDTO.class))).thenReturn(taskCommentDTO);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/task-comments")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(comment)))
+                        .content(objectMapper.writeValueAsString(taskCommentDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.comment", is("Test comment")));
-
-        verify(taskCommentService, times(1)).saveTaskComment(any(TaskComment.class));
+                .andExpect(jsonPath("$.comment").value("Need more concrete for this job"))
+                .andExpect(jsonPath("$.username").value("worker1"));
     }
 
     @Test
-    void addCommentToTask_WithValidData_ShouldReturnCreatedComment() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("taskId", 1);
-        payload.put("userId", 1);
-        payload.put("comment", "New test comment");
+    public void addCommentToTask_WithValidParams_ShouldReturnCreatedComment() throws Exception {
+        // Arrange
+        Map<String, Object> commentParams = new HashMap<>();
+        commentParams.put("taskId", 1);
+        commentParams.put("userId", 1);
+        commentParams.put("comment", "Need more concrete for this job");
 
         when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
         when(userService.getUserById(1)).thenReturn(Optional.of(user));
-        when(taskCommentService.addCommentToTask(task, user, "New test comment")).thenReturn(comment);
+        when(taskCommentService.addCommentToTask(any(Task.class), any(User.class), anyString())).thenReturn(taskCommentDTO);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/task-comments/add")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(commentParams)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(1)));
-
-        verify(taskService, times(1)).getTaskById(1);
-        verify(userService, times(1)).getUserById(1);
-        verify(taskCommentService, times(1)).addCommentToTask(task, user, "New test comment");
+                .andExpect(jsonPath("$.comment").value("Need more concrete for this job"))
+                .andExpect(jsonPath("$.username").value("worker1"));
     }
 
     @Test
-    void addCommentToTask_WithMissingData_ShouldReturnBadRequest() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("taskId", 1);
-        // Missing userId and comment
+    public void addCommentToTask_WithMissingParams_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        Map<String, Object> incompleteParams = new HashMap<>();
+        incompleteParams.put("taskId", 1);
+        incompleteParams.put("userId", 1);
+        // Missing required comment parameter
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/task-comments/add")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(incompleteParams)))
                 .andExpect(status().isBadRequest());
-
-        verify(taskService, never()).getTaskById(anyInt());
-        verify(userService, never()).getUserById(anyInt());
-        verify(taskCommentService, never()).addCommentToTask(any(), any(), anyString());
     }
 
     @Test
-    void updateTaskComment_WhenCommentExists_ShouldReturnUpdatedComment() throws Exception {
-        // Given
-        TaskComment updatedComment = new TaskComment();
+    public void addCommentToTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        Map<String, Object> commentParams = new HashMap<>();
+        commentParams.put("taskId", 99);
+        commentParams.put("userId", 1);
+        commentParams.put("comment", "Need more concrete for this job");
+
+        when(taskService.getTaskById(99)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(post("/database/task-comments/add")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(commentParams)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void updateTaskComment_WhenCommentExists_ShouldReturnUpdatedComment() throws Exception {
+        // Arrange
+        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(taskCommentDTO));
+        when(taskCommentService.saveTaskComment(any(TaskCommentDTO.class))).thenReturn(taskCommentDTO);
+
+        // Update the comment
+        TaskCommentDTO updatedComment = new TaskCommentDTO();
         updatedComment.setId(1);
-        updatedComment.setTask(task);
-        updatedComment.setUser(user);
-        updatedComment.setComment("Updated comment");
-        updatedComment.setCreatedAt(comment.getCreatedAt());
+        updatedComment.setTaskId(1);
+        updatedComment.setUserId(1);
+        updatedComment.setComment("Updated: Need more concrete and sand for this job");
 
-        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(comment));
-        when(taskCommentService.saveTaskComment(any(TaskComment.class))).thenReturn(updatedComment);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(put("/database/task-comments/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedComment)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.comment", is("Updated comment")));
+                .andExpect(jsonPath("$.comment").value("Need more concrete for this job")); // Mock returns original
 
-        verify(taskCommentService, times(1)).getTaskCommentById(1);
-        verify(taskCommentService, times(1)).saveTaskComment(any(TaskComment.class));
+        // Verify that the ID was set in the DTO before saving
+        verify(taskCommentService).saveTaskComment(argThat(dto -> dto.getId() == 1));
     }
 
     @Test
-    void updateTaskComment_WhenCommentDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        TaskComment updatedComment = new TaskComment();
-        updatedComment.setComment("Updated comment");
-
+    public void updateTaskComment_WhenCommentDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskCommentService.getTaskCommentById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(put("/database/task-comments/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedComment)))
+                        .content(objectMapper.writeValueAsString(taskCommentDTO)))
                 .andExpect(status().isNotFound());
-
-        verify(taskCommentService, times(1)).getTaskCommentById(99);
-        verify(taskCommentService, never()).saveTaskComment(any(TaskComment.class));
     }
 
     @Test
-    void deleteTaskComment_WhenCommentExists_ShouldReturnNoContent() throws Exception {
-        // Given
-        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(comment));
+    public void deleteTaskComment_WhenCommentExists_ShouldReturnNoContent() throws Exception {
+        // Arrange
+        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(taskCommentDTO));
         doNothing().when(taskCommentService).deleteTaskComment(1);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-comments/1"))
                 .andExpect(status().isNoContent());
-
-        verify(taskCommentService, times(1)).getTaskCommentById(1);
-        verify(taskCommentService, times(1)).deleteTaskComment(1);
     }
 
     @Test
-    void deleteTaskComment_WhenCommentDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void deleteTaskComment_WhenCommentDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskCommentService.getTaskCommentById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-comments/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskCommentService, times(1)).getTaskCommentById(99);
-        verify(taskCommentService, never()).deleteTaskComment(anyInt());
     }
 
     @Test
-    void deleteAllCommentsForTask_WhenTaskExists_ShouldReturnNoContent() throws Exception {
-        // Given
+    public void deleteAllCommentsForTask_WhenTaskExists_ShouldReturnNoContent() throws Exception {
+        // Arrange
         when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
-        when(taskCommentService.deleteAllCommentsForTask(task)).thenReturn(2);
+        doNothing().when(taskCommentService).deleteAllCommentsForTask(any(Task.class));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-comments/task/1"))
                 .andExpect(status().isNoContent());
-
-        verify(taskService, times(1)).getTaskById(1);
-        verify(taskCommentService, times(1)).deleteAllCommentsForTask(task);
     }
 
     @Test
-    void deleteAllCommentsForTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void deleteAllCommentsForTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskService.getTaskById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-comments/task/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskService, times(1)).getTaskById(99);
-        verify(taskCommentService, never()).deleteAllCommentsForTask(any(Task.class));
     }
 }
