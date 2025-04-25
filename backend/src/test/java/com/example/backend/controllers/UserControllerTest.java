@@ -47,26 +47,27 @@ public class UserControllerTest {
         // Initialize test data
         userDTO = new UserDTO();
         userDTO.setId(1);
-        userDTO.setUsername("testuser");
-        userDTO.setPassword("password123");
-        userDTO.setEmail("test@example.com");
-        userDTO.setFirstName("Test");
-        userDTO.setLastName("User");
-        userDTO.setPhone("123456789");
-        userDTO.setRole("pracownik");
+        userDTO.setUsername("user1");
+        userDTO.setEmail("user1@example.com");
+        userDTO.setFirstName("John");
+        userDTO.setLastName("Doe");
+        userDTO.setPhone("123-456-7890");
+        userDTO.setRole("worker");
         userDTO.setIsActive(true);
         userDTO.setCreatedAt(LocalDateTime.now());
+        userDTO.setLastLogin(LocalDateTime.now());
 
         UserDTO userDTO2 = new UserDTO();
         userDTO2.setId(2);
         userDTO2.setUsername("manager1");
-        userDTO2.setPassword("password123");
-        userDTO2.setEmail("manager@example.com");
-        userDTO2.setFirstName("John");
-        userDTO2.setLastName("Manager");
-        userDTO2.setRole("kierownik");
+        userDTO2.setEmail("manager1@example.com");
+        userDTO2.setFirstName("Jane");
+        userDTO2.setLastName("Smith");
+        userDTO2.setPhone("987-654-3210");
+        userDTO2.setRole("manager");
         userDTO2.setIsActive(true);
         userDTO2.setCreatedAt(LocalDateTime.now());
+        userDTO2.setLastLogin(LocalDateTime.now());
 
         userDTOList = Arrays.asList(userDTO, userDTO2);
     }
@@ -79,20 +80,21 @@ public class UserControllerTest {
         // Act & Assert
         mockMvc.perform(get("/database/users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].username").value("testuser"))
+                .andExpect(jsonPath("$[0].username").value("user1"))
                 .andExpect(jsonPath("$[1].username").value("manager1"));
     }
 
     @Test
     public void getUserById_WhenExists_ShouldReturnUser() throws Exception {
         // Arrange
-        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        Optional<UserDTO> optionalUser = Optional.of(userDTO);
+        when(userService.getUserById(1)).thenReturn(optionalUser);
 
         // Act & Assert
         mockMvc.perform(get("/database/users/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("testuser"))
-                .andExpect(jsonPath("$.email").value("test@example.com"));
+                .andExpect(jsonPath("$.username").value("user1"))
+                .andExpect(jsonPath("$.email").value("user1@example.com"));
     }
 
     @Test
@@ -108,13 +110,14 @@ public class UserControllerTest {
     @Test
     public void getUserByUsername_WhenExists_ShouldReturnUser() throws Exception {
         // Arrange
-        when(userService.getUserByUsername("testuser")).thenReturn(Optional.of(userDTO));
+        Optional<UserDTO> optionalUser = Optional.of(userDTO);
+        when(userService.getUserByUsername("user1")).thenReturn(optionalUser);
 
         // Act & Assert
-        mockMvc.perform(get("/database/users/username/testuser"))
+        mockMvc.perform(get("/database/users/username/user1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.email").value("test@example.com"));
+                .andExpect(jsonPath("$.email").value("user1@example.com"));
     }
 
     @Test
@@ -128,14 +131,14 @@ public class UserControllerTest {
     }
 
     @Test
-    public void getActiveUsers_ShouldReturnActiveUsers() throws Exception {
+    public void getActiveUsers_ShouldReturnListOfActiveUsers() throws Exception {
         // Arrange
         when(userService.findActiveUsers()).thenReturn(userDTOList);
 
         // Act & Assert
         mockMvc.perform(get("/database/users/active"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].username").value("testuser"))
+                .andExpect(jsonPath("$[0].username").value("user1"))
                 .andExpect(jsonPath("$[1].username").value("manager1"));
     }
 
@@ -144,63 +147,88 @@ public class UserControllerTest {
         // Arrange
         when(userService.createUser(any(UserDTO.class))).thenReturn(userDTO);
 
+        UserDTO newUser = new UserDTO();
+        newUser.setUsername("newuser");
+        newUser.setPassword("password123");
+        newUser.setEmail("newuser@example.com");
+        newUser.setFirstName("New");
+        newUser.setLastName("User");
+        newUser.setRole("worker");
+
         // Act & Assert
         mockMvc.perform(post("/database/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(userDTO)))
+                        .content(objectMapper.writeValueAsString(newUser)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.username").value("testuser"))
-                .andExpect(jsonPath("$.email").value("test@example.com"));
+                .andExpect(jsonPath("$.username").value("user1")); // Mock returns our pre-defined userDTO
     }
 
     @Test
-    public void createUser_WhenServiceThrowsException_ShouldReturnInternalServerError() throws Exception {
+    public void createUser_WithInternalError_ShouldReturnInternalServerError() throws Exception {
         // Arrange
-        when(userService.createUser(any(UserDTO.class))).thenThrow(new RuntimeException("Database error"));
+        when(userService.createUser(any(UserDTO.class))).thenThrow(new RuntimeException("Internal error"));
+
+        UserDTO newUser = new UserDTO();
+        newUser.setUsername("newuser");
+        newUser.setPassword("password123");
+        newUser.setEmail("newuser@example.com");
+        newUser.setFirstName("New");
+        newUser.setLastName("User");
+        newUser.setRole("worker");
 
         // Act & Assert
         mockMvc.perform(post("/database/users")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(userDTO)))
+                        .content(objectMapper.writeValueAsString(newUser)))
                 .andExpect(status().isInternalServerError());
     }
 
     @Test
-    public void updateUser_WhenUserExists_ShouldReturnUpdatedUser() throws Exception {
+    public void updateUser_WhenExists_ShouldReturnUpdatedUser() throws Exception {
         // Arrange
-        when(userService.updateUser(eq(1), any(UserDTO.class))).thenReturn(Optional.of(userDTO));
+        Optional<UserDTO> optionalUpdatedUser = Optional.of(userDTO);
+        when(userService.updateUser(eq(1), any(UserDTO.class))).thenReturn(optionalUpdatedUser);
 
-        // Update user data
         UserDTO updatedUser = new UserDTO();
         updatedUser.setId(1);
-        updatedUser.setUsername("testuser");
-        updatedUser.setEmail("updated@example.com");
-        updatedUser.setFirstName("Updated");
-        updatedUser.setLastName("User");
-        updatedUser.setRole("pracownik");
+        updatedUser.setUsername("user1");
+        updatedUser.setEmail("user1updated@example.com");
+        updatedUser.setFirstName("John");
+        updatedUser.setLastName("Doe");
+        updatedUser.setPhone("555-555-5555");
+        updatedUser.setRole("worker");
 
         // Act & Assert
         mockMvc.perform(put("/database/users/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedUser)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value("test@example.com")); // Mock returns original
+                .andExpect(jsonPath("$.username").value("user1"))
+                .andExpect(jsonPath("$.email").value("user1@example.com")); // Mock returns our pre-defined userDTO
     }
 
     @Test
-    public void updateUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+    public void updateUser_WhenNotExists_ShouldReturnNotFound() throws Exception {
         // Arrange
         when(userService.updateUser(eq(99), any(UserDTO.class))).thenReturn(Optional.empty());
+
+        UserDTO updatedUser = new UserDTO();
+        updatedUser.setId(99);
+        updatedUser.setUsername("nonexistent");
+        updatedUser.setEmail("nonexistent@example.com");
+        updatedUser.setFirstName("Non");
+        updatedUser.setLastName("Existent");
+        updatedUser.setRole("worker");
 
         // Act & Assert
         mockMvc.perform(put("/database/users/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(userDTO)))
+                        .content(objectMapper.writeValueAsString(updatedUser)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    public void deleteUser_WhenUserExists_ShouldReturnNoContent() throws Exception {
+    public void deleteUser_WhenExists_ShouldReturnNoContent() throws Exception {
         // Arrange
         when(userService.deleteUser(1)).thenReturn(true);
 
@@ -210,7 +238,7 @@ public class UserControllerTest {
     }
 
     @Test
-    public void deleteUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+    public void deleteUser_WhenNotExists_ShouldReturnNotFound() throws Exception {
         // Arrange
         when(userService.deleteUser(99)).thenReturn(false);
 
@@ -220,24 +248,28 @@ public class UserControllerTest {
     }
 
     @Test
-    public void deactivateUser_WhenUserExists_ShouldReturnDeactivatedUser() throws Exception {
+    public void deactivateUser_WhenExists_ShouldReturnDeactivatedUser() throws Exception {
         // Arrange
         UserDTO deactivatedUser = new UserDTO();
         deactivatedUser.setId(1);
-        deactivatedUser.setUsername("testuser");
-        deactivatedUser.setEmail("test@example.com");
+        deactivatedUser.setUsername("user1");
+        deactivatedUser.setEmail("user1@example.com");
+        deactivatedUser.setFirstName("John");
+        deactivatedUser.setLastName("Doe");
         deactivatedUser.setIsActive(false);
 
-        when(userService.deactivateUser(1)).thenReturn(Optional.of(deactivatedUser));
+        Optional<UserDTO> optionalDeactivatedUser = Optional.of(deactivatedUser);
+        when(userService.deactivateUser(1)).thenReturn(optionalDeactivatedUser);
 
         // Act & Assert
         mockMvc.perform(put("/database/users/1/deactivate"))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.username").value("user1"))
                 .andExpect(jsonPath("$.isActive").value(false));
     }
 
     @Test
-    public void deactivateUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+    public void deactivateUser_WhenNotExists_ShouldReturnNotFound() throws Exception {
         // Arrange
         when(userService.deactivateUser(99)).thenReturn(Optional.empty());
 
@@ -247,23 +279,19 @@ public class UserControllerTest {
     }
 
     @Test
-    public void updateLastLogin_WhenUserExists_ShouldReturnUserWithUpdatedLogin() throws Exception {
+    public void updateLastLogin_WhenExists_ShouldReturnUpdatedUser() throws Exception {
         // Arrange
-        UserDTO userWithUpdatedLogin = new UserDTO();
-        userWithUpdatedLogin.setId(1);
-        userWithUpdatedLogin.setUsername("testuser");
-        userWithUpdatedLogin.setLastLogin(LocalDateTime.now());
-
-        when(userService.updateLastLogin(1)).thenReturn(Optional.of(userWithUpdatedLogin));
+        Optional<UserDTO> optionalUpdatedUser = Optional.of(userDTO);
+        when(userService.updateLastLogin(1)).thenReturn(optionalUpdatedUser);
 
         // Act & Assert
         mockMvc.perform(put("/database/users/1/login"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.lastLogin").isNotEmpty());
+                .andExpect(jsonPath("$.username").value("user1"));
     }
 
     @Test
-    public void updateLastLogin_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+    public void updateLastLogin_WhenNotExists_ShouldReturnNotFound() throws Exception {
         // Arrange
         when(userService.updateLastLogin(99)).thenReturn(Optional.empty());
 

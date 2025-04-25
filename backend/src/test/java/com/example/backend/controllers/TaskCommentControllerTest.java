@@ -1,6 +1,8 @@
 package com.example.backend.controllers;
 
 import com.example.backend.dto.TaskCommentDTO;
+import com.example.backend.dto.TaskDTO;
+import com.example.backend.dto.UserDTO;
 import com.example.backend.models.Task;
 import com.example.backend.models.User;
 import com.example.backend.services.TaskCommentService;
@@ -46,7 +48,9 @@ public class TaskCommentControllerTest {
     private TaskCommentDTO taskCommentDTO;
     private List<TaskCommentDTO> taskCommentDTOList;
     private Task task;
+    private TaskDTO taskDTO;
     private User user;
+    private UserDTO userDTO;
 
     @BeforeEach
     public void setup() {
@@ -59,11 +63,23 @@ public class TaskCommentControllerTest {
         task.setId(1);
         task.setTitle("Build Foundation");
 
+        // Create TaskDTO
+        taskDTO = new TaskDTO();
+        taskDTO.setId(1);
+        taskDTO.setTitle("Build Foundation");
+
         user = new User();
         user.setId(1);
         user.setUsername("worker1");
         user.setFirstName("John");
         user.setLastName("Doe");
+
+        // Create UserDTO
+        userDTO = new UserDTO();
+        userDTO.setId(1);
+        userDTO.setUsername("worker1");
+        userDTO.setFirstName("John");
+        userDTO.setLastName("Doe");
 
         taskCommentDTO = new TaskCommentDTO();
         taskCommentDTO.setId(1);
@@ -101,7 +117,8 @@ public class TaskCommentControllerTest {
     @Test
     public void getTaskCommentById_WhenExists_ShouldReturnComment() throws Exception {
         // Arrange
-        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(taskCommentDTO));
+        Optional<TaskCommentDTO> optionalComment = Optional.of(taskCommentDTO);
+        when(taskCommentService.getTaskCommentById(1)).thenReturn(optionalComment);
 
         // Act & Assert
         mockMvc.perform(get("/database/task-comments/1"))
@@ -123,7 +140,8 @@ public class TaskCommentControllerTest {
     @Test
     public void getCommentsByTask_WhenTaskExists_ShouldReturnComments() throws Exception {
         // Arrange
-        when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
+        Optional<TaskDTO> optionalTaskDTO = Optional.of(taskDTO);
+        when(taskService.getTaskById(1)).thenReturn(optionalTaskDTO);
         when(taskCommentService.getCommentsByTask(any(Task.class))).thenReturn(taskCommentDTOList);
 
         // Act & Assert
@@ -146,7 +164,8 @@ public class TaskCommentControllerTest {
     @Test
     public void getCommentsByUser_WhenUserExists_ShouldReturnComments() throws Exception {
         // Arrange
-        when(userService.getUserById(1)).thenReturn(Optional.of(user));
+        Optional<UserDTO> optionalUserDTO = Optional.of(userDTO);
+        when(userService.getUserById(1)).thenReturn(optionalUserDTO);
         when(taskCommentService.getCommentsByUser(any(User.class))).thenReturn(Collections.singletonList(taskCommentDTO));
 
         // Act & Assert
@@ -188,8 +207,10 @@ public class TaskCommentControllerTest {
         commentParams.put("userId", 1);
         commentParams.put("comment", "Need more concrete for this job");
 
-        when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
-        when(userService.getUserById(1)).thenReturn(Optional.of(user));
+        Optional<TaskDTO> optionalTaskDTO = Optional.of(taskDTO);
+        Optional<UserDTO> optionalUserDTO = Optional.of(userDTO);
+        when(taskService.getTaskById(1)).thenReturn(optionalTaskDTO);
+        when(userService.getUserById(1)).thenReturn(optionalUserDTO);
         when(taskCommentService.addCommentToTask(any(Task.class), any(User.class), anyString())).thenReturn(taskCommentDTO);
 
         // Act & Assert
@@ -236,7 +257,8 @@ public class TaskCommentControllerTest {
     @Test
     public void updateTaskComment_WhenCommentExists_ShouldReturnUpdatedComment() throws Exception {
         // Arrange
-        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(taskCommentDTO));
+        Optional<TaskCommentDTO> optionalComment = Optional.of(taskCommentDTO);
+        when(taskCommentService.getTaskCommentById(1)).thenReturn(optionalComment);
         when(taskCommentService.saveTaskComment(any(TaskCommentDTO.class))).thenReturn(taskCommentDTO);
 
         // Update the comment
@@ -272,7 +294,8 @@ public class TaskCommentControllerTest {
     @Test
     public void deleteTaskComment_WhenCommentExists_ShouldReturnNoContent() throws Exception {
         // Arrange
-        when(taskCommentService.getTaskCommentById(1)).thenReturn(Optional.of(taskCommentDTO));
+        Optional<TaskCommentDTO> optionalComment = Optional.of(taskCommentDTO);
+        when(taskCommentService.getTaskCommentById(1)).thenReturn(optionalComment);
         doNothing().when(taskCommentService).deleteTaskComment(1);
 
         // Act & Assert
@@ -293,7 +316,8 @@ public class TaskCommentControllerTest {
     @Test
     public void deleteAllCommentsForTask_WhenTaskExists_ShouldReturnNoContent() throws Exception {
         // Arrange
-        when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
+        Optional<TaskDTO> optionalTaskDTO = Optional.of(taskDTO);
+        when(taskService.getTaskById(1)).thenReturn(optionalTaskDTO);
         doNothing().when(taskCommentService).deleteAllCommentsForTask(any(Task.class));
 
         // Act & Assert

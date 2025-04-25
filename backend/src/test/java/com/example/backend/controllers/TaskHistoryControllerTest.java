@@ -1,5 +1,6 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dto.TaskDTO;
 import com.example.backend.dto.TaskHistoryDTO;
 import com.example.backend.dto.UserDTO;
 import com.example.backend.models.Task;
@@ -47,6 +48,7 @@ public class TaskHistoryControllerTest {
     private TaskHistoryDTO taskHistoryDTO;
     private List<TaskHistoryDTO> taskHistoryDTOList;
     private Task task;
+    private TaskDTO taskDTO;
     private UserDTO userDTO;
 
     @BeforeEach
@@ -59,6 +61,11 @@ public class TaskHistoryControllerTest {
         task = new Task();
         task.setId(1);
         task.setTitle("Build Foundation");
+
+        // Create TaskDTO
+        taskDTO = new TaskDTO();
+        taskDTO.setId(1);
+        taskDTO.setTitle("Build Foundation");
 
         userDTO = new UserDTO();
         userDTO.setId(1);
@@ -106,7 +113,8 @@ public class TaskHistoryControllerTest {
     @Test
     public void getTaskHistoryById_WhenExists_ShouldReturnHistory() throws Exception {
         // Arrange
-        when(taskHistoryService.getTaskHistoryById(1)).thenReturn(Optional.of(taskHistoryDTO));
+        Optional<TaskHistoryDTO> optionalHistory = Optional.of(taskHistoryDTO);
+        when(taskHistoryService.getTaskHistoryById(1)).thenReturn(optionalHistory);
 
         // Act & Assert
         mockMvc.perform(get("/database/task-history/1"))
@@ -129,7 +137,8 @@ public class TaskHistoryControllerTest {
     @Test
     public void getHistoryByTask_WhenTaskExists_ShouldReturnHistory() throws Exception {
         // Arrange
-        when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
+        Optional<TaskDTO> optionalTaskDTO = Optional.of(taskDTO);
+        when(taskService.getTaskById(1)).thenReturn(optionalTaskDTO);
         when(taskHistoryService.getHistoryByTask(any(Task.class))).thenReturn(taskHistoryDTOList);
 
         // Act & Assert
@@ -152,7 +161,8 @@ public class TaskHistoryControllerTest {
     @Test
     public void getHistoryByUser_WhenUserExists_ShouldReturnHistory() throws Exception {
         // Arrange
-        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        Optional<UserDTO> optionalUserDTO = Optional.of(userDTO);
+        when(userService.getUserById(1)).thenReturn(optionalUserDTO);
         when(taskHistoryService.getHistoryByUser(any(User.class))).thenReturn(Collections.singletonList(taskHistoryDTO));
 
         // Act & Assert
@@ -175,8 +185,10 @@ public class TaskHistoryControllerTest {
     @Test
     public void createTaskHistory_WithValidData_ShouldReturnCreatedHistory() throws Exception {
         // Arrange
-        when(taskService.getTaskEntityById(1)).thenReturn(Optional.of(task));
-        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        Optional<Task> optionalTask = Optional.of(task);
+        Optional<UserDTO> optionalUserDTO = Optional.of(userDTO);
+        when(taskService.getTaskEntityById(1)).thenReturn(optionalTask);
+        when(userService.getUserById(1)).thenReturn(optionalUserDTO);
         when(taskHistoryService.saveTaskHistory(any(TaskHistoryDTO.class), any(Task.class))).thenReturn(taskHistoryDTO);
 
         // Act & Assert
@@ -206,7 +218,8 @@ public class TaskHistoryControllerTest {
     @Test
     public void createTaskHistory_WithInvalidUserId_ShouldReturnBadRequest() throws Exception {
         // Arrange
-        when(taskService.getTaskEntityById(1)).thenReturn(Optional.of(task));
+        Optional<Task> optionalTask = Optional.of(task);
+        when(taskService.getTaskEntityById(1)).thenReturn(optionalTask);
         when(userService.getUserById(99)).thenReturn(Optional.empty());
 
         taskHistoryDTO.setChangedById(99);
@@ -228,8 +241,10 @@ public class TaskHistoryControllerTest {
         changeParams.put("oldValue", "In Progress");
         changeParams.put("newValue", "Completed");
 
-        when(taskService.getTaskEntityById(1)).thenReturn(Optional.of(task));
-        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        Optional<Task> optionalTask = Optional.of(task);
+        Optional<UserDTO> optionalUserDTO = Optional.of(userDTO);
+        when(taskService.getTaskEntityById(1)).thenReturn(optionalTask);
+        when(userService.getUserById(1)).thenReturn(optionalUserDTO);
         when(taskHistoryService.logTaskChange(any(Task.class), any(User.class), anyString(), anyString(), anyString()))
                 .thenReturn(taskHistoryDTO);
 
@@ -280,7 +295,8 @@ public class TaskHistoryControllerTest {
     @Test
     public void deleteTaskHistory_WhenHistoryExists_ShouldReturnNoContent() throws Exception {
         // Arrange
-        when(taskHistoryService.getTaskHistoryById(1)).thenReturn(Optional.of(taskHistoryDTO));
+        Optional<TaskHistoryDTO> optionalHistory = Optional.of(taskHistoryDTO);
+        when(taskHistoryService.getTaskHistoryById(1)).thenReturn(optionalHistory);
         doNothing().when(taskHistoryService).deleteTaskHistory(1);
 
         // Act & Assert
@@ -301,7 +317,8 @@ public class TaskHistoryControllerTest {
     @Test
     public void deleteAllHistoryForTask_WhenTaskExists_ShouldReturnNoContent() throws Exception {
         // Arrange
-        when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
+        Optional<TaskDTO> optionalTaskDTO = Optional.of(taskDTO);
+        when(taskService.getTaskById(1)).thenReturn(optionalTaskDTO);
         doNothing().when(taskHistoryService).deleteAllHistoryForTask(any(Task.class));
 
         // Act & Assert

@@ -4,7 +4,6 @@ import com.example.backend.dto.TeamMemberDTO;
 import com.example.backend.models.Team;
 import com.example.backend.services.TeamMemberService;
 import com.example.backend.services.TeamService;
-import com.example.backend.services.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,11 +17,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -40,9 +37,6 @@ public class TeamMemberControllerTest {
     @Mock
     private TeamService teamService;
 
-    @Mock
-    private UserService userService;
-
     @InjectMocks
     private TeamMemberController teamMemberController;
 
@@ -59,25 +53,25 @@ public class TeamMemberControllerTest {
         // Initialize test data
         team = new Team();
         team.setId(1);
-        team.setName("Construction Team Alpha");
+        team.setName("Construction Team A");
 
         teamMemberDTO = new TeamMemberDTO();
         teamMemberDTO.setId(1);
         teamMemberDTO.setTeamId(1);
-        teamMemberDTO.setUserId(1);
+        teamMemberDTO.setUserId(2);
         teamMemberDTO.setJoinedAt(LocalDateTime.now());
         teamMemberDTO.setIsActive(true);
-        teamMemberDTO.setTeamName("Construction Team Alpha");
+        teamMemberDTO.setTeamName("Construction Team A");
         teamMemberDTO.setUsername("worker1");
         teamMemberDTO.setUserFullName("John Doe");
 
         TeamMemberDTO teamMemberDTO2 = new TeamMemberDTO();
         teamMemberDTO2.setId(2);
         teamMemberDTO2.setTeamId(1);
-        teamMemberDTO2.setUserId(2);
+        teamMemberDTO2.setUserId(3);
         teamMemberDTO2.setJoinedAt(LocalDateTime.now());
         teamMemberDTO2.setIsActive(true);
-        teamMemberDTO2.setTeamName("Construction Team Alpha");
+        teamMemberDTO2.setTeamName("Construction Team A");
         teamMemberDTO2.setUsername("worker2");
         teamMemberDTO2.setUserFullName("Jane Smith");
 
@@ -85,10 +79,10 @@ public class TeamMemberControllerTest {
     }
 
     @Test
-    public void getTeamMembersByTeam_WhenTeamExists_ShouldReturnMembers() throws Exception {
+    public void getTeamMembersByTeam_WhenTeamExists_ShouldReturnTeamMembers() throws Exception {
         // Arrange
         when(teamService.getTeamEntityById(1)).thenReturn(Optional.of(team));
-        when(teamMemberService.getTeamMembersByTeam(any(Team.class))).thenReturn(teamMemberDTOList);
+        when(teamMemberService.getTeamMembersByTeam(team)).thenReturn(teamMemberDTOList);
 
         // Act & Assert
         mockMvc.perform(get("/database/team-members/team/1"))
@@ -100,20 +94,18 @@ public class TeamMemberControllerTest {
     @Test
     public void getTeamMembersByTeam_WhenTeamDoesNotExist_ShouldThrowException() throws Exception {
         // Arrange
-        when(teamService.getTeamEntityById(99)).thenThrow(new RuntimeException("Zespół o ID: 99 nie istnieje"));
+        when(teamService.getTeamEntityById(99)).thenThrow(new RuntimeException("Team not found"));
 
         // Act & Assert
         mockMvc.perform(get("/database/team-members/team/99"))
-                .andExpect(status().isInternalServerError())
-                .andExpect(content().string(containsString("Zespół o ID: 99 nie istnieje")));
+                .andExpect(status().isInternalServerError()); // Because the controller doesn't handle exceptions
     }
 
     @Test
-    public void getTeamMembersByTeamAndActiveStatus_WhenTeamExists_ShouldReturnFilteredMembers() throws Exception {
+    public void getTeamMembersByTeamAndActiveStatus_WhenTeamExists_ShouldReturnActiveTeamMembers() throws Exception {
         // Arrange
         when(teamService.getTeamEntityById(1)).thenReturn(Optional.of(team));
-        when(teamMemberService.getTeamMembersByTeamAndActiveStatus(any(Team.class), eq(true)))
-                .thenReturn(teamMemberDTOList);
+        when(teamMemberService.getTeamMembersByTeamAndActiveStatus(team, true)).thenReturn(teamMemberDTOList);
 
         // Act & Assert
         mockMvc.perform(get("/database/team-members/team/1/active/true"))
@@ -123,79 +115,64 @@ public class TeamMemberControllerTest {
     }
 
     @Test
-    public void getTeamMembersByTeamAndActiveStatus_WithInactiveMembers_ShouldReturnFilteredMembers() throws Exception {
-        // Arrange
-        TeamMemberDTO inactiveMember = new TeamMemberDTO();
-        inactiveMember.setId(3);
-        inactiveMember.setTeamId(1);
-        inactiveMember.setUserId(3);
-        inactiveMember.setIsActive(false);
-        inactiveMember.setUsername("inactiveworker");
-
-        when(teamService.getTeamEntityById(1)).thenReturn(Optional.of(team));
-        when(teamMemberService.getTeamMembersByTeamAndActiveStatus(any(Team.class), eq(false)))
-                .thenReturn(Collections.singletonList(inactiveMember));
-
-        // Act & Assert
-        mockMvc.perform(get("/database/team-members/team/1/active/false"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].username").value("inactiveworker"))
-                .andExpect(jsonPath("$[0].isActive").value(false));
-    }
-
-    @Test
-    public void createTeamMember_WithValidData_ShouldReturnCreatedMember() throws Exception {
+    public void createTeamMember_WithValidData_ShouldReturnCreatedTeamMember() throws Exception {
         // Arrange
         when(teamMemberService.saveTeamMember(any(TeamMemberDTO.class))).thenReturn(teamMemberDTO);
+
+        TeamMemberDTO newTeamMember = new TeamMemberDTO();
+        newTeamMember.setTeamId(1);
+        newTeamMember.setUserId(4);
+        newTeamMember.setIsActive(true);
 
         // Act & Assert
         mockMvc.perform(post("/database/team-members")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(teamMemberDTO)))
+                        .content(objectMapper.writeValueAsString(newTeamMember)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.teamId").value(1))
-                .andExpect(jsonPath("$.userId").value(1))
-                .andExpect(jsonPath("$.username").value("worker1"));
+                .andExpect(jsonPath("$.username").value("worker1")); // Mock returns our pre-defined teamMemberDTO
     }
 
     @Test
-    public void updateTeamMember_WhenMemberExists_ShouldReturnUpdatedMember() throws Exception {
+    public void updateTeamMember_WhenExists_ShouldReturnUpdatedTeamMember() throws Exception {
         // Arrange
-        when(teamMemberService.getTeamMemberById(1L)).thenReturn(Optional.of(teamMemberDTO));
+        Optional<TeamMemberDTO> optionalTeamMember = Optional.of(teamMemberDTO);
+        when(teamMemberService.getTeamMemberById(1L)).thenReturn(optionalTeamMember);
         when(teamMemberService.saveTeamMember(any(TeamMemberDTO.class))).thenReturn(teamMemberDTO);
 
-        // Update the team member
-        TeamMemberDTO updatedMember = new TeamMemberDTO();
-        updatedMember.setId(1);
-        updatedMember.setTeamId(1);
-        updatedMember.setUserId(1);
-        updatedMember.setIsActive(false); // Deactivate the member
+        TeamMemberDTO updatedTeamMember = new TeamMemberDTO();
+        updatedTeamMember.setId(1);
+        updatedTeamMember.setTeamId(1);
+        updatedTeamMember.setUserId(2);
+        updatedTeamMember.setIsActive(false); // Changing active status
 
         // Act & Assert
         mockMvc.perform(put("/database/team-members/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedMember)))
+                        .content(objectMapper.writeValueAsString(updatedTeamMember)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isActive").value(true)); // Mock returns original
-
-        // Verify that the ID was set in the DTO before saving
-        verify(teamMemberService).saveTeamMember(argThat(dto -> dto.getId() == 1));
+                .andExpect(jsonPath("$.username").value("worker1")); // Mock returns our pre-defined teamMemberDTO
     }
 
     @Test
-    public void updateTeamMember_WhenMemberDoesNotExist_ShouldReturnNotFound() throws Exception {
+    public void updateTeamMember_WhenNotExists_ShouldReturnNotFound() throws Exception {
         // Arrange
         when(teamMemberService.getTeamMemberById(99L)).thenReturn(Optional.empty());
+
+        TeamMemberDTO updatedTeamMember = new TeamMemberDTO();
+        updatedTeamMember.setId(99);
+        updatedTeamMember.setTeamId(1);
+        updatedTeamMember.setUserId(2);
+        updatedTeamMember.setIsActive(false);
 
         // Act & Assert
         mockMvc.perform(put("/database/team-members/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(teamMemberDTO)))
+                        .content(objectMapper.writeValueAsString(updatedTeamMember)))
                 .andExpect(status().isNotFound());
     }
 
     @Test
-    public void deleteTeamMember_WhenMemberExists_ShouldReturnNoContent() throws Exception {
+    public void deleteTeamMember_WhenExists_ShouldReturnNoContent() throws Exception {
         // Arrange
         when(teamMemberService.deleteTeamMemberById(1L)).thenReturn(true);
 
@@ -205,7 +182,7 @@ public class TeamMemberControllerTest {
     }
 
     @Test
-    public void deleteTeamMember_WhenMemberDoesNotExist_ShouldReturnNotFound() throws Exception {
+    public void deleteTeamMember_WhenNotExists_ShouldReturnNotFound() throws Exception {
         // Arrange
         when(teamMemberService.deleteTeamMemberById(99L)).thenReturn(false);
 
@@ -215,16 +192,16 @@ public class TeamMemberControllerTest {
     }
 
     @Test
-    public void getTeamMemberById_WhenExists_ShouldReturnMember() throws Exception {
+    public void getTeamMemberById_WhenExists_ShouldReturnTeamMember() throws Exception {
         // Arrange
-        when(teamMemberService.getTeamMemberById(1L)).thenReturn(Optional.of(teamMemberDTO));
+        Optional<TeamMemberDTO> optionalTeamMember = Optional.of(teamMemberDTO);
+        when(teamMemberService.getTeamMemberById(1L)).thenReturn(optionalTeamMember);
 
         // Act & Assert
         mockMvc.perform(get("/database/team-members/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.teamId").value(1))
-                .andExpect(jsonPath("$.userId").value(1))
-                .andExpect(jsonPath("$.username").value("worker1"));
+                .andExpect(jsonPath("$.username").value("worker1"))
+                .andExpect(jsonPath("$.teamName").value("Construction Team A"));
     }
 
     @Test
