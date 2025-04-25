@@ -7,9 +7,11 @@ import com.example.backend.models.User;
 import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.LocalDateTime;
@@ -17,273 +19,253 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
 
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private BCryptPasswordEncoder passwordEncoder;
+
     @InjectMocks
     private AuthService authService;
 
-    private User testUser;
-    private LocalDateTime now;
-    private BCryptPasswordEncoder passwordEncoder;
+    private User user;
+    private LoginRequestDTO loginRequest;
+    private RegisterRequestDTO registerRequest;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // Initialize test data
+        user = new User();
+        user.setId(1);
+        user.setUsername("testuser");
+        user.setPassword("$2a$10$hashedpassword");
+        user.setEmail("test@example.com");
+        user.setFirstName("Test");
+        user.setLastName("User");
+        user.setRole("użytkownik");
+        user.setIsActive(true);
+        user.setCreatedAt(LocalDateTime.now());
 
-        passwordEncoder = new BCryptPasswordEncoder();
-        now = LocalDateTime.now();
+        loginRequest = new LoginRequestDTO();
+        loginRequest.setUsername("testuser");
+        loginRequest.setPassword("password");
 
-        // Inicjalizacja testowego użytkownika
-        testUser = new User();
-        testUser.setId(1);
-        testUser.setUsername("testuser");
-        testUser.setPassword(passwordEncoder.encode("password123"));
-        testUser.setEmail("test@example.com");
-        testUser.setFirstName("Test");
-        testUser.setLastName("User");
-        testUser.setRole("użytkownik");
-        testUser.setIsActive(true);
-        testUser.setCreatedAt(now);
-        testUser.setLastLogin(now);
+        registerRequest = new RegisterRequestDTO();
+        registerRequest.setUsername("newuser");
+        registerRequest.setPassword("password");
+        registerRequest.setEmail("new@example.com");
+        registerRequest.setFirstName("New");
+        registerRequest.setLastName("User");
+        registerRequest.setPhone("987654321");
     }
 
     @Test
-    void login_WithValidCredentials_ShouldReturnUserDTO() {
-        // Given
-        LoginRequestDTO loginRequest = new LoginRequestDTO("testuser", "password123");
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
+    void login_WithValidCredentials_ShouldReturnUserResponseDTO() {
+        // Arrange
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password", user.getPassword())).thenReturn(true);
+        when(userRepository.save(any(User.class))).thenReturn(user);
 
-        // When
+        // Act
         Optional<UserResponseDTO> result = authService.login(loginRequest);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(testUser.getId(), result.get().getId());
-        assertEquals(testUser.getUsername(), result.get().getUsername());
-        verify(userRepository, times(1)).findByUsername("testuser");
-        verify(userRepository, times(1)).save(any(User.class));
-    }
-
-    @Test
-    void login_WithInvalidUsername_ShouldReturnEmpty() {
-        // Given
-        LoginRequestDTO loginRequest = new LoginRequestDTO("wronguser", "password123");
-        when(userRepository.findByUsername("wronguser")).thenReturn(Optional.empty());
-
-        // When
-        Optional<UserResponseDTO> result = authService.login(loginRequest);
-
-        // Then
-        assertFalse(result.isPresent());
-        verify(userRepository, times(1)).findByUsername("wronguser");
-        verify(userRepository, never()).save(any(User.class));
+        assertEquals("testuser", result.get().getUsername());
+        assertEquals("test@example.com", result.get().getEmail());
+        verify(userRepository).save(any(User.class)); // Verify last login is updated
     }
 
     @Test
     void login_WithInvalidPassword_ShouldReturnEmpty() {
-        // Given
-        LoginRequestDTO loginRequest = new LoginRequestDTO("testuser", "wrongpassword");
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        // Arrange
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrongpassword", user.getPassword())).thenReturn(false);
 
-        // When
+        // Act
+        loginRequest.setPassword("wrongpassword");
         Optional<UserResponseDTO> result = authService.login(loginRequest);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(userRepository, times(1)).findByUsername("testuser");
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void login_WithNonexistentUser_ShouldReturnEmpty() {
+        // Arrange
+        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+
+        // Act
+        loginRequest.setUsername("nonexistent");
+        Optional<UserResponseDTO> result = authService.login(loginRequest);
+
+        // Assert
+        assertFalse(result.isPresent());
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void login_WithInactiveUser_ShouldReturnEmpty() {
-        // Given
-        LoginRequestDTO loginRequest = new LoginRequestDTO("testuser", "password123");
-        User inactiveUser = new User();
-        inactiveUser.setUsername("testuser");
-        inactiveUser.setPassword(passwordEncoder.encode("password123"));
-        inactiveUser.setIsActive(false);
+        // Arrange
+        user.setIsActive(false);
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
 
-        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(inactiveUser));
-
-        // When
+        // Act
         Optional<UserResponseDTO> result = authService.login(loginRequest);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(userRepository, times(1)).findByUsername("testuser");
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void register_WithValidData_ShouldReturnUserDTO() {
-        // Given
-        RegisterRequestDTO registerRequest = new RegisterRequestDTO();
-        registerRequest.setUsername("newuser");
-        registerRequest.setPassword("newpassword");
-        registerRequest.setEmail("new@example.com");
-        registerRequest.setFirstName("New");
-        registerRequest.setLastName("User");
-
+    void register_WithValidData_ShouldCreateNewUser() {
+        // Arrange
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(userRepository.existsByEmail("new@example.com")).thenReturn(false);
+        when(passwordEncoder.encode("password")).thenReturn("$2a$10$encodedpassword");
+
+        // Configure save to return a new user with the assigned id
         when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
             User savedUser = invocation.getArgument(0);
-            savedUser.setId(2); // Symulacja nadania ID przez bazę danych
+            savedUser.setId(2);
             return savedUser;
         });
 
-        // When
+        // Act
         UserResponseDTO result = authService.register(registerRequest);
 
-        // Then
+        // Assert
         assertNotNull(result);
         assertEquals("newuser", result.getUsername());
         assertEquals("new@example.com", result.getEmail());
         assertEquals("New", result.getFirstName());
         assertEquals("User", result.getLastName());
-        verify(userRepository, times(1)).existsByUsername("newuser");
-        verify(userRepository, times(1)).existsByEmail("new@example.com");
-        verify(userRepository, times(1)).save(any(User.class));
+
+        // Verify the saved user contains expected data
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+        User savedUser = userCaptor.getValue();
+        assertEquals("newuser", savedUser.getUsername());
+        assertEquals("$2a$10$encodedpassword", savedUser.getPassword());
+        assertEquals("użytkownik", savedUser.getRole()); // Verify default role
     }
 
     @Test
     void register_WithExistingUsername_ShouldThrowException() {
-        // Given
-        RegisterRequestDTO registerRequest = new RegisterRequestDTO();
-        registerRequest.setUsername("testuser");
-        registerRequest.setPassword("newpassword");
-        registerRequest.setEmail("new@example.com");
+        // Arrange
+        when(userRepository.existsByUsername("newuser")).thenReturn(true);
 
-        when(userRepository.existsByUsername("testuser")).thenReturn(true);
-
-        // When & Then
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            authService.register(registerRequest);
-        });
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> authService.register(registerRequest));
 
         assertEquals("Nazwa użytkownika jest już zajęta", exception.getMessage());
-        verify(userRepository, times(1)).existsByUsername("testuser");
-        verify(userRepository, never()).existsByEmail(anyString());
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void register_WithExistingEmail_ShouldThrowException() {
-        // Given
-        RegisterRequestDTO registerRequest = new RegisterRequestDTO();
-        registerRequest.setUsername("newuser");
-        registerRequest.setPassword("newpassword");
-        registerRequest.setEmail("test@example.com");
-
+        // Arrange
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
-        when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
+        when(userRepository.existsByEmail("new@example.com")).thenReturn(true);
 
-        // When & Then
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            authService.register(registerRequest);
-        });
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> authService.register(registerRequest));
 
         assertEquals("Adres email jest już używany", exception.getMessage());
-        verify(userRepository, times(1)).existsByUsername("newuser");
-        verify(userRepository, times(1)).existsByEmail("test@example.com");
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
     void validatePassword_WithCorrectPassword_ShouldReturnTrue() {
-        // Given
-        String rawPassword = "password123";
-        String encodedPassword = passwordEncoder.encode(rawPassword);
+        // Arrange
+        when(passwordEncoder.matches("password", "$2a$10$hashedpassword")).thenReturn(true);
 
-        // When
-        boolean result = authService.validatePassword(rawPassword, encodedPassword);
+        // Act
+        boolean result = authService.validatePassword("password", "$2a$10$hashedpassword");
 
-        // Then
+        // Assert
         assertTrue(result);
     }
 
     @Test
     void validatePassword_WithIncorrectPassword_ShouldReturnFalse() {
-        // Given
-        String rawPassword = "password123";
-        String wrongPassword = "wrongpassword";
-        String encodedPassword = passwordEncoder.encode(rawPassword);
+        // Arrange
+        when(passwordEncoder.matches("wrongpassword", "$2a$10$hashedpassword")).thenReturn(false);
 
-        // When
-        boolean result = authService.validatePassword(wrongPassword, encodedPassword);
+        // Act
+        boolean result = authService.validatePassword("wrongpassword", "$2a$10$hashedpassword");
 
-        // Then
+        // Assert
         assertFalse(result);
     }
 
     @Test
     void encodePassword_ShouldReturnEncodedPassword() {
-        // Given
-        String rawPassword = "password123";
+        // Arrange
+        when(passwordEncoder.encode("password")).thenReturn("$2a$10$encodedpassword");
 
-        // When
-        String encodedPassword = authService.encodePassword(rawPassword);
+        // Act
+        String result = authService.encodePassword("password");
 
-        // Then
-        assertNotEquals(rawPassword, encodedPassword);
-        assertTrue(passwordEncoder.matches(rawPassword, encodedPassword));
+        // Assert
+        assertEquals("$2a$10$encodedpassword", result);
     }
 
     @Test
-    void userExists_WhenUserExists_ShouldReturnTrue() {
-        // Given
+    void userExists_WithExistingUsername_ShouldReturnTrue() {
+        // Arrange
         when(userRepository.existsByUsername("testuser")).thenReturn(true);
 
-        // When
+        // Act
         boolean result = authService.userExists("testuser");
 
-        // Then
+        // Assert
         assertTrue(result);
-        verify(userRepository, times(1)).existsByUsername("testuser");
     }
 
     @Test
-    void userExists_WhenUserDoesNotExist_ShouldReturnFalse() {
-        // Given
+    void userExists_WithNonexistentUsername_ShouldReturnFalse() {
+        // Arrange
         when(userRepository.existsByUsername("nonexistent")).thenReturn(false);
 
-        // When
+        // Act
         boolean result = authService.userExists("nonexistent");
 
-        // Then
+        // Assert
         assertFalse(result);
-        verify(userRepository, times(1)).existsByUsername("nonexistent");
     }
 
     @Test
-    void emailExists_WhenEmailExists_ShouldReturnTrue() {
-        // Given
+    void emailExists_WithExistingEmail_ShouldReturnTrue() {
+        // Arrange
         when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
 
-        // When
+        // Act
         boolean result = authService.emailExists("test@example.com");
 
-        // Then
+        // Assert
         assertTrue(result);
-        verify(userRepository, times(1)).existsByEmail("test@example.com");
     }
 
     @Test
-    void emailExists_WhenEmailDoesNotExist_ShouldReturnFalse() {
-        // Given
+    void emailExists_WithNonexistentEmail_ShouldReturnFalse() {
+        // Arrange
         when(userRepository.existsByEmail("nonexistent@example.com")).thenReturn(false);
 
-        // When
+        // Act
         boolean result = authService.emailExists("nonexistent@example.com");
 
-        // Then
+        // Assert
         assertFalse(result);
-        verify(userRepository, times(1)).existsByEmail("nonexistent@example.com");
     }
 }

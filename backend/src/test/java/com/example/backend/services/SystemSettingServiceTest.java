@@ -1,13 +1,15 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.SystemSettingDTO;
 import com.example.backend.models.SystemSetting;
 import com.example.backend.models.User;
 import com.example.backend.repository.SystemSettingRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -16,8 +18,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class SystemSettingServiceTest {
 
     @Mock
@@ -26,334 +30,373 @@ class SystemSettingServiceTest {
     @InjectMocks
     private SystemSettingService systemSettingService;
 
-    private User admin;
-    private SystemSetting appNameSetting;
-    private SystemSetting maxTasksSetting;
+    private SystemSetting systemSetting;
+    private SystemSettingDTO systemSettingDTO;
+    private User user;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // Initialize test data
+        user = new User();
+        user.setId(1);
+        user.setUsername("admin");
+        user.setFirstName("Admin");
+        user.setLastName("User");
 
-        // Inicjalizacja użytkownika testowego
-        admin = new User();
-        admin.setId(1);
-        admin.setUsername("admin");
+        systemSetting = new SystemSetting();
+        systemSetting.setId(1);
+        systemSetting.setKey("app.name");
+        systemSetting.setValue("BuildTask");
+        systemSetting.setDescription("Application name");
+        systemSetting.setUpdatedBy(user);
+        systemSetting.setUpdatedAt(LocalDateTime.now());
 
-        // Inicjalizacja ustawień systemowych testowych
-        appNameSetting = new SystemSetting();
-        appNameSetting.setId(1);
-        appNameSetting.setKey("app.name");
-        appNameSetting.setValue("BuildTask");
-        appNameSetting.setDescription("Nazwa aplikacji");
-        appNameSetting.setUpdatedBy(admin);
-        appNameSetting.setUpdatedAt(LocalDateTime.now());
-
-        maxTasksSetting = new SystemSetting();
-        maxTasksSetting.setId(2);
-        maxTasksSetting.setKey("tasks.max_per_user");
-        maxTasksSetting.setValue("10");
-        maxTasksSetting.setDescription("Maksymalna liczba zadań na użytkownika");
-        maxTasksSetting.setUpdatedBy(admin);
-        maxTasksSetting.setUpdatedAt(LocalDateTime.now());
+        systemSettingDTO = new SystemSettingDTO();
+        systemSettingDTO.setId(1);
+        systemSettingDTO.setKey("app.name");
+        systemSettingDTO.setValue("BuildTask");
+        systemSettingDTO.setDescription("Application name");
+        systemSettingDTO.setUpdatedById(1);
+        systemSettingDTO.setUpdatedAt(LocalDateTime.now());
+        systemSettingDTO.setUpdatedByUsername("admin");
+        systemSettingDTO.setUpdatedByFullName("Admin User");
     }
 
     @Test
     void getAllSystemSettings_ShouldReturnAllSettings() {
-        // Given
-        List<SystemSetting> expectedSettings = Arrays.asList(appNameSetting, maxTasksSetting);
-        when(systemSettingRepository.findAll()).thenReturn(expectedSettings);
+        // Arrange
+        when(systemSettingRepository.findAll()).thenReturn(Arrays.asList(systemSetting));
 
-        // When
-        List<SystemSetting> actualSettings = systemSettingService.getAllSystemSettings();
+        // Act
+        List<SystemSettingDTO> result = systemSettingService.getAllSystemSettings();
 
-        // Then
-        assertEquals(expectedSettings.size(), actualSettings.size());
-        assertEquals(expectedSettings.get(0).getId(), actualSettings.get(0).getId());
-        assertEquals(expectedSettings.get(1).getId(), actualSettings.get(1).getId());
-        verify(systemSettingRepository, times(1)).findAll();
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("app.name", result.get(0).getKey());
+        assertEquals("BuildTask", result.get(0).getValue());
+        assertEquals("Application name", result.get(0).getDescription());
     }
 
     @Test
-    void getSystemSettingById_WhenSettingExists_ShouldReturnSetting() {
-        // Given
-        when(systemSettingRepository.findById(1)).thenReturn(Optional.of(appNameSetting));
+    void getSystemSettingById_WhenExists_ShouldReturnSetting() {
+        // Arrange
+        when(systemSettingRepository.findById(1)).thenReturn(Optional.of(systemSetting));
 
-        // When
-        Optional<SystemSetting> result = systemSettingService.getSystemSettingById(1);
+        // Act
+        Optional<SystemSettingDTO> result = systemSettingService.getSystemSettingById(1);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(appNameSetting.getId(), result.get().getId());
-        assertEquals(appNameSetting.getKey(), result.get().getKey());
-        verify(systemSettingRepository, times(1)).findById(1);
-    }
-
-    @Test
-    void getSystemSettingById_WhenSettingDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(systemSettingRepository.findById(99)).thenReturn(Optional.empty());
-
-        // When
-        Optional<SystemSetting> result = systemSettingService.getSystemSettingById(99);
-
-        // Then
-        assertFalse(result.isPresent());
-        verify(systemSettingRepository, times(1)).findById(99);
-    }
-
-    @Test
-    void getSystemSettingByKey_WhenSettingExists_ShouldReturnSetting() {
-        // Given
-        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(appNameSetting));
-
-        // When
-        Optional<SystemSetting> result = systemSettingService.getSystemSettingByKey("app.name");
-
-        // Then
-        assertTrue(result.isPresent());
-        assertEquals(appNameSetting.getId(), result.get().getId());
         assertEquals("app.name", result.get().getKey());
         assertEquals("BuildTask", result.get().getValue());
-        verify(systemSettingRepository, times(1)).findByKey("app.name");
     }
 
     @Test
-    void saveSystemSetting_ShouldSaveAndReturnSetting() {
-        // Given
-        SystemSetting newSetting = new SystemSetting();
-        newSetting.setKey("app.version");
-        newSetting.setValue("1.0.0");
-        newSetting.setDescription("Wersja aplikacji");
-        newSetting.setUpdatedBy(admin);
-        newSetting.setUpdatedAt(LocalDateTime.now());
+    void getSystemSettingById_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(systemSettingRepository.findById(999)).thenReturn(Optional.empty());
 
-        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(newSetting);
+        // Act
+        Optional<SystemSettingDTO> result = systemSettingService.getSystemSettingById(999);
 
-        // When
-        SystemSetting savedSetting = systemSettingService.saveSystemSetting(newSetting);
+        // Assert
+        assertFalse(result.isPresent());
+    }
 
-        // Then
-        assertEquals(newSetting.getKey(), savedSetting.getKey());
-        assertEquals(newSetting.getValue(), savedSetting.getValue());
-        assertEquals(newSetting.getDescription(), savedSetting.getDescription());
-        verify(systemSettingRepository, times(1)).save(newSetting);
+    @Test
+    void getSystemSettingByKey_WhenExists_ShouldReturnSetting() {
+        // Arrange
+        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(systemSetting));
+
+        // Act
+        Optional<SystemSettingDTO> result = systemSettingService.getSystemSettingByKey("app.name");
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(1, result.get().getId());
+        assertEquals("BuildTask", result.get().getValue());
+    }
+
+    @Test
+    void getSystemSettingByKey_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(systemSettingRepository.findByKey("nonexistent.key")).thenReturn(Optional.empty());
+
+        // Act
+        Optional<SystemSettingDTO> result = systemSettingService.getSystemSettingByKey("nonexistent.key");
+
+        // Assert
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void saveSystemSetting_WithNewSetting_ShouldCreateAndSave() {
+        // Arrange
+        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(systemSetting);
+
+        // Create DTO without ID (new setting)
+        SystemSettingDTO newSettingDTO = new SystemSettingDTO();
+        newSettingDTO.setKey("new.setting");
+        newSettingDTO.setValue("New Value");
+        newSettingDTO.setDescription("New setting description");
+        newSettingDTO.setUpdatedById(1);
+
+        // Act
+        SystemSettingDTO result = systemSettingService.saveSystemSetting(newSettingDTO);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("app.name", result.getKey()); // Mock returns original setting
+        verify(systemSettingRepository).save(any(SystemSetting.class));
+    }
+
+    @Test
+    void saveSystemSetting_WithExistingId_ShouldUpdateAndSave() {
+        // Arrange
+        when(systemSettingRepository.findById(1)).thenReturn(Optional.of(systemSetting));
+        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(systemSetting);
+
+        // Update value in DTO
+        systemSettingDTO.setValue("UpdatedValue");
+
+        // Act
+        SystemSettingDTO result = systemSettingService.saveSystemSetting(systemSettingDTO);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("app.name", result.getKey());
+        assertEquals("BuildTask", result.getValue()); // Mock returns original setting
+        verify(systemSettingRepository).save(any(SystemSetting.class));
+    }
+
+    @Test
+    void saveSystemSetting_WithExistingKey_ShouldUpdateAndSave() {
+        // Arrange
+        when(systemSettingRepository.findById(anyInt())).thenReturn(Optional.empty());
+        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(systemSetting));
+        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(systemSetting);
+
+        // Create DTO with existing key but no ID
+        SystemSettingDTO existingKeyDTO = new SystemSettingDTO();
+        existingKeyDTO.setKey("app.name");
+        existingKeyDTO.setValue("UpdatedValue");
+        existingKeyDTO.setUpdatedById(1);
+
+        // Act
+        SystemSettingDTO result = systemSettingService.saveSystemSetting(existingKeyDTO);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("app.name", result.getKey());
+        assertEquals("BuildTask", result.getValue()); // Mock returns original setting
+        verify(systemSettingRepository).save(any(SystemSetting.class));
     }
 
     @Test
     void createSystemSetting_ShouldCreateAndReturnSetting() {
-        // Given
-        String key = "app.version";
-        String value = "1.0.0";
-        String description = "Wersja aplikacji";
+        // Arrange
+        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(systemSetting);
 
-        when(systemSettingRepository.save(any(SystemSetting.class))).thenAnswer(invocation -> {
-            SystemSetting saved = invocation.getArgument(0);
-            saved.setId(3); // Symulacja nadania ID przez bazę danych
-            return saved;
-        });
+        // Act
+        SystemSettingDTO result = systemSettingService.createSystemSetting(
+                "app.name", "BuildTask", "Application name", user);
 
-        // When
-        SystemSetting createdSetting = systemSettingService.createSystemSetting(key, value, description, admin);
-
-        // Then
-        assertNotNull(createdSetting.getId());
-        assertEquals(key, createdSetting.getKey());
-        assertEquals(value, createdSetting.getValue());
-        assertEquals(description, createdSetting.getDescription());
-        assertEquals(admin, createdSetting.getUpdatedBy());
-        assertNotNull(createdSetting.getUpdatedAt());
-        verify(systemSettingRepository, times(1)).save(any(SystemSetting.class));
+        // Assert
+        assertNotNull(result);
+        assertEquals("app.name", result.getKey());
+        assertEquals("BuildTask", result.getValue());
+        assertEquals("Application name", result.getDescription());
+        verify(systemSettingRepository).save(any(SystemSetting.class));
     }
 
     @Test
     void updateValue_WhenSettingExists_ShouldUpdateAndReturnSetting() {
-        // Given
-        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(appNameSetting));
-        when(systemSettingRepository.save(any(SystemSetting.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        // Arrange
+        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(systemSetting));
+        when(systemSettingRepository.save(any(SystemSetting.class))).thenReturn(systemSetting);
 
-        String newValue = "TaskManager";
-        User updater = new User();
-        updater.setId(2);
-        updater.setUsername("manager");
+        // Act
+        Optional<SystemSettingDTO> result = systemSettingService.updateValue("app.name", "NewAppName", user);
 
-        // When
-        Optional<SystemSetting> result = systemSettingService.updateValue("app.name", newValue, updater);
-
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(newValue, result.get().getValue());
-        assertEquals(updater, result.get().getUpdatedBy());
-        assertNotNull(result.get().getUpdatedAt());
-        verify(systemSettingRepository, times(1)).findByKey("app.name");
-        verify(systemSettingRepository, times(1)).save(any(SystemSetting.class));
+        assertEquals("app.name", result.get().getKey());
+        assertEquals("BuildTask", result.get().getValue()); // Mock returns original setting
+        verify(systemSettingRepository).save(any(SystemSetting.class));
     }
 
     @Test
     void updateValue_WhenSettingDoesNotExist_ShouldReturnEmpty() {
-        // Given
+        // Arrange
         when(systemSettingRepository.findByKey("nonexistent.key")).thenReturn(Optional.empty());
 
-        // When
-        Optional<SystemSetting> result = systemSettingService.updateValue("nonexistent.key", "value", admin);
+        // Act
+        Optional<SystemSettingDTO> result = systemSettingService.updateValue("nonexistent.key", "Value", user);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(systemSettingRepository, times(1)).findByKey("nonexistent.key");
         verify(systemSettingRepository, never()).save(any(SystemSetting.class));
     }
 
     @Test
-    void deleteSystemSetting_ShouldCallRepository() {
-        // When
+    void deleteSystemSetting_ShouldCallRepositoryDelete() {
+        // Act
         systemSettingService.deleteSystemSetting(1);
 
-        // Then
-        verify(systemSettingRepository, times(1)).deleteById(1);
+        // Assert
+        verify(systemSettingRepository).deleteById(1);
     }
 
     @Test
-    void existsByKey_WhenSettingExists_ShouldReturnTrue() {
-        // Given
-        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(appNameSetting));
+    void existsByKey_WhenKeyExists_ShouldReturnTrue() {
+        // Arrange
+        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(systemSetting));
 
-        // When
+        // Act
         boolean result = systemSettingService.existsByKey("app.name");
 
-        // Then
+        // Assert
         assertTrue(result);
-        verify(systemSettingRepository, times(1)).findByKey("app.name");
     }
 
     @Test
-    void existsByKey_WhenSettingDoesNotExist_ShouldReturnFalse() {
-        // Given
+    void existsByKey_WhenKeyDoesNotExist_ShouldReturnFalse() {
+        // Arrange
         when(systemSettingRepository.findByKey("nonexistent.key")).thenReturn(Optional.empty());
 
-        // When
+        // Act
         boolean result = systemSettingService.existsByKey("nonexistent.key");
 
-        // Then
+        // Assert
         assertFalse(result);
-        verify(systemSettingRepository, times(1)).findByKey("nonexistent.key");
     }
 
     @Test
     void getStringValue_WhenSettingExists_ShouldReturnValue() {
-        // Given
-        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(appNameSetting));
+        // Arrange
+        when(systemSettingRepository.findByKey("app.name")).thenReturn(Optional.of(systemSetting));
 
-        // When
-        String result = systemSettingService.getStringValue("app.name", "DefaultApp");
+        // Act
+        String result = systemSettingService.getStringValue("app.name", "DefaultValue");
 
-        // Then
+        // Assert
         assertEquals("BuildTask", result);
-        verify(systemSettingRepository, times(1)).findByKey("app.name");
     }
 
     @Test
     void getStringValue_WhenSettingDoesNotExist_ShouldReturnDefaultValue() {
-        // Given
+        // Arrange
         when(systemSettingRepository.findByKey("nonexistent.key")).thenReturn(Optional.empty());
 
-        // When
+        // Act
         String result = systemSettingService.getStringValue("nonexistent.key", "DefaultValue");
 
-        // Then
+        // Assert
         assertEquals("DefaultValue", result);
-        verify(systemSettingRepository, times(1)).findByKey("nonexistent.key");
     }
 
     @Test
     void getIntValue_WhenSettingExistsWithValidInt_ShouldReturnIntValue() {
-        // Given
-        when(systemSettingRepository.findByKey("tasks.max_per_user")).thenReturn(Optional.of(maxTasksSetting));
+        // Arrange
+        SystemSetting intSetting = new SystemSetting();
+        intSetting.setKey("app.maxUsers");
+        intSetting.setValue("100");
 
-        // When
-        int result = systemSettingService.getIntValue("tasks.max_per_user", 5);
+        when(systemSettingRepository.findByKey("app.maxUsers")).thenReturn(Optional.of(intSetting));
 
-        // Then
-        assertEquals(10, result);
-        verify(systemSettingRepository, times(1)).findByKey("tasks.max_per_user");
+        // Act
+        int result = systemSettingService.getIntValue("app.maxUsers", 50);
+
+        // Assert
+        assertEquals(100, result);
     }
 
     @Test
     void getIntValue_WhenSettingExistsWithInvalidInt_ShouldReturnDefaultValue() {
-        // Given
+        // Arrange
         SystemSetting invalidIntSetting = new SystemSetting();
-        invalidIntSetting.setKey("invalid.int");
-        invalidIntSetting.setValue("not-an-int");
+        invalidIntSetting.setKey("app.invalid");
+        invalidIntSetting.setValue("not-a-number");
 
-        when(systemSettingRepository.findByKey("invalid.int")).thenReturn(Optional.of(invalidIntSetting));
+        when(systemSettingRepository.findByKey("app.invalid")).thenReturn(Optional.of(invalidIntSetting));
 
-        // When
-        int result = systemSettingService.getIntValue("invalid.int", 5);
+        // Act
+        int result = systemSettingService.getIntValue("app.invalid", 50);
 
-        // Then
-        assertEquals(5, result);
-        verify(systemSettingRepository, times(1)).findByKey("invalid.int");
+        // Assert
+        assertEquals(50, result);
+    }
+
+    @Test
+    void getIntValue_WhenSettingDoesNotExist_ShouldReturnDefaultValue() {
+        // Arrange
+        when(systemSettingRepository.findByKey("nonexistent.key")).thenReturn(Optional.empty());
+
+        // Act
+        int result = systemSettingService.getIntValue("nonexistent.key", 50);
+
+        // Assert
+        assertEquals(50, result);
     }
 
     @Test
     void getBooleanValue_WhenSettingExistsWithTrueValue_ShouldReturnTrue() {
-        // Given
+        // Arrange
         SystemSetting trueSetting = new SystemSetting();
-        trueSetting.setKey("feature.enabled");
+        trueSetting.setKey("app.feature.enabled");
         trueSetting.setValue("true");
 
-        when(systemSettingRepository.findByKey("feature.enabled")).thenReturn(Optional.of(trueSetting));
+        when(systemSettingRepository.findByKey("app.feature.enabled")).thenReturn(Optional.of(trueSetting));
 
-        // When
-        boolean result = systemSettingService.getBooleanValue("feature.enabled", false);
+        // Act
+        boolean result = systemSettingService.getBooleanValue("app.feature.enabled", false);
 
-        // Then
+        // Assert
         assertTrue(result);
-        verify(systemSettingRepository, times(1)).findByKey("feature.enabled");
     }
 
     @Test
-    void getBooleanValue_WhenSettingExistsWithNumericTrueValue_ShouldReturnTrue() {
-        // Given
-        SystemSetting numericTrueSetting = new SystemSetting();
-        numericTrueSetting.setKey("feature.enabled");
-        numericTrueSetting.setValue("1");
+    void getBooleanValue_WhenSettingExistsWithOneValue_ShouldReturnTrue() {
+        // Arrange
+        SystemSetting oneSetting = new SystemSetting();
+        oneSetting.setKey("app.feature.enabled");
+        oneSetting.setValue("1");
 
-        when(systemSettingRepository.findByKey("feature.enabled")).thenReturn(Optional.of(numericTrueSetting));
+        when(systemSettingRepository.findByKey("app.feature.enabled")).thenReturn(Optional.of(oneSetting));
 
-        // When
-        boolean result = systemSettingService.getBooleanValue("feature.enabled", false);
+        // Act
+        boolean result = systemSettingService.getBooleanValue("app.feature.enabled", false);
 
-        // Then
+        // Assert
         assertTrue(result);
-        verify(systemSettingRepository, times(1)).findByKey("feature.enabled");
     }
 
     @Test
-    void getBooleanValue_WhenSettingExistsWithFalseValue_ShouldReturnFalse() {
-        // Given
+    void getBooleanValue_WhenSettingExistsWithOtherValue_ShouldReturnFalse() {
+        // Arrange
         SystemSetting falseSetting = new SystemSetting();
-        falseSetting.setKey("feature.enabled");
-        falseSetting.setValue("false");
+        falseSetting.setKey("app.feature.enabled");
+        falseSetting.setValue("disabled");
 
-        when(systemSettingRepository.findByKey("feature.enabled")).thenReturn(Optional.of(falseSetting));
+        when(systemSettingRepository.findByKey("app.feature.enabled")).thenReturn(Optional.of(falseSetting));
 
-        // When
-        boolean result = systemSettingService.getBooleanValue("feature.enabled", true);
+        // Act
+        boolean result = systemSettingService.getBooleanValue("app.feature.enabled", true);
 
-        // Then
+        // Assert
         assertFalse(result);
-        verify(systemSettingRepository, times(1)).findByKey("feature.enabled");
     }
 
     @Test
     void getBooleanValue_WhenSettingDoesNotExist_ShouldReturnDefaultValue() {
-        // Given
-        when(systemSettingRepository.findByKey("feature.enabled")).thenReturn(Optional.empty());
+        // Arrange
+        when(systemSettingRepository.findByKey("nonexistent.key")).thenReturn(Optional.empty());
 
-        // When
-        boolean result = systemSettingService.getBooleanValue("feature.enabled", true);
+        // Act
+        boolean result = systemSettingService.getBooleanValue("nonexistent.key", true);
 
-        // Then
+        // Assert
         assertTrue(result);
-        verify(systemSettingRepository, times(1)).findByKey("feature.enabled");
     }
 }

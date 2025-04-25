@@ -1,14 +1,18 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.ReportDTO;
 import com.example.backend.models.Report;
 import com.example.backend.models.ReportType;
 import com.example.backend.models.User;
 import com.example.backend.repository.ReportRepository;
+import com.example.backend.repository.ReportTypeRepository;
+import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -19,174 +23,233 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class ReportServiceTest {
 
     @Mock
     private ReportRepository reportRepository;
 
+    @Mock
+    private ReportTypeRepository reportTypeRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private ReportService reportService;
 
+    private Report report;
+    private ReportDTO reportDTO;
+    private ReportType reportType;
     private User user;
-    private ReportType teamReportType;
-    private ReportType userReportType;
-    private Report teamReport;
-    private Report userReport;
-    private LocalDateTime now;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // Initialize test data
+        reportType = new ReportType();
+        reportType.setId(1);
+        reportType.setName("Monthly Report");
+        reportType.setDescription("Monthly construction progress report");
 
-        now = LocalDateTime.now();
-
-        // Inicjalizacja użytkownika testowego
         user = new User();
         user.setId(1);
-        user.setUsername("testuser");
-        user.setEmail("testuser@example.com");
-        user.setIsActive(true);
+        user.setUsername("manager1");
+        user.setFirstName("John");
+        user.setLastName("Manager");
 
-        // Inicjalizacja typów raportów testowych
-        teamReportType = new ReportType();
-        teamReportType.setId(1);
-        teamReportType.setName("Raport zespołu");
-        teamReportType.setDescription("Podsumowanie zadań zespołu");
-        teamReportType.setTemplatePath("/templates/reports/team_report.html");
+        report = new Report();
+        report.setId(1);
+        report.setName("February 2025 Progress Report");
+        report.setType(reportType);
+        report.setCreatedBy(user);
+        report.setParameters("{\"month\":\"February\",\"year\":2025}");
+        report.setFileName("feb_2025_report.pdf");
+        report.setFilePath("/reports/2025/feb_2025_report.pdf");
+        report.setCreatedAt(LocalDateTime.now());
 
-        userReportType = new ReportType();
-        userReportType.setId(2);
-        userReportType.setName("Raport użytkownika");
-        userReportType.setDescription("Podsumowanie zadań użytkownika");
-        userReportType.setTemplatePath("/templates/reports/user_report.html");
+        reportDTO = new ReportDTO();
+        reportDTO.setId(1);
+        reportDTO.setName("February 2025 Progress Report");
+        reportDTO.setTypeId(1);
+        reportDTO.setCreatedById(1);
+        reportDTO.setParameters("{\"month\":\"February\",\"year\":2025}");
+        reportDTO.setFileName("feb_2025_report.pdf");
+        reportDTO.setFilePath("/reports/2025/feb_2025_report.pdf");
+        reportDTO.setCreatedAt(LocalDateTime.now());
+        reportDTO.setTypeName("Monthly Report");
+        reportDTO.setCreatedByUsername("manager1");
+        reportDTO.setCreatedByFullName("John Manager");
+    }
 
-        // Inicjalizacja raportów testowych
-        teamReport = new Report();
-        teamReport.setId(1);
-        teamReport.setName("Raport zespołu Alpha za kwiecień 2023");
-        teamReport.setType(teamReportType);
-        teamReport.setCreatedBy(user);
-        teamReport.setParameters("{\"teamId\": 1, \"month\": 4, \"year\": 2023}");
-        teamReport.setFileName("team_alpha_report_2023_04.pdf");
-        teamReport.setFilePath("/reports/team_alpha_report_2023_04.pdf");
-        teamReport.setCreatedAt(now);
+    @Test
+    void mapToDTO_ShouldCorrectlyMapEntityToDTO() {
+        // Act
+        ReportDTO result = reportService.mapToDTO(report);
 
-        userReport = new Report();
-        userReport.setId(2);
-        userReport.setName("Raport użytkownika Jan Kowalski za maj 2023");
-        userReport.setType(userReportType);
-        userReport.setCreatedBy(user);
-        userReport.setParameters("{\"userId\": 3, \"month\": 5, \"year\": 2023}");
-        userReport.setFileName("user_jan_kowalski_report_2023_05.pdf");
-        userReport.setFilePath("/reports/user_jan_kowalski_report_2023_05.pdf");
-        userReport.setCreatedAt(now);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getId());
+        assertEquals("February 2025 Progress Report", result.getName());
+        assertEquals(1, result.getTypeId());
+        assertEquals("Monthly Report", result.getTypeName());
+        assertEquals(1, result.getCreatedById());
+        assertEquals("manager1", result.getCreatedByUsername());
+        assertEquals("John Manager", result.getCreatedByFullName());
+        assertEquals("{\"month\":\"February\",\"year\":2025}", result.getParameters());
+        assertEquals("feb_2025_report.pdf", result.getFileName());
+        assertEquals("/reports/2025/feb_2025_report.pdf", result.getFilePath());
+    }
+
+    @Test
+    void mapToDTO_WithNullReport_ShouldReturnNull() {
+        // Act
+        ReportDTO result = reportService.mapToDTO(null);
+
+        // Assert
+        assertNull(result);
+    }
+
+    @Test
+    void mapToEntity_ShouldCorrectlyMapDTOToEntity() {
+        // Arrange
+        when(reportTypeRepository.findById(1)).thenReturn(Optional.of(reportType));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+
+        // Act
+        Report result = reportService.mapToEntity(reportDTO);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getId());
+        assertEquals("February 2025 Progress Report", result.getName());
+        assertEquals(reportType, result.getType());
+        assertEquals(user, result.getCreatedBy());
+        assertEquals("{\"month\":\"February\",\"year\":2025}", result.getParameters());
+        assertEquals("feb_2025_report.pdf", result.getFileName());
+        assertEquals("/reports/2025/feb_2025_report.pdf", result.getFilePath());
+    }
+
+    @Test
+    void mapToEntity_WithNullDTO_ShouldReturnNull() {
+        // Act
+        Report result = reportService.mapToEntity(null);
+
+        // Assert
+        assertNull(result);
     }
 
     @Test
     void getReportsByType_ShouldReturnReportsForType() {
-        // Given
-        List<Report> expectedReports = Arrays.asList(teamReport);
-        when(reportRepository.findByType(teamReportType)).thenReturn(expectedReports);
+        // Arrange
+        when(reportRepository.findByType(reportType)).thenReturn(Arrays.asList(report));
 
-        // When
-        List<Report> actualReports = reportService.getReportsByType(teamReportType);
+        // Act
+        List<ReportDTO> result = reportService.getReportsByType(reportType);
 
-        // Then
-        assertEquals(expectedReports.size(), actualReports.size());
-        assertEquals(expectedReports.get(0).getId(), actualReports.get(0).getId());
-        assertEquals(expectedReports.get(0).getName(), actualReports.get(0).getName());
-        verify(reportRepository, times(1)).findByType(teamReportType);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("February 2025 Progress Report", result.get(0).getName());
+        assertEquals(1, result.get(0).getTypeId());
     }
 
     @Test
     void getReportsByCreatedBy_ShouldReturnReportsCreatedByUser() {
-        // Given
-        List<Report> expectedReports = Arrays.asList(teamReport, userReport);
-        when(reportRepository.findByCreatedBy(user)).thenReturn(expectedReports);
+        // Arrange
+        when(reportRepository.findByCreatedBy(user)).thenReturn(Arrays.asList(report));
 
-        // When
-        List<Report> actualReports = reportService.getReportsByCreatedBy(user);
+        // Act
+        List<ReportDTO> result = reportService.getReportsByCreatedBy(user);
 
-        // Then
-        assertEquals(expectedReports.size(), actualReports.size());
-        assertEquals(expectedReports.get(0).getId(), actualReports.get(0).getId());
-        assertEquals(expectedReports.get(1).getId(), actualReports.get(1).getId());
-        verify(reportRepository, times(1)).findByCreatedBy(user);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("February 2025 Progress Report", result.get(0).getName());
+        assertEquals(1, result.get(0).getCreatedById());
     }
 
     @Test
-    void saveReport_ShouldSaveAndReturnReport() {
-        // Given
-        Report newReport = new Report();
-        newReport.setName("Nowy raport");
-        newReport.setType(teamReportType);
-        newReport.setCreatedBy(user);
-        newReport.setParameters("{\"teamId\": 2, \"month\": 6, \"year\": 2023}");
-        newReport.setFileName("new_report.pdf");
-        newReport.setFilePath("/reports/new_report.pdf");
+    void saveReport_ShouldMapAndSaveReport() {
+        // Arrange
+        when(reportTypeRepository.findById(1)).thenReturn(Optional.of(reportType));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(reportRepository.save(any(Report.class))).thenReturn(report);
 
-        when(reportRepository.save(any(Report.class))).thenReturn(newReport);
+        // Act
+        ReportDTO result = reportService.saveReport(reportDTO);
 
-        // When
-        Report savedReport = reportService.saveReport(newReport);
-
-        // Then
-        assertEquals(newReport.getName(), savedReport.getName());
-        assertEquals(newReport.getType(), savedReport.getType());
-        assertEquals(newReport.getCreatedBy(), savedReport.getCreatedBy());
-        verify(reportRepository, times(1)).save(newReport);
+        // Assert
+        assertNotNull(result);
+        assertEquals("February 2025 Progress Report", result.getName());
+        assertEquals(1, result.getTypeId());
+        assertEquals(1, result.getCreatedById());
+        verify(reportRepository).save(any(Report.class));
     }
 
     @Test
-    void deleteReport_ShouldCallRepository() {
-        // When
-        reportService.deleteReport(teamReport);
+    void deleteReport_WhenReportExists_ShouldReturnTrue() {
+        // Arrange
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
 
-        // Then
-        verify(reportRepository, times(1)).delete(teamReport);
+        // Act
+        boolean result = reportService.deleteReport(1L);
+
+        // Assert
+        assertTrue(result);
+        verify(reportRepository).delete(report);
     }
 
     @Test
-    void getReportById_WhenReportExists_ShouldReturnReport() {
-        // Given
-        when(reportRepository.findById(1L)).thenReturn(Optional.of(teamReport));
+    void deleteReport_WhenReportDoesNotExist_ShouldReturnFalse() {
+        // Arrange
+        when(reportRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // When
-        Optional<Report> result = reportService.getReportById(1L);
+        // Act
+        boolean result = reportService.deleteReport(999L);
 
-        // Then
+        // Assert
+        assertFalse(result);
+        verify(reportRepository, never()).delete(any(Report.class));
+    }
+
+    @Test
+    void getReportById_WhenExists_ShouldReturnReport() {
+        // Arrange
+        when(reportRepository.findById(1L)).thenReturn(Optional.of(report));
+
+        // Act
+        Optional<ReportDTO> result = reportService.getReportById(1L);
+
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(teamReport.getId(), result.get().getId());
-        assertEquals(teamReport.getName(), result.get().getName());
-        verify(reportRepository, times(1)).findById(1L);
+        assertEquals("February 2025 Progress Report", result.get().getName());
+        assertEquals(1, result.get().getTypeId());
+        assertEquals(1, result.get().getCreatedById());
     }
 
     @Test
-    void getReportById_WhenReportDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(reportRepository.findById(99L)).thenReturn(Optional.empty());
+    void getReportById_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(reportRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // When
-        Optional<Report> result = reportService.getReportById(99L);
+        // Act
+        Optional<ReportDTO> result = reportService.getReportById(999L);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(reportRepository, times(1)).findById(99L);
     }
 
     @Test
     void getAllReports_ShouldReturnAllReports() {
-        // Given
-        List<Report> expectedReports = Arrays.asList(teamReport, userReport);
-        when(reportRepository.findAll()).thenReturn(expectedReports);
+        // Arrange
+        when(reportRepository.findAll()).thenReturn(Arrays.asList(report));
 
-        // When
-        List<Report> actualReports = reportService.getAllReports();
+        // Act
+        List<ReportDTO> result = reportService.getAllReports();
 
-        // Then
-        assertEquals(expectedReports.size(), actualReports.size());
-        assertEquals(expectedReports.get(0).getId(), actualReports.get(0).getId());
-        assertEquals(expectedReports.get(1).getId(), actualReports.get(1).getId());
-        verify(reportRepository, times(1)).findAll();
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("February 2025 Progress Report", result.get(0).getName());
     }
 }
