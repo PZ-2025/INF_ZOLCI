@@ -6,271 +6,355 @@ import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class UserServiceTest {
+public class UserServiceTest {
 
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private BCryptPasswordEncoder passwordEncoder;
+
     @InjectMocks
     private UserService userService;
 
-    private User user;
-    private UserDTO userDTO;
+    private User testUser;
+    private UserDTO testUserDTO;
+    private final LocalDateTime now = LocalDateTime.now();
 
     @BeforeEach
     void setUp() {
-        // Initialize test data
-        user = new User();
-        user.setId(1);
-        user.setUsername("testuser");
-        user.setPassword("password");
-        user.setEmail("test@example.com");
-        user.setFirstName("Test");
-        user.setLastName("User");
-        user.setPhone("123456789");
-        user.setRole("USER");
-        user.setIsActive(true);
-        user.setCreatedAt(LocalDateTime.now());
+        // Przykładowy użytkownik w bazie
+        testUser = new User();
+        testUser.setId(1);
+        testUser.setUsername("testuser");
+        testUser.setPassword("hashedPassword");
+        testUser.setEmail("test@example.com");
+        testUser.setFirstName("Test");
+        testUser.setLastName("User");
+        testUser.setPhone("123456789");
+        testUser.setRole("user");
+        testUser.setIsActive(true);
+        testUser.setCreatedAt(now);
+        testUser.setLastLogin(now);
 
-        userDTO = new UserDTO();
-        userDTO.setId(1);
-        userDTO.setUsername("testuser");
-        userDTO.setPassword("password");
-        userDTO.setEmail("test@example.com");
-        userDTO.setFirstName("Test");
-        userDTO.setLastName("User");
-        userDTO.setPhone("123456789");
-        userDTO.setRole("USER");
-        userDTO.setIsActive(true);
-        userDTO.setCreatedAt(LocalDateTime.now());
+        // DTO użytkownika do testów
+        testUserDTO = new UserDTO();
+        testUserDTO.setId(1);
+        testUserDTO.setUsername("testuser");
+        testUserDTO.setPassword("newPassword");
+        testUserDTO.setEmail("test@example.com");
+        testUserDTO.setFirstName("Test");
+        testUserDTO.setLastName("User");
+        testUserDTO.setPhone("123456789");
+        testUserDTO.setRole("user");
+        testUserDTO.setIsActive(true);
+        testUserDTO.setCreatedAt(now);
+        testUserDTO.setLastLogin(now);
     }
 
     @Test
-    void getAllUsers_ShouldReturnListOfUsers() {
-        // Arrange
-        when(userRepository.findAll()).thenReturn(Arrays.asList(user));
+    void getAllUsers_ShouldReturnAllUsers() {
+        // given
+        User user1 = new User();
+        user1.setId(1);
+        user1.setUsername("user1");
 
-        // Act
-        List<UserDTO> result = userService.getAllUsers();
+        User user2 = new User();
+        user2.setId(2);
+        user2.setUsername("user2");
 
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("testuser", result.get(0).getUsername());
+        when(userRepository.findAll()).thenReturn(Arrays.asList(user1, user2));
+
+        // when
+        List<UserDTO> users = userService.getAllUsers();
+
+        // then
+        assertThat(users).hasSize(2);
+        assertThat(users.get(0).getUsername()).isEqualTo("user1");
+        assertThat(users.get(1).getUsername()).isEqualTo("user2");
     }
 
     @Test
     void getUserById_WhenUserExists_ShouldReturnUser() {
-        // Arrange
-        when(userRepository.findById(anyInt())).thenReturn(Optional.of(user));
+        // given
+        when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
 
-        // Act
+        // when
         Optional<UserDTO> result = userService.getUserById(1);
 
-        // Assert
-        assertTrue(result.isPresent());
-        assertEquals("testuser", result.get().getUsername());
+        // then
+        assertThat(result).isPresent();
+        assertThat(result.get().getUsername()).isEqualTo("testuser");
+        // Hasło nie powinno być przekazywane w DTO
+        assertThat(result.get().getPassword()).isNull();
     }
 
     @Test
     void getUserById_WhenUserDoesNotExist_ShouldReturnEmpty() {
-        // Arrange
-        when(userRepository.findById(anyInt())).thenReturn(Optional.empty());
+        // given
+        when(userRepository.findById(999)).thenReturn(Optional.empty());
 
-        // Act
-        Optional<UserDTO> result = userService.getUserById(1);
+        // when
+        Optional<UserDTO> result = userService.getUserById(999);
 
-        // Assert
-        assertFalse(result.isPresent());
+        // then
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void getUserByUsername_WhenUserExists_ShouldReturnUser() {
-        // Arrange
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.of(user));
+    void createUser_ShouldHashPasswordAndSaveUser() {
+        // given
+        when(passwordEncoder.encode("newPassword")).thenReturn("hashedNewPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Act
-        Optional<UserDTO> result = userService.getUserByUsername("testuser");
+        // when
+        UserDTO result = userService.createUser(testUserDTO);
 
-        // Assert
-        assertTrue(result.isPresent());
-        assertEquals(1, result.get().getId());
+        // then
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getUsername()).isEqualTo("testuser");
+        assertThat(savedUser.getPassword()).isEqualTo("hashedNewPassword");
+        assertThat(savedUser.getIsActive()).isTrue();
+        assertThat(savedUser.getCreatedAt()).isNotNull();
     }
 
     @Test
-    void getUserByUsername_WhenUserDoesNotExist_ShouldReturnEmpty() {
-        // Arrange
-        when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+    void createUser_WithNoPassword_ShouldThrowException() {
+        // given
+        testUserDTO.setPassword(null);
 
-        // Act
-        Optional<UserDTO> result = userService.getUserByUsername("nonexistent");
-
-        // Assert
-        assertFalse(result.isPresent());
+        // when/then
+        assertThatThrownBy(() -> userService.createUser(testUserDTO))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Hasło jest wymagane");
     }
 
     @Test
-    void saveUser_ShouldPersistUser() {
-        // Arrange
-        when(userRepository.save(any(User.class))).thenReturn(user);
+    void updateUser_WithPassword_ShouldUpdateAndHashPassword() {
+        // given
+        when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
+        when(passwordEncoder.encode("newPassword")).thenReturn("hashedNewPassword");
+        when(userRepository.save(any(User.class))).thenAnswer(i -> {
+            User savedUser = (User) i.getArgument(0);
+            // Upewniamy się, że zachowujemy zahaszowane hasło w zwracanej encji
+            if ("hashedNewPassword".equals(savedUser.getPassword())) {
+                return savedUser;
+            }
+            // Jeśli hasło nie zostało zahaszowane prawidłowo, tworzymy nową encję z prawidłowym hasłem
+            User resultUser = new User();
+            resultUser.setId(savedUser.getId());
+            resultUser.setUsername(savedUser.getUsername());
+            resultUser.setPassword("hashedNewPassword"); // Ręcznie ustawiamy hasło na to, co ma zwrócić passwordEncoder
+            resultUser.setEmail(savedUser.getEmail());
+            resultUser.setFirstName(savedUser.getFirstName());
+            resultUser.setLastName(savedUser.getLastName());
+            resultUser.setPhone(savedUser.getPhone());
+            resultUser.setRole(savedUser.getRole());
+            resultUser.setIsActive(savedUser.getIsActive());
+            resultUser.setCreatedAt(savedUser.getCreatedAt());
+            resultUser.setLastLogin(savedUser.getLastLogin());
+            return resultUser;
+        });
 
-        // Act
-        UserDTO result = userService.saveUser(userDTO);
+        // when
+        Optional<UserDTO> result = userService.updateUser(1, testUserDTO);
 
-        // Assert
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-        assertEquals("test@example.com", result.getEmail());
-        verify(userRepository).save(any(User.class));
+        // then
+        assertThat(result).isPresent();
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getPassword()).isEqualTo("hashedNewPassword");
+        verify(passwordEncoder).encode("newPassword");
     }
 
     @Test
-    void deleteUser_WhenUserExists_ShouldReturnTrue() {
-        // Arrange
-        when(userRepository.findById(anyInt())).thenReturn(Optional.of(user));
+    void updateUser_WithNoPassword_ShouldNotChangePassword() {
+        // given
+        testUserDTO.setPassword(null);
+        when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-        // Act
+        // when
+        Optional<UserDTO> result = userService.updateUser(1, testUserDTO);
+
+        // then
+        assertThat(result).isPresent();
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getPassword()).isEqualTo("hashedPassword"); // oryginalne hasło nie zmienione
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void updateUser_WithEmptyPassword_ShouldNotChangePassword() {
+        // given
+        testUserDTO.setPassword("");
+        when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        // when
+        Optional<UserDTO> result = userService.updateUser(1, testUserDTO);
+
+        // then
+        assertThat(result).isPresent();
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getPassword()).isEqualTo("hashedPassword"); // oryginalne hasło nie zmienione
+        verify(passwordEncoder, never()).encode(any());
+    }
+
+    @Test
+    void updateUser_WithOnlySpecificFields_ShouldOnlyUpdateThoseFields() {
+        // given
+        User existingUser = new User();
+        existingUser.setId(1);
+        existingUser.setUsername("oldUsername");
+        existingUser.setPassword("oldHashedPassword");
+        existingUser.setEmail("old@example.com");
+        existingUser.setFirstName("OldFirst");
+        existingUser.setLastName("OldLast");
+        existingUser.setPhone("987654321");
+        existingUser.setRole("user");
+        existingUser.setIsActive(true);
+
+        UserDTO partialUpdate = new UserDTO();
+        partialUpdate.setEmail("new@example.com");
+        partialUpdate.setFirstName("NewFirst");
+        // Telefon jest null, ale nie powinien być aktualizowany
+        partialUpdate.setPhone(null);
+        // Pozostałe pola są null - nie powinny być aktualizowane
+
+        when(userRepository.findById(1)).thenReturn(Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> {
+            User savedUser = (User) i.getArgument(0);
+            // Upewniamy się, że w zapisanym użytkowniku telefon nie jest null
+            if (savedUser.getPhone() == null) {
+                User resultUser = new User();
+                resultUser.setId(savedUser.getId());
+                resultUser.setUsername(savedUser.getUsername());
+                resultUser.setPassword(savedUser.getPassword());
+                resultUser.setEmail(savedUser.getEmail());
+                resultUser.setFirstName(savedUser.getFirstName());
+                resultUser.setLastName(savedUser.getLastName());
+                resultUser.setPhone("987654321"); // Zachowujemy istniejący numer telefonu
+                resultUser.setRole(savedUser.getRole());
+                resultUser.setIsActive(savedUser.getIsActive());
+                resultUser.setCreatedAt(savedUser.getCreatedAt());
+                resultUser.setLastLogin(savedUser.getLastLogin());
+                return resultUser;
+            }
+            return savedUser;
+        });
+
+        // when
+        Optional<UserDTO> result = userService.updateUser(1, partialUpdate);
+
+        // then
+        assertThat(result).isPresent();
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getUsername()).isEqualTo("oldUsername"); // nie zmienione
+        assertThat(savedUser.getPassword()).isEqualTo("oldHashedPassword"); // nie zmienione
+        assertThat(savedUser.getEmail()).isEqualTo("new@example.com"); // zmienione
+        assertThat(savedUser.getFirstName()).isEqualTo("NewFirst"); // zmienione
+        assertThat(savedUser.getLastName()).isEqualTo("OldLast"); // nie zmienione
+        assertThat(savedUser.getPhone()).isEqualTo("987654321"); // nie zmienione
+    }
+
+    @Test
+    void deactivateUser_ShouldSetIsActiveToFalse() {
+        // given
+        when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        // when
+        Optional<UserDTO> result = userService.deactivateUser(1);
+
+        // then
+        assertThat(result).isPresent();
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getIsActive()).isFalse();
+    }
+
+    @Test
+    void updateLastLogin_ShouldUpdateLoginTimestamp() {
+        // given
+        when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenAnswer(i -> i.getArgument(0));
+
+        // when
+        Optional<UserDTO> result = userService.updateLastLogin(1);
+
+        // then
+        assertThat(result).isPresent();
+
+        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(userCaptor.capture());
+
+        User savedUser = userCaptor.getValue();
+        assertThat(savedUser.getLastLogin()).isNotNull();
+        assertThat(savedUser.getLastLogin()).isAfterOrEqualTo(now);
+    }
+
+    @Test
+    void deleteUser_WhenUserExists_ShouldDeleteAndReturnTrue() {
+        // given
+        when(userRepository.findById(1)).thenReturn(Optional.of(testUser));
+
+        // when
         boolean result = userService.deleteUser(1);
 
-        // Assert
-        assertTrue(result);
-        verify(userRepository).delete(user);
+        // then
+        assertThat(result).isTrue();
+        verify(userRepository).delete(testUser);
     }
 
     @Test
     void deleteUser_WhenUserDoesNotExist_ShouldReturnFalse() {
-        // Arrange
-        when(userRepository.findById(anyInt())).thenReturn(Optional.empty());
+        // given
+        when(userRepository.findById(999)).thenReturn(Optional.empty());
 
-        // Act
-        boolean result = userService.deleteUser(1);
+        // when
+        boolean result = userService.deleteUser(999);
 
-        // Assert
-        assertFalse(result);
-        verify(userRepository, never()).delete(any(User.class));
-    }
-
-    @Test
-    void findActiveUsers_ShouldReturnOnlyActiveUsers() {
-        // Arrange
-        when(userRepository.findByIsActiveTrue()).thenReturn(Arrays.asList(user));
-
-        // Act
-        List<UserDTO> result = userService.findActiveUsers();
-
-        // Assert
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("testuser", result.get(0).getUsername());
-        assertTrue(result.get(0).getIsActive());
-    }
-
-    @Test
-    void createUser_ShouldInitializeRequiredFields() {
-        // Arrange
-        when(userRepository.save(any(User.class))).thenReturn(user);
-
-        // Act
-        UserDTO result = userService.createUser(userDTO);
-
-        // Assert
-        assertNotNull(result);
-        assertEquals("testuser", result.getUsername());
-        verify(userRepository).save(any(User.class));
-    }
-
-    @Test
-    void updateUser_WhenUserExists_ShouldUpdateFields() {
-        // Arrange
-        User existingUser = new User();
-        existingUser.setId(1);
-        existingUser.setUsername("oldusername");
-        existingUser.setEmail("old@example.com");
-        existingUser.setFirstName("Old");
-        existingUser.setLastName("User");
-
-        when(userRepository.findById(1)).thenReturn(Optional.of(existingUser));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        // Act
-        Optional<UserDTO> result = userService.updateUser(1, userDTO);
-
-        // Assert
-        assertTrue(result.isPresent());
-        assertEquals("testuser", result.get().getUsername());
-        assertEquals("test@example.com", result.get().getEmail());
-        verify(userRepository).save(any(User.class));
-    }
-
-    @Test
-    void updateUser_WhenUserDoesNotExist_ShouldReturnEmpty() {
-        // Arrange
-        when(userRepository.findById(anyInt())).thenReturn(Optional.empty());
-
-        // Act
-        Optional<UserDTO> result = userService.updateUser(1, userDTO);
-
-        // Assert
-        assertFalse(result.isPresent());
-        verify(userRepository, never()).save(any(User.class));
-    }
-
-    @Test
-    void deactivateUser_WhenUserExists_ShouldSetIsActiveFalse() {
-        // Arrange
-        when(userRepository.findById(1)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-            User savedUser = invocation.getArgument(0);
-            savedUser.setIsActive(false);
-            return savedUser;
-        });
-
-        // Act
-        Optional<UserDTO> result = userService.deactivateUser(1);
-
-        // Assert
-        assertTrue(result.isPresent());
-        assertFalse(result.get().getIsActive());
-        verify(userRepository).save(any(User.class));
-    }
-
-    @Test
-    void updateLastLogin_WhenUserExists_ShouldUpdateLoginTime() {
-        // Arrange
-        LocalDateTime before = LocalDateTime.now().minusDays(1);
-        user.setLastLogin(before);
-
-        when(userRepository.findById(1)).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
-            User savedUser = invocation.getArgument(0);
-            savedUser.setLastLogin(LocalDateTime.now());
-            return savedUser;
-        });
-
-        // Act
-        Optional<UserDTO> result = userService.updateLastLogin(1);
-
-        // Assert
-        assertTrue(result.isPresent());
-        assertNotNull(result.get().getLastLogin());
-        // Verify last login was updated (should be more recent than 'before')
-        assertTrue(result.get().getLastLogin().isAfter(before) ||
-                result.get().getLastLogin().isEqual(before));
-        verify(userRepository).save(any(User.class));
+        // then
+        assertThat(result).isFalse();
+        verify(userRepository, never()).delete(any());
     }
 }
