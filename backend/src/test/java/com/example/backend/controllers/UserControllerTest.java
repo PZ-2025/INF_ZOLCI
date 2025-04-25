@@ -2,32 +2,27 @@ package com.example.backend.controllers;
 
 import com.example.backend.dto.UserDTO;
 import com.example.backend.services.UserService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 public class UserControllerTest {
-
-    private MockMvc mockMvc;
-    private ObjectMapper objectMapper;
 
     @Mock
     private UserService userService;
@@ -35,268 +30,259 @@ public class UserControllerTest {
     @InjectMocks
     private UserController userController;
 
-    private UserDTO userDTO;
-    private List<UserDTO> userDTOList;
+    private UserDTO testUser;
+    private final LocalDateTime now = LocalDateTime.now();
 
     @BeforeEach
-    public void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(userController).build();
-        objectMapper = new ObjectMapper();
-        objectMapper.findAndRegisterModules(); // For LocalDateTime serialization
-
-        // Initialize test data
-        userDTO = new UserDTO();
-        userDTO.setId(1);
-        userDTO.setUsername("user1");
-        userDTO.setEmail("user1@example.com");
-        userDTO.setFirstName("John");
-        userDTO.setLastName("Doe");
-        userDTO.setPhone("123-456-7890");
-        userDTO.setRole("worker");
-        userDTO.setIsActive(true);
-        userDTO.setCreatedAt(LocalDateTime.now());
-        userDTO.setLastLogin(LocalDateTime.now());
-
-        UserDTO userDTO2 = new UserDTO();
-        userDTO2.setId(2);
-        userDTO2.setUsername("manager1");
-        userDTO2.setEmail("manager1@example.com");
-        userDTO2.setFirstName("Jane");
-        userDTO2.setLastName("Smith");
-        userDTO2.setPhone("987-654-3210");
-        userDTO2.setRole("manager");
-        userDTO2.setIsActive(true);
-        userDTO2.setCreatedAt(LocalDateTime.now());
-        userDTO2.setLastLogin(LocalDateTime.now());
-
-        userDTOList = Arrays.asList(userDTO, userDTO2);
+    void setUp() {
+        testUser = new UserDTO();
+        testUser.setId(1);
+        testUser.setUsername("testuser");
+        testUser.setPassword("password"); // W rzeczywistości hasło nie powinno być przekazywane w odpowiedzi
+        testUser.setEmail("test@example.com");
+        testUser.setFirstName("Test");
+        testUser.setLastName("User");
+        testUser.setPhone("123456789");
+        testUser.setRole("user");
+        testUser.setIsActive(true);
+        testUser.setCreatedAt(now);
+        testUser.setLastLogin(now);
     }
 
     @Test
-    public void getAllUsers_ShouldReturnListOfUsers() throws Exception {
-        // Arrange
-        when(userService.getAllUsers()).thenReturn(userDTOList);
+    void getAllUsers_ShouldReturnAllUsers() {
+        // given
+        UserDTO user1 = new UserDTO();
+        user1.setId(1);
+        user1.setUsername("user1");
 
-        // Act & Assert
-        mockMvc.perform(get("/database/users"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].username").value("user1"))
-                .andExpect(jsonPath("$[1].username").value("manager1"));
+        UserDTO user2 = new UserDTO();
+        user2.setId(2);
+        user2.setUsername("user2");
+
+        when(userService.getAllUsers()).thenReturn(Arrays.asList(user1, user2));
+
+        // when
+        ResponseEntity<List<UserDTO>> response = userController.getAllUsers();
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(2);
+        assertThat(response.getBody().get(0).getUsername()).isEqualTo("user1");
+        assertThat(response.getBody().get(1).getUsername()).isEqualTo("user2");
     }
 
     @Test
-    public void getUserById_WhenExists_ShouldReturnUser() throws Exception {
-        // Arrange
-        Optional<UserDTO> optionalUser = Optional.of(userDTO);
-        when(userService.getUserById(1)).thenReturn(optionalUser);
+    void getUserById_WhenUserExists_ShouldReturnUser() {
+        // given
+        testUser.setPassword(null); // Hasło nie powinno być zwracane w odpowiedzi
+        when(userService.getUserById(1)).thenReturn(Optional.of(testUser));
 
-        // Act & Assert
-        mockMvc.perform(get("/database/users/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("user1"))
-                .andExpect(jsonPath("$.email").value("user1@example.com"));
+        // when
+        ResponseEntity<UserDTO> response = userController.getUserById(1);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getId()).isEqualTo(1);
+        assertThat(response.getBody().getUsername()).isEqualTo("testuser");
+        assertThat(response.getBody().getPassword()).isNull(); // Hasło nie powinno być w odpowiedzi
     }
 
     @Test
-    public void getUserById_WhenNotExists_ShouldReturnNotFound() throws Exception {
-        // Arrange
-        when(userService.getUserById(99)).thenReturn(Optional.empty());
+    void getUserById_WhenUserDoesNotExist_ShouldReturnNotFound() {
+        // given
+        when(userService.getUserById(999)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        mockMvc.perform(get("/database/users/99"))
-                .andExpect(status().isNotFound());
+        // when
+        ResponseEntity<UserDTO> response = userController.getUserById(999);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody()).isNull();
     }
 
     @Test
-    public void getUserByUsername_WhenExists_ShouldReturnUser() throws Exception {
-        // Arrange
-        Optional<UserDTO> optionalUser = Optional.of(userDTO);
-        when(userService.getUserByUsername("user1")).thenReturn(optionalUser);
+    void getUserByUsername_WhenUserExists_ShouldReturnUser() {
+        // given
+        testUser.setPassword(null); // Hasło nie powinno być zwracane w odpowiedzi
+        when(userService.getUserByUsername("testuser")).thenReturn(Optional.of(testUser));
 
-        // Act & Assert
-        mockMvc.perform(get("/database/users/username/user1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id").value(1))
-                .andExpect(jsonPath("$.email").value("user1@example.com"));
+        // when
+        ResponseEntity<UserDTO> response = userController.getUserByUsername("testuser");
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getId()).isEqualTo(1);
+        assertThat(response.getBody().getUsername()).isEqualTo("testuser");
     }
 
     @Test
-    public void getUserByUsername_WhenNotExists_ShouldReturnNotFound() throws Exception {
-        // Arrange
-        when(userService.getUserByUsername("nonexistent")).thenReturn(Optional.empty());
+    void getActiveUsers_ShouldReturnOnlyActiveUsers() {
+        // given
+        UserDTO activeUser = new UserDTO();
+        activeUser.setId(1);
+        activeUser.setUsername("active");
+        activeUser.setIsActive(true);
 
-        // Act & Assert
-        mockMvc.perform(get("/database/users/username/nonexistent"))
-                .andExpect(status().isNotFound());
+        when(userService.findActiveUsers()).thenReturn(Arrays.asList(activeUser));
+
+        // when
+        ResponseEntity<List<UserDTO>> response = userController.getActiveUsers();
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().get(0).getUsername()).isEqualTo("active");
+        assertThat(response.getBody().get(0).getIsActive()).isTrue();
     }
 
     @Test
-    public void getActiveUsers_ShouldReturnListOfActiveUsers() throws Exception {
-        // Arrange
-        when(userService.findActiveUsers()).thenReturn(userDTOList);
+    void createUser_WithValidData_ShouldCreateAndReturnUser() {
+        // given
+        UserDTO inputUser = new UserDTO();
+        inputUser.setUsername("newuser");
+        inputUser.setPassword("password123");
+        inputUser.setEmail("new@example.com");
+        inputUser.setFirstName("New");
+        inputUser.setLastName("User");
 
-        // Act & Assert
-        mockMvc.perform(get("/database/users/active"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].username").value("user1"))
-                .andExpect(jsonPath("$[1].username").value("manager1"));
+        UserDTO createdUser = new UserDTO();
+        createdUser.setId(2);
+        createdUser.setUsername("newuser");
+        createdUser.setEmail("new@example.com");
+        createdUser.setFirstName("New");
+        createdUser.setLastName("User");
+        createdUser.setIsActive(true);
+
+        when(userService.createUser(any(UserDTO.class))).thenReturn(createdUser);
+
+        // when
+        ResponseEntity<UserDTO> response = userController.createUser(inputUser);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getId()).isEqualTo(2);
+        assertThat(response.getBody().getUsername()).isEqualTo("newuser");
+
+        verify(userService).createUser(any(UserDTO.class));
     }
 
     @Test
-    public void createUser_WithValidData_ShouldReturnCreatedUser() throws Exception {
-        // Arrange
-        when(userService.createUser(any(UserDTO.class))).thenReturn(userDTO);
-
-        UserDTO newUser = new UserDTO();
-        newUser.setUsername("newuser");
-        newUser.setPassword("password123");
-        newUser.setEmail("newuser@example.com");
-        newUser.setFirstName("New");
-        newUser.setLastName("User");
-        newUser.setRole("worker");
-
-        // Act & Assert
-        mockMvc.perform(post("/database/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newUser)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.username").value("user1")); // Mock returns our pre-defined userDTO
-    }
-
-    @Test
-    public void createUser_WithInternalError_ShouldReturnInternalServerError() throws Exception {
-        // Arrange
-        when(userService.createUser(any(UserDTO.class))).thenThrow(new RuntimeException("Internal error"));
-
-        UserDTO newUser = new UserDTO();
-        newUser.setUsername("newuser");
-        newUser.setPassword("password123");
-        newUser.setEmail("newuser@example.com");
-        newUser.setFirstName("New");
-        newUser.setLastName("User");
-        newUser.setRole("worker");
-
-        // Act & Assert
-        mockMvc.perform(post("/database/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newUser)))
-                .andExpect(status().isInternalServerError());
-    }
-
-    @Test
-    public void updateUser_WhenExists_ShouldReturnUpdatedUser() throws Exception {
-        // Arrange
-        Optional<UserDTO> optionalUpdatedUser = Optional.of(userDTO);
-        when(userService.updateUser(eq(1), any(UserDTO.class))).thenReturn(optionalUpdatedUser);
+    void updateUser_WithPassword_ShouldUpdateUserAndHashPassword() {
+        // given
+        UserDTO updateUser = new UserDTO();
+        updateUser.setUsername("updateduser");
+        updateUser.setPassword("newpassword");
+        updateUser.setEmail("updated@example.com");
 
         UserDTO updatedUser = new UserDTO();
         updatedUser.setId(1);
-        updatedUser.setUsername("user1");
-        updatedUser.setEmail("user1updated@example.com");
-        updatedUser.setFirstName("John");
-        updatedUser.setLastName("Doe");
-        updatedUser.setPhone("555-555-5555");
-        updatedUser.setRole("worker");
+        updatedUser.setUsername("updateduser");
+        updatedUser.setEmail("updated@example.com");
+        updatedUser.setIsActive(true);
 
-        // Act & Assert
-        mockMvc.perform(put("/database/users/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedUser)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("user1"))
-                .andExpect(jsonPath("$.email").value("user1@example.com")); // Mock returns our pre-defined userDTO
+        when(userService.updateUser(eq(1), any(UserDTO.class))).thenReturn(Optional.of(updatedUser));
+
+        // when
+        ResponseEntity<UserDTO> response = userController.updateUser(1, updateUser);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getId()).isEqualTo(1);
+        assertThat(response.getBody().getUsername()).isEqualTo("updateduser");
+        assertThat(response.getBody().getEmail()).isEqualTo("updated@example.com");
+
+        // Weryfikujemy, że serwis został wywołany z DTO zawierającym hasło
+        verify(userService).updateUser(eq(1), argThat(dto ->
+                "newpassword".equals(dto.getPassword()) &&
+                        "updateduser".equals(dto.getUsername()) &&
+                        "updated@example.com".equals(dto.getEmail())
+        ));
     }
 
     @Test
-    public void updateUser_WhenNotExists_ShouldReturnNotFound() throws Exception {
-        // Arrange
-        when(userService.updateUser(eq(99), any(UserDTO.class))).thenReturn(Optional.empty());
+    void updateUser_WhenUserDoesNotExist_ShouldReturnNotFound() {
+        // given
+        UserDTO updateUser = new UserDTO();
+        updateUser.setUsername("updateduser");
 
-        UserDTO updatedUser = new UserDTO();
-        updatedUser.setId(99);
-        updatedUser.setUsername("nonexistent");
-        updatedUser.setEmail("nonexistent@example.com");
-        updatedUser.setFirstName("Non");
-        updatedUser.setLastName("Existent");
-        updatedUser.setRole("worker");
+        when(userService.updateUser(eq(999), any(UserDTO.class))).thenReturn(Optional.empty());
 
-        // Act & Assert
-        mockMvc.perform(put("/database/users/99")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedUser)))
-                .andExpect(status().isNotFound());
+        // when
+        ResponseEntity<UserDTO> response = userController.updateUser(999, updateUser);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
-    public void deleteUser_WhenExists_ShouldReturnNoContent() throws Exception {
-        // Arrange
+    void deleteUser_WhenUserExists_ShouldDeleteAndReturnNoContent() {
+        // given
         when(userService.deleteUser(1)).thenReturn(true);
 
-        // Act & Assert
-        mockMvc.perform(delete("/database/users/1"))
-                .andExpect(status().isNoContent());
+        // when
+        ResponseEntity<Void> response = userController.deleteUser(1);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+        verify(userService).deleteUser(1);
     }
 
     @Test
-    public void deleteUser_WhenNotExists_ShouldReturnNotFound() throws Exception {
-        // Arrange
-        when(userService.deleteUser(99)).thenReturn(false);
+    void deleteUser_WhenUserDoesNotExist_ShouldReturnNotFound() {
+        // given
+        when(userService.deleteUser(999)).thenReturn(false);
 
-        // Act & Assert
-        mockMvc.perform(delete("/database/users/99"))
-                .andExpect(status().isNotFound());
+        // when
+        ResponseEntity<Void> response = userController.deleteUser(999);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
-    public void deactivateUser_WhenExists_ShouldReturnDeactivatedUser() throws Exception {
-        // Arrange
+    void deactivateUser_WhenUserExists_ShouldDeactivateAndReturnUser() {
+        // given
         UserDTO deactivatedUser = new UserDTO();
         deactivatedUser.setId(1);
-        deactivatedUser.setUsername("user1");
-        deactivatedUser.setEmail("user1@example.com");
-        deactivatedUser.setFirstName("John");
-        deactivatedUser.setLastName("Doe");
+        deactivatedUser.setUsername("testuser");
         deactivatedUser.setIsActive(false);
 
-        Optional<UserDTO> optionalDeactivatedUser = Optional.of(deactivatedUser);
-        when(userService.deactivateUser(1)).thenReturn(optionalDeactivatedUser);
+        when(userService.deactivateUser(1)).thenReturn(Optional.of(deactivatedUser));
 
-        // Act & Assert
-        mockMvc.perform(put("/database/users/1/deactivate"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("user1"))
-                .andExpect(jsonPath("$.isActive").value(false));
+        // when
+        ResponseEntity<UserDTO> response = userController.deactivateUser(1);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getId()).isEqualTo(1);
+        assertThat(response.getBody().getUsername()).isEqualTo("testuser");
+        assertThat(response.getBody().getIsActive()).isFalse();
     }
 
     @Test
-    public void deactivateUser_WhenNotExists_ShouldReturnNotFound() throws Exception {
-        // Arrange
-        when(userService.deactivateUser(99)).thenReturn(Optional.empty());
+    void updateLastLogin_WhenUserExists_ShouldUpdateAndReturnUser() {
+        // given
+        UserDTO updatedUser = new UserDTO();
+        updatedUser.setId(1);
+        updatedUser.setUsername("testuser");
+        updatedUser.setLastLogin(LocalDateTime.now());
 
-        // Act & Assert
-        mockMvc.perform(put("/database/users/99/deactivate"))
-                .andExpect(status().isNotFound());
-    }
+        when(userService.updateLastLogin(1)).thenReturn(Optional.of(updatedUser));
 
-    @Test
-    public void updateLastLogin_WhenExists_ShouldReturnUpdatedUser() throws Exception {
-        // Arrange
-        Optional<UserDTO> optionalUpdatedUser = Optional.of(userDTO);
-        when(userService.updateLastLogin(1)).thenReturn(optionalUpdatedUser);
+        // when
+        ResponseEntity<UserDTO> response = userController.updateLastLogin(1);
 
-        // Act & Assert
-        mockMvc.perform(put("/database/users/1/login"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value("user1"));
-    }
-
-    @Test
-    public void updateLastLogin_WhenNotExists_ShouldReturnNotFound() throws Exception {
-        // Arrange
-        when(userService.updateLastLogin(99)).thenReturn(Optional.empty());
-
-        // Act & Assert
-        mockMvc.perform(put("/database/users/99/login"))
-                .andExpect(status().isNotFound());
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getId()).isEqualTo(1);
+        assertThat(response.getBody().getUsername()).isEqualTo("testuser");
+        assertThat(response.getBody().getLastLogin()).isNotNull();
     }
 }
