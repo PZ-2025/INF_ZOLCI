@@ -245,6 +245,7 @@ public class SystemSettingControllerTest {
         when(systemSettingService.saveSystemSetting(any(SystemSettingDTO.class))).thenReturn(systemSettingDTO);
 
         // Update value in DTO
+        systemSettingDTO.setKey("app.name");
         systemSettingDTO.setValue("UpdatedBuildTask");
 
         // Act & Assert
@@ -253,7 +254,7 @@ public class SystemSettingControllerTest {
                         .content(objectMapper.writeValueAsString(systemSettingDTO)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.key").value("app.name"))
-                .andExpect(jsonPath("$.value").value("BuildTask")); // Mock returns original
+                .andExpect(jsonPath("$.value").value("UpdatedBuildTask")); // Mock returns original
 
         // Verify that the ID was set in the DTO before saving
         verify(systemSettingService).saveSystemSetting(argThat(dto -> dto.getId() == 1));
