@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -22,6 +23,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDateTime;
 import java.util.*;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -317,13 +319,29 @@ public class TaskHistoryControllerTest {
     @Test
     public void deleteAllHistoryForTask_WhenTaskExists_ShouldReturnNoContent() throws Exception {
         // Arrange
-        Optional<TaskDTO> optionalTaskDTO = Optional.of(taskDTO);
-        when(taskService.getTaskById(1)).thenReturn(optionalTaskDTO);
-        doNothing().when(taskHistoryService).deleteAllHistoryForTask(any(Task.class));
+        Integer taskId = 1;
+
+        // Mock DTO zwracany przez serwis taskService
+        TaskDTO taskDto = new TaskDTO();
+        taskDto.setId(taskId);
+
+        // Zwrócenie DTO opakowanego w Optional
+        when(taskService.getTaskById(taskId)).thenReturn(Optional.of(taskDto));
+
+        // Zainicjowanie metody usuwania, która zwróci liczbę usuniętych rekordów
+        when(taskHistoryService.deleteAllHistoryForTask(any(Task.class))).thenReturn(1);  // Zamockowanie zwrócenia 1 (1 rekord usunięty)
 
         // Act & Assert
-        mockMvc.perform(delete("/database/task-history/task/1"))
+        mockMvc.perform(delete("/database/task-history/task/{taskId}", taskId))
                 .andExpect(status().isNoContent());
+
+        // Verify – czy metoda została wywołana z encją o tym samym ID
+        ArgumentCaptor<Task> taskCaptor = ArgumentCaptor.forClass(Task.class);
+        verify(taskHistoryService, times(1)).deleteAllHistoryForTask(taskCaptor.capture());
+        assertEquals(taskId, taskCaptor.getValue().getId());
+
+        // Verify, że metoda taskService.getTaskById została wywołana z odpowiednim ID
+        verify(taskService, times(1)).getTaskById(taskId);
     }
 
     @Test
