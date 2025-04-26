@@ -11,6 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -20,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -92,13 +94,12 @@ public class TeamMemberControllerTest {
     }
 
     @Test
-    public void getTeamMembersByTeam_WhenTeamDoesNotExist_ShouldThrowException() throws Exception {
-        // Arrange
-        when(teamService.getTeamEntityById(99)).thenThrow(new RuntimeException("Team not found"));
+    public void getTeamMembersByTeam_WhenTeamDoesNotExist_ShouldReturn404() throws Exception {
+        int nonExistentTeamId = 99;
+        when(teamService.getTeamEntityById(nonExistentTeamId)).thenReturn(Optional.empty());
 
-        // Act & Assert
-        mockMvc.perform(get("/database/team-members/team/99"))
-                .andExpect(status().isInternalServerError()); // Because the controller doesn't handle exceptions
+        mockMvc.perform(get("/database/team-members/team/{teamId}", nonExistentTeamId))
+                .andExpect(status().isNotFound());
     }
 
     @Test
