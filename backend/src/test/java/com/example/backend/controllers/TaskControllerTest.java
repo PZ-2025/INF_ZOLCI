@@ -138,24 +138,26 @@ public class TaskControllerTest {
     public void updateTask_WhenTaskExists_ShouldReturnUpdatedTask() throws Exception {
         // Arrange
         when(taskService.getTaskById(1)).thenReturn(Optional.of(taskDTO));
-        when(taskService.updateTask(any(TaskDTO.class))).thenReturn(taskDTO);
 
-        // Update task data
+        // Zaktualizowany obiekt
         TaskDTO updatedTask = new TaskDTO();
         updatedTask.setId(1);
         updatedTask.setTitle("Updated Foundation Build");
         updatedTask.setDescription("Updated description");
         updatedTask.setPriorityId(2);
         updatedTask.setStatusId(2);
+        updatedTask.setCreatedById(1);
+
+        // Mock dla metody updateTask
+        when(taskService.updateTask(any(TaskDTO.class))).thenReturn(updatedTask);
 
         // Act & Assert
         mockMvc.perform(put("/database/tasks/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedTask)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("Build Foundation")); // Mock returns original
-
-        // Verify service was called with right ID
+                .andExpect(jsonPath("$.title").value("Updated Foundation Build"));
+        System.out.println("Updated task: " + updatedTask);
         verify(taskService).updateTask(argThat(dto -> dto.getId() == 1));
     }
 
