@@ -147,14 +147,14 @@ public class AuthControllerTest {
     public void register_WithServiceException_ShouldReturnInternalServerError() throws Exception {
         // Arrange
         when(authService.register(any(RegisterRequestDTO.class)))
-                .thenThrow(new Exception("General service error"));
+                .thenThrow(new RuntimeException("General service error"));
 
         // Act & Assert
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(registerRequestDTO)))
                 .andExpect(status().isInternalServerError())
-                .andExpect(jsonPath("$.message").value("Wystąpił nieoczekiwany błąd podczas rejestracji"));
+                .andExpect(jsonPath("$.message").value("Wystąpił błąd podczas rejestracji"));
     }
 
     @Test
