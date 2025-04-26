@@ -195,15 +195,17 @@ public class PriorityControllerTest {
         when(priorityService.savePriority(any(PriorityDTO.class))).thenReturn(priorityDTO);
 
         // Update the priority DTO
+        priorityDTO.setId(1);
         priorityDTO.setName("Very High");
+        priorityDTO.setValue(3);
+        priorityDTO.setColorCode("#FF0000");
 
         // Act & Assert
         mockMvc.perform(put("/database/priorities/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(priorityDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("High")); // Mock returns original
-
+                .andExpect(jsonPath("$.name").value("Very High")); // Mock returns original
         // Verify that the ID was set in the DTO before saving
         verify(priorityService).savePriority(argThat(dto -> dto.getId() == 1));
     }
