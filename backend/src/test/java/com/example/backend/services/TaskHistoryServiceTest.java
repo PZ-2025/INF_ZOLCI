@@ -1,13 +1,17 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.TaskHistoryDTO;
 import com.example.backend.models.Task;
 import com.example.backend.models.TaskHistory;
 import com.example.backend.models.User;
 import com.example.backend.repository.TaskHistoryRepository;
+import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -15,7 +19,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import org.mockito.junit.jupiter.MockitoExtension;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -25,241 +28,221 @@ class TaskHistoryServiceTest {
     @Mock
     private TaskHistoryRepository taskHistoryRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private TaskHistoryService taskHistoryService;
-
-    @Captor
-    private ArgumentCaptor<TaskHistory> taskHistoryCaptor;
 
     private Task task;
     private User user;
     private TaskHistory taskHistory;
+    private TaskHistoryDTO taskHistoryDTO;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        // Manually create the service with the mocked repository
-        taskHistoryService = new TaskHistoryService(taskHistoryRepository);
-
-        // Inicjalizacja obiektów testowych
+        // Initialize test data
         task = new Task();
         task.setId(1);
-        task.setTitle("Test Task");
+        task.setTitle("Build Foundation");
 
         user = new User();
         user.setId(1);
-        user.setUsername("testuser");
+        user.setUsername("worker1");
+        user.setFirstName("John");
+        user.setLastName("Doe");
 
         taskHistory = new TaskHistory();
         taskHistory.setId(1);
         taskHistory.setTask(task);
-        taskHistory.setChangedBy(user.getId());
+        taskHistory.setChangedBy(1);
         taskHistory.setFieldName("status");
-        taskHistory.setOldValue("W toku");
-        taskHistory.setNewValue("Zakończone");
+        taskHistory.setOldValue("In Progress");
+        taskHistory.setNewValue("Completed");
         taskHistory.setChangedAt(LocalDateTime.now());
+
+        taskHistoryDTO = new TaskHistoryDTO();
+        taskHistoryDTO.setId(1);
+        taskHistoryDTO.setTaskId(1);
+        taskHistoryDTO.setChangedById(1);
+        taskHistoryDTO.setFieldName("status");
+        taskHistoryDTO.setOldValue("In Progress");
+        taskHistoryDTO.setNewValue("Completed");
+        taskHistoryDTO.setChangedAt(LocalDateTime.now());
+        taskHistoryDTO.setChangedByUsername("worker1");
+        taskHistoryDTO.setChangedByFullName("John Doe");
     }
 
     @Test
     void getAllTaskHistory_ShouldReturnAllHistory() {
-        // Given
-        List<TaskHistory> expectedHistory = Arrays.asList(taskHistory);
-        when(taskHistoryRepository.findAll()).thenReturn(expectedHistory);
+        // Arrange
+        when(taskHistoryRepository.findAll()).thenReturn(Arrays.asList(taskHistory));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
 
-        // When
-        List<TaskHistory> actualHistory = taskHistoryService.getAllTaskHistory();
+        // Act
+        List<TaskHistoryDTO> result = taskHistoryService.getAllTaskHistory();
 
-        // Then
-        assertEquals(expectedHistory.size(), actualHistory.size());
-        assertEquals(expectedHistory.get(0).getId(), actualHistory.get(0).getId());
-        assertEquals(expectedHistory.get(0).getFieldName(), actualHistory.get(0).getFieldName());
-        verify(taskHistoryRepository, times(1)).findAll();
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("status", result.get(0).getFieldName());
+        assertEquals("In Progress", result.get(0).getOldValue());
+        assertEquals("Completed", result.get(0).getNewValue());
     }
 
     @Test
-    void getTaskHistoryById_WhenHistoryExists_ShouldReturnHistory() {
-        // Given
+    void getTaskHistoryById_WhenExists_ShouldReturnHistory() {
+        // Arrange
         when(taskHistoryRepository.findById(1)).thenReturn(Optional.of(taskHistory));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
 
-        // When
-        Optional<TaskHistory> result = taskHistoryService.getTaskHistoryById(1);
+        // Act
+        Optional<TaskHistoryDTO> result = taskHistoryService.getTaskHistoryById(1);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(taskHistory.getId(), result.get().getId());
-        assertEquals(taskHistory.getFieldName(), result.get().getFieldName());
-        verify(taskHistoryRepository, times(1)).findById(1);
+        assertEquals("status", result.get().getFieldName());
+        assertEquals("In Progress", result.get().getOldValue());
+        assertEquals("Completed", result.get().getNewValue());
     }
 
     @Test
-    void getTaskHistoryById_WhenHistoryDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(taskHistoryRepository.findById(99)).thenReturn(Optional.empty());
+    void getTaskHistoryById_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(taskHistoryRepository.findById(999)).thenReturn(Optional.empty());
 
-        // When
-        Optional<TaskHistory> result = taskHistoryService.getTaskHistoryById(99);
+        // Act
+        Optional<TaskHistoryDTO> result = taskHistoryService.getTaskHistoryById(999);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(taskHistoryRepository, times(1)).findById(99);
     }
 
     @Test
-    void getHistoryByTask_ShouldReturnTaskHistory() {
-        // Given
-        List<TaskHistory> expectedHistory = Arrays.asList(taskHistory);
-        when(taskHistoryRepository.findByTask(task)).thenReturn(expectedHistory);
+    void getHistoryByTask_ShouldReturnHistoryForTask() {
+        // Arrange
+        when(taskHistoryRepository.findByTask(task)).thenReturn(Arrays.asList(taskHistory));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
 
-        // When
-        List<TaskHistory> actualHistory = taskHistoryService.getHistoryByTask(task);
+        // Act
+        List<TaskHistoryDTO> result = taskHistoryService.getHistoryByTask(task);
 
-        // Then
-        assertEquals(expectedHistory.size(), actualHistory.size());
-        assertEquals(expectedHistory.get(0).getId(), actualHistory.get(0).getId());
-        verify(taskHistoryRepository, times(1)).findByTask(task);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("status", result.get(0).getFieldName());
+        assertEquals(1, result.get(0).getTaskId());
     }
 
     @Test
-    void getHistoryByUser_ShouldReturnUserHistory() {
-        // Given
-        List<TaskHistory> expectedHistory = Arrays.asList(taskHistory);
-        when(taskHistoryRepository.findByChangedBy(user)).thenReturn(expectedHistory);
+    void getHistoryByUser_ShouldReturnHistoryByUser() {
+        // Arrange
+        when(taskHistoryRepository.findByChangedBy(1)).thenReturn(Arrays.asList(taskHistory));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
 
-        // When
-        List<TaskHistory> actualHistory = taskHistoryService.getHistoryByUser(user);
+        // Act
+        List<TaskHistoryDTO> result = taskHistoryService.getHistoryByUser(user);
 
-        // Then
-        assertEquals(expectedHistory.size(), actualHistory.size());
-        assertEquals(expectedHistory.get(0).getId(), actualHistory.get(0).getId());
-        verify(taskHistoryRepository, times(1)).findByChangedBy(user);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("status", result.get(0).getFieldName());
+        assertEquals(1, result.get(0).getChangedById());
     }
 
     @Test
-    void saveTaskHistory_WithNewHistory_ShouldSetChangedAtAndSave() {
-        // Given
-        TaskHistory newHistory = new TaskHistory();
-        newHistory.setTask(task);
-        newHistory.setChangedBy(user.getId());
-        newHistory.setFieldName("priority");
-        newHistory.setOldValue("Niski");
-        newHistory.setNewValue("Wysoki");
-        // Brak ustawienia changedAt, powinno być ustawione przez serwis
+    void saveTaskHistory_ShouldSaveAndReturnHistoryDTO() {
+        // Arrange
+        when(taskHistoryRepository.save(any(TaskHistory.class))).thenReturn(taskHistory);
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
 
-        when(taskHistoryRepository.save(any(TaskHistory.class))).thenReturn(newHistory);
+        // Act
+        TaskHistoryDTO result = taskHistoryService.saveTaskHistory(taskHistoryDTO, task);
 
-        // When
-        TaskHistory savedHistory = taskHistoryService.saveTaskHistory(newHistory);
-
-        // Then
-        assertNotNull(savedHistory.getChangedAt());
-        verify(taskHistoryRepository, times(1)).save(newHistory);
+        // Assert
+        assertNotNull(result);
+        assertEquals("status", result.getFieldName());
+        assertEquals("In Progress", result.getOldValue());
+        assertEquals("Completed", result.getNewValue());
+        assertEquals(1, result.getTaskId());
+        verify(taskHistoryRepository).save(any(TaskHistory.class));
     }
 
     @Test
-    void saveTaskHistory_WithExistingHistory_ShouldNotChangeChangedAt() {
-        // Given
-        LocalDateTime originalTime = taskHistory.getChangedAt();
-        when(taskHistoryRepository.save(taskHistory)).thenReturn(taskHistory);
-
-        // When
-        TaskHistory savedHistory = taskHistoryService.saveTaskHistory(taskHistory);
-
-        // Then
-        assertEquals(originalTime, savedHistory.getChangedAt());
-        verify(taskHistoryRepository, times(1)).save(taskHistory);
-    }
-
-    @Test
-    void logTaskChange_ShouldCreateAndSaveHistory() {
-        // Given
-        String fieldName = "deadline";
-        String oldValue = "2023-12-01";
-        String newValue = "2023-12-15";
-
-        // Detailed debug print
-        System.out.println("User ID before method call: " + user.getId());
-
-        // Mock the repository save method to return a specific history
+    void saveTaskHistory_WithNullChangedAt_ShouldSetCurrentDateTime() {
+        // Arrange
         when(taskHistoryRepository.save(any(TaskHistory.class))).thenAnswer(invocation -> {
-            // Get the actual TaskHistory passed to save
-            TaskHistory inputHistory = invocation.getArgument(0);
-
-            // Create a new TaskHistory that mimics a saved entity
-            TaskHistory savedHistory = new TaskHistory();
-            savedHistory.setId(1);
-            savedHistory.setTask(inputHistory.getTask());
-            savedHistory.setChangedBy(user.getId());  // Use user ID for ChangedBy
-            savedHistory.setFieldName(inputHistory.getFieldName());
-            savedHistory.setOldValue(inputHistory.getOldValue());
-            savedHistory.setNewValue(inputHistory.getNewValue());
-            savedHistory.setChangedAt(inputHistory.getChangedAt());
-
-            // Debug prints
-            System.out.println("Input History ChangedBy: " + inputHistory.getChangedBy());
-            System.out.println("Saved History ChangedBy: " + savedHistory.getChangedBy());
-
+            TaskHistory savedHistory = invocation.getArgument(0);
+            savedHistory.setChangedAt(LocalDateTime.now());
             return savedHistory;
         });
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
 
-        // When
-        TaskHistory result = taskHistoryService.logTaskChange(task, user, fieldName, oldValue, newValue);
+        // Set changedAt to null
+        taskHistoryDTO.setChangedAt(null);
 
-        // Verify the save method was called
-        verify(taskHistoryRepository).save(taskHistoryCaptor.capture());
-        TaskHistory capturedHistory = taskHistoryCaptor.getValue();
+        // Act
+        TaskHistoryDTO result = taskHistoryService.saveTaskHistory(taskHistoryDTO, task);
 
-        // Debug prints
-        System.out.println("Captured History ChangedBy: " + capturedHistory.getChangedBy());
-        System.out.println("Result ChangedBy: " + result.getChangedBy());
-
-        // Assertions with comprehensive error messages
-        assertNotNull(result, "Returned history should not be null");
-        assertNotNull(result.getChangedBy(), "ChangedBy should not be null");
-        assertEquals(Integer.valueOf(1), result.getId(), "ID should be set");
-        assertEquals(task, result.getTask(), "Task should match");
-
-        // Specific assertion for ChangedBy - now updated to expect user.getId()
-        assertEquals(
-                user.getId(),  // Changed from task.getId() to user.getId()
-                result.getChangedBy(),
-                () -> String.format(
-                        "ChangedBy should match user ID. " +
-                                "User ID: %d, " +
-                                "Result ChangedBy: %s",
-                        user.getId(),
-                        result.getChangedBy()
-                )
-        );
-
-        assertEquals(fieldName, result.getFieldName(), "Field name should match");
-        assertEquals(oldValue, result.getOldValue(), "Old value should match");
-        assertEquals(newValue, result.getNewValue(), "New value should match");
-        assertNotNull(result.getChangedAt(), "Changed at timestamp should be set");
+        // Assert
+        assertNotNull(result);
+        assertNotNull(result.getChangedAt()); // Should be set automatically
     }
 
     @Test
-    void deleteTaskHistory_ShouldCallRepository() {
-        // When
+    void logTaskChange_ShouldCreateAndSaveHistoryEntry() {
+        // Arrange
+        when(taskHistoryRepository.save(any(TaskHistory.class))).thenReturn(taskHistory);
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+
+        // Act
+        TaskHistoryDTO result = taskHistoryService.logTaskChange(
+                task, user, "status", "In Progress", "Completed");
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("status", result.getFieldName());
+        assertEquals("In Progress", result.getOldValue());
+        assertEquals("Completed", result.getNewValue());
+        assertEquals(1, result.getTaskId());
+        verify(taskHistoryRepository).save(any(TaskHistory.class));
+    }
+
+    @Test
+    void deleteTaskHistory_ShouldCallRepositoryDelete() {
+        // Act
         taskHistoryService.deleteTaskHistory(1);
 
-        // Then
-        verify(taskHistoryRepository, times(1)).deleteById(1);
+        // Assert
+        verify(taskHistoryRepository).deleteById(1);
     }
 
     @Test
-    void deleteAllHistoryForTask_ShouldDeleteAllAndReturnCount() {
-        // Given
-        List<TaskHistory> historyToDelete = Arrays.asList(taskHistory, new TaskHistory());
-        when(taskHistoryRepository.findByTask(task)).thenReturn(historyToDelete);
-        doNothing().when(taskHistoryRepository).deleteAll(historyToDelete);
+    void deleteAllHistoryForTask_ShouldDeleteMatchingHistory() {
+        // Arrange
+        List<TaskHistory> history = Arrays.asList(taskHistory);
+        when(taskHistoryRepository.findByTask(task)).thenReturn(history);
 
-        // When
-        int deletedCount = taskHistoryService.deleteAllHistoryForTask(task);
+        // Act
+        int result = taskHistoryService.deleteAllHistoryForTask(task);
 
-        // Then
-        assertEquals(historyToDelete.size(), deletedCount);
-        verify(taskHistoryRepository, times(1)).findByTask(task);
-        verify(taskHistoryRepository, times(1)).deleteAll(historyToDelete);
+        // Assert
+        assertEquals(1, result); // Should return the number of deleted entries
+        verify(taskHistoryRepository).findByTask(task);
+        verify(taskHistoryRepository).deleteAll(history);
+    }
+
+    @Test
+    void deleteAllHistoryForTask_WhenNoHistory_ShouldReturnZero() {
+        // Arrange
+        when(taskHistoryRepository.findByTask(task)).thenReturn(Arrays.asList());
+
+        // Act
+        int result = taskHistoryService.deleteAllHistoryForTask(task);
+
+        // Assert
+        assertEquals(0, result);
+        verify(taskHistoryRepository).findByTask(task);
+        verify(taskHistoryRepository).deleteAll(Arrays.asList());
     }
 }

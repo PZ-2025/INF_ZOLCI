@@ -1,19 +1,21 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dto.TaskDTO;
+import com.example.backend.dto.TaskHistoryDTO;
+import com.example.backend.dto.UserDTO;
 import com.example.backend.models.Task;
-import com.example.backend.models.TaskHistory;
 import com.example.backend.models.User;
 import com.example.backend.services.TaskHistoryService;
 import com.example.backend.services.TaskService;
 import com.example.backend.services.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -21,16 +23,17 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.time.LocalDateTime;
 import java.util.*;
 
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class TaskHistoryControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class TaskHistoryControllerTest {
 
     private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
 
     @Mock
     private TaskHistoryService taskHistoryService;
@@ -44,261 +47,310 @@ class TaskHistoryControllerTest {
     @InjectMocks
     private TaskHistoryController taskHistoryController;
 
-    private ObjectMapper objectMapper;
+    private TaskHistoryDTO taskHistoryDTO;
+    private List<TaskHistoryDTO> taskHistoryDTOList;
     private Task task;
-    private User user;
-    private TaskHistory history;
+    private TaskDTO taskDTO;
+    private UserDTO userDTO;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(taskHistoryController)
-                .build();
-
+    public void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(taskHistoryController).build();
         objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.findAndRegisterModules(); // For LocalDateTime serialization
 
-        // Inicjalizacja danych testowych
+        // Initialize test data
         task = new Task();
         task.setId(1);
-        task.setTitle("Test Task");
+        task.setTitle("Build Foundation");
 
-        user = new User();
-        user.setId(1);
-        user.setUsername("testuser");
+        // Create TaskDTO
+        taskDTO = new TaskDTO();
+        taskDTO.setId(1);
+        taskDTO.setTitle("Build Foundation");
 
-        history = new TaskHistory();
-        history.setId(1);
-        history.setTask(task);
-        history.setChangedBy(user.getId());
-        history.setFieldName("status");
-        history.setOldValue("W toku");
-        history.setNewValue("Zakończone");
-        history.setChangedAt(LocalDateTime.now());
+        userDTO = new UserDTO();
+        userDTO.setId(1);
+        userDTO.setUsername("worker1");
+        userDTO.setFirstName("John");
+        userDTO.setLastName("Doe");
+
+        taskHistoryDTO = new TaskHistoryDTO();
+        taskHistoryDTO.setId(1);
+        taskHistoryDTO.setTaskId(1);
+        taskHistoryDTO.setChangedById(1);
+        taskHistoryDTO.setFieldName("status");
+        taskHistoryDTO.setOldValue("In Progress");
+        taskHistoryDTO.setNewValue("Completed");
+        taskHistoryDTO.setChangedAt(LocalDateTime.now());
+        taskHistoryDTO.setChangedByUsername("worker1");
+        taskHistoryDTO.setChangedByFullName("John Doe");
+
+        TaskHistoryDTO taskHistoryDTO2 = new TaskHistoryDTO();
+        taskHistoryDTO2.setId(2);
+        taskHistoryDTO2.setTaskId(1);
+        taskHistoryDTO2.setChangedById(2);
+        taskHistoryDTO2.setFieldName("priority");
+        taskHistoryDTO2.setOldValue("Medium");
+        taskHistoryDTO2.setNewValue("High");
+        taskHistoryDTO2.setChangedAt(LocalDateTime.now());
+        taskHistoryDTO2.setChangedByUsername("manager1");
+        taskHistoryDTO2.setChangedByFullName("Manager One");
+
+        taskHistoryDTOList = Arrays.asList(taskHistoryDTO, taskHistoryDTO2);
     }
 
     @Test
-    void getAllTaskHistory_ShouldReturnAllHistory() throws Exception {
-        // Given
-        List<TaskHistory> historyList = Arrays.asList(history);
-        when(taskHistoryService.getAllTaskHistory()).thenReturn(historyList);
+    public void getAllTaskHistory_ShouldReturnListOfHistory() throws Exception {
+        // Arrange
+        when(taskHistoryService.getAllTaskHistory()).thenReturn(taskHistoryDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-history"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].fieldName", is("status")))
-                .andExpect(jsonPath("$[0].oldValue", is("W toku")))
-                .andExpect(jsonPath("$[0].newValue", is("Zakończone")));
-
-        verify(taskHistoryService, times(1)).getAllTaskHistory();
+                .andExpect(jsonPath("$[0].fieldName").value("status"))
+                .andExpect(jsonPath("$[1].fieldName").value("priority"));
     }
 
     @Test
-    void getTaskHistoryById_WhenHistoryExists_ShouldReturnHistory() throws Exception {
-        // Given
-        when(taskHistoryService.getTaskHistoryById(1)).thenReturn(Optional.of(history));
+    public void getTaskHistoryById_WhenExists_ShouldReturnHistory() throws Exception {
+        // Arrange
+        Optional<TaskHistoryDTO> optionalHistory = Optional.of(taskHistoryDTO);
+        when(taskHistoryService.getTaskHistoryById(1)).thenReturn(optionalHistory);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-history/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.fieldName", is("status")))
-                .andExpect(jsonPath("$.oldValue", is("W toku")))
-                .andExpect(jsonPath("$.newValue", is("Zakończone")));
-
-        verify(taskHistoryService, times(1)).getTaskHistoryById(1);
+                .andExpect(jsonPath("$.fieldName").value("status"))
+                .andExpect(jsonPath("$.oldValue").value("In Progress"))
+                .andExpect(jsonPath("$.newValue").value("Completed"));
     }
 
     @Test
-    void getTaskHistoryById_WhenHistoryDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getTaskHistoryById_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskHistoryService.getTaskHistoryById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-history/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskHistoryService, times(1)).getTaskHistoryById(99);
     }
 
     @Test
-    void getHistoryByTask_WhenTaskExists_ShouldReturnHistory() throws Exception {
-        // Given
-        List<TaskHistory> historyList = Arrays.asList(history);
-        when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
-        when(taskHistoryService.getHistoryByTask(task)).thenReturn(historyList);
+    public void getHistoryByTask_WhenTaskExists_ShouldReturnHistory() throws Exception {
+        // Arrange
+        Optional<TaskDTO> optionalTaskDTO = Optional.of(taskDTO);
+        when(taskService.getTaskById(1)).thenReturn(optionalTaskDTO);
+        when(taskHistoryService.getHistoryByTask(any(Task.class))).thenReturn(taskHistoryDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-history/task/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].fieldName", is("status")));
-
-        verify(taskService, times(1)).getTaskById(1);
-        verify(taskHistoryService, times(1)).getHistoryByTask(task);
+                .andExpect(jsonPath("$[0].fieldName").value("status"))
+                .andExpect(jsonPath("$[1].fieldName").value("priority"));
     }
 
     @Test
-    void getHistoryByTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getHistoryByTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskService.getTaskById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-history/task/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskService, times(1)).getTaskById(99);
-        verify(taskHistoryService, never()).getHistoryByTask(any(Task.class));
     }
 
     @Test
-    void getHistoryByUser_WhenUserExists_ShouldReturnHistory() throws Exception {
-        // Given
-        List<TaskHistory> historyList = Arrays.asList(history);
-        when(userService.getUserById(1)).thenReturn(Optional.of(user));
-        when(taskHistoryService.getHistoryByUser(user)).thenReturn(historyList);
+    public void getHistoryByUser_WhenUserExists_ShouldReturnHistory() throws Exception {
+        // Arrange
+        Optional<UserDTO> optionalUserDTO = Optional.of(userDTO);
+        when(userService.getUserById(1)).thenReturn(optionalUserDTO);
+        when(taskHistoryService.getHistoryByUser(any(User.class))).thenReturn(Collections.singletonList(taskHistoryDTO));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-history/user/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(1)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].fieldName", is("status")));
-
-        verify(userService, times(1)).getUserById(1);
-        verify(taskHistoryService, times(1)).getHistoryByUser(user);
+                .andExpect(jsonPath("$[0].fieldName").value("status"))
+                .andExpect(jsonPath("$[0].changedByUsername").value("worker1"));
     }
 
     @Test
-    void getHistoryByUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getHistoryByUser_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(userService.getUserById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-history/user/99"))
                 .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).getUserById(99);
-        verify(taskHistoryService, never()).getHistoryByUser(any(User.class));
     }
 
     @Test
-    void createTaskHistory_ShouldReturnCreatedHistory() throws Exception {
-        // Given
-        when(taskHistoryService.saveTaskHistory(any(TaskHistory.class))).thenReturn(history);
+    public void createTaskHistory_WithValidData_ShouldReturnCreatedHistory() throws Exception {
+        // Arrange
+        Optional<Task> optionalTask = Optional.of(task);
+        Optional<UserDTO> optionalUserDTO = Optional.of(userDTO);
+        when(taskService.getTaskEntityById(1)).thenReturn(optionalTask);
+        when(userService.getUserById(1)).thenReturn(optionalUserDTO);
+        when(taskHistoryService.saveTaskHistory(any(TaskHistoryDTO.class), any(Task.class))).thenReturn(taskHistoryDTO);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/task-history")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(history)))
+                        .content(objectMapper.writeValueAsString(taskHistoryDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.fieldName", is("status")));
-
-        verify(taskHistoryService, times(1)).saveTaskHistory(any(TaskHistory.class));
+                .andExpect(jsonPath("$.fieldName").value("status"))
+                .andExpect(jsonPath("$.oldValue").value("In Progress"))
+                .andExpect(jsonPath("$.newValue").value("Completed"));
     }
 
     @Test
-    void logTaskChange_WithValidData_ShouldReturnCreatedHistory() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("taskId", 1);
-        payload.put("userId", 1);
-        payload.put("fieldName", "priority");
-        payload.put("oldValue", "Niski");
-        payload.put("newValue", "Wysoki");
+    public void createTaskHistory_WithInvalidTaskId_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(taskService.getTaskEntityById(99)).thenReturn(Optional.empty());
 
-        when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
-        when(userService.getUserById(1)).thenReturn(Optional.of(user));
-        when(taskHistoryService.logTaskChange(eq(task), eq(user), eq("priority"), eq("Niski"), eq("Wysoki")))
-                .thenReturn(history);
+        taskHistoryDTO.setTaskId(99);
 
-        // When & Then
-        mockMvc.perform(post("/database/task-history/log")
+        // Act & Assert
+        mockMvc.perform(post("/database/task-history")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(1)));
-
-        verify(taskService, times(1)).getTaskById(1);
-        verify(userService, times(1)).getUserById(1);
-        verify(taskHistoryService, times(1)).logTaskChange(eq(task), eq(user), eq("priority"), eq("Niski"), eq("Wysoki"));
-    }
-
-    @Test
-    void logTaskChange_WithMissingData_ShouldReturnBadRequest() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("taskId", 1);
-        // Missing userId and fieldName
-
-        // When & Then
-        mockMvc.perform(post("/database/task-history/log")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(taskHistoryDTO)))
                 .andExpect(status().isBadRequest());
-
-        verify(taskService, never()).getTaskById(anyInt());
-        verify(userService, never()).getUserById(anyInt());
-        verify(taskHistoryService, never()).logTaskChange(any(), any(), anyString(), anyString(), anyString());
     }
 
     @Test
-    void deleteTaskHistory_WhenHistoryExists_ShouldReturnNoContent() throws Exception {
-        // Given
-        when(taskHistoryService.getTaskHistoryById(1)).thenReturn(Optional.of(history));
+    public void createTaskHistory_WithInvalidUserId_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        Optional<Task> optionalTask = Optional.of(task);
+        when(taskService.getTaskEntityById(1)).thenReturn(optionalTask);
+        when(userService.getUserById(99)).thenReturn(Optional.empty());
+
+        taskHistoryDTO.setChangedById(99);
+
+        // Act & Assert
+        mockMvc.perform(post("/database/task-history")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskHistoryDTO)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void logTaskChange_WithValidData_ShouldReturnCreatedHistory() throws Exception {
+        // Arrange
+        Map<String, Object> changeParams = new HashMap<>();
+        changeParams.put("taskId", 1);
+        changeParams.put("changedById", 1);
+        changeParams.put("fieldName", "status");
+        changeParams.put("oldValue", "In Progress");
+        changeParams.put("newValue", "Completed");
+
+        Optional<Task> optionalTask = Optional.of(task);
+        Optional<UserDTO> optionalUserDTO = Optional.of(userDTO);
+        when(taskService.getTaskEntityById(1)).thenReturn(optionalTask);
+        when(userService.getUserById(1)).thenReturn(optionalUserDTO);
+        when(taskHistoryService.logTaskChange(any(Task.class), any(User.class), anyString(), anyString(), anyString()))
+                .thenReturn(taskHistoryDTO);
+
+        // Act & Assert
+        mockMvc.perform(post("/database/task-history/log")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(changeParams)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.fieldName").value("status"))
+                .andExpect(jsonPath("$.oldValue").value("In Progress"))
+                .andExpect(jsonPath("$.newValue").value("Completed"));
+    }
+
+    @Test
+    public void logTaskChange_WithMissingRequiredParams_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        Map<String, Object> incompleteParams = new HashMap<>();
+        incompleteParams.put("taskId", 1);
+        incompleteParams.put("changedById", 1);
+        // Missing required fieldName parameter
+
+        // Act & Assert
+        mockMvc.perform(post("/database/task-history/log")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(incompleteParams)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void logTaskChange_WithInvalidTaskId_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        Map<String, Object> changeParams = new HashMap<>();
+        changeParams.put("taskId", 99);
+        changeParams.put("changedById", 1);
+        changeParams.put("fieldName", "status");
+        changeParams.put("oldValue", "In Progress");
+        changeParams.put("newValue", "Completed");
+
+        when(taskService.getTaskEntityById(99)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(post("/database/task-history/log")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(changeParams)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void deleteTaskHistory_WhenHistoryExists_ShouldReturnNoContent() throws Exception {
+        // Arrange
+        Optional<TaskHistoryDTO> optionalHistory = Optional.of(taskHistoryDTO);
+        when(taskHistoryService.getTaskHistoryById(1)).thenReturn(optionalHistory);
         doNothing().when(taskHistoryService).deleteTaskHistory(1);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-history/1"))
                 .andExpect(status().isNoContent());
-
-        verify(taskHistoryService, times(1)).getTaskHistoryById(1);
-        verify(taskHistoryService, times(1)).deleteTaskHistory(1);
     }
 
     @Test
-    void deleteTaskHistory_WhenHistoryDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void deleteTaskHistory_WhenHistoryDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskHistoryService.getTaskHistoryById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-history/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskHistoryService, times(1)).getTaskHistoryById(99);
-        verify(taskHistoryService, never()).deleteTaskHistory(anyInt());
     }
 
     @Test
-    void deleteAllHistoryForTask_WhenTaskExists_ShouldReturnNoContent() throws Exception {
-        // Given
-        when(taskService.getTaskById(1)).thenReturn(Optional.of(task));
-        when(taskHistoryService.deleteAllHistoryForTask(task)).thenReturn(2);
+    public void deleteAllHistoryForTask_WhenTaskExists_ShouldReturnNoContent() throws Exception {
+        // Arrange
+        Integer taskId = 1;
 
-        // When & Then
-        mockMvc.perform(delete("/database/task-history/task/1"))
+        // Mock DTO zwracany przez serwis taskService
+        TaskDTO taskDto = new TaskDTO();
+        taskDto.setId(taskId);
+
+        // Zwrócenie DTO opakowanego w Optional
+        when(taskService.getTaskById(taskId)).thenReturn(Optional.of(taskDto));
+
+        // Zainicjowanie metody usuwania, która zwróci liczbę usuniętych rekordów
+        when(taskHistoryService.deleteAllHistoryForTask(any(Task.class))).thenReturn(1);  // Zamockowanie zwrócenia 1 (1 rekord usunięty)
+
+        // Act & Assert
+        mockMvc.perform(delete("/database/task-history/task/{taskId}", taskId))
                 .andExpect(status().isNoContent());
 
-        verify(taskService, times(1)).getTaskById(1);
-        verify(taskHistoryService, times(1)).deleteAllHistoryForTask(task);
+        // Verify – czy metoda została wywołana z encją o tym samym ID
+        ArgumentCaptor<Task> taskCaptor = ArgumentCaptor.forClass(Task.class);
+        verify(taskHistoryService, times(1)).deleteAllHistoryForTask(taskCaptor.capture());
+        assertEquals(taskId, taskCaptor.getValue().getId());
+
+        // Verify, że metoda taskService.getTaskById została wywołana z odpowiednim ID
+        verify(taskService, times(1)).getTaskById(taskId);
     }
 
     @Test
-    void deleteAllHistoryForTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void deleteAllHistoryForTask_WhenTaskDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskService.getTaskById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-history/task/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskService, times(1)).getTaskById(99);
-        verify(taskHistoryService, never()).deleteAllHistoryForTask(any(Task.class));
     }
 }

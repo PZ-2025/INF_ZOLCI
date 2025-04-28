@@ -1,14 +1,18 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.TeamMemberDTO;
 import com.example.backend.models.Team;
 import com.example.backend.models.TeamMember;
 import com.example.backend.models.User;
 import com.example.backend.repository.TeamMemberRepository;
+import com.example.backend.repository.TeamRepository;
+import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -19,235 +23,282 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TeamMemberServiceTest {
 
     @Mock
     private TeamMemberRepository teamMemberRepository;
 
+    @Mock
+    private TeamRepository teamRepository;
+
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private TeamMemberService teamMemberService;
 
-    private User user1;
-    private User user2;
     private Team team;
-    private TeamMember teamMember1;
-    private TeamMember teamMember2;
-    private LocalDateTime now;
+    private User user;
+    private TeamMember teamMember;
+    private TeamMemberDTO teamMemberDTO;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        now = LocalDateTime.now();
-
-        // Inicjalizacja użytkowników testowych
-        user1 = new User();
-        user1.setId(1);
-        user1.setUsername("user1");
-        user1.setEmail("user1@example.com");
-        user1.setIsActive(true);
-
-        user2 = new User();
-        user2.setId(2);
-        user2.setUsername("user2");
-        user2.setEmail("user2@example.com");
-        user2.setIsActive(true);
-
-        // Inicjalizacja zespołu testowego
+        // Initialize test data
         team = new Team();
         team.setId(1);
-        team.setName("Test Team");
-        team.setIsActive(true);
+        team.setName("Construction Team Alpha");
 
-        // Inicjalizacja członków zespołu testowych
-        teamMember1 = new TeamMember();
-        teamMember1.setId(1);
-        teamMember1.setUser(user1);
-        teamMember1.setTeam(team);
-        teamMember1.setJoinedAt(now);
-        teamMember1.setIsActive(true);
+        user = new User();
+        user.setId(1);
+        user.setUsername("worker1");
+        user.setFirstName("John");
+        user.setLastName("Doe");
 
-        teamMember2 = new TeamMember();
-        teamMember2.setId(2);
-        teamMember2.setUser(user2);
-        teamMember2.setTeam(team);
-        teamMember2.setJoinedAt(now);
-        teamMember2.setIsActive(false);
+        teamMember = new TeamMember();
+        teamMember.setId(1);
+        teamMember.setTeam(team);
+        teamMember.setUser(user);
+        teamMember.setJoinedAt(LocalDateTime.now());
+        teamMember.setIsActive(true);
+
+        teamMemberDTO = new TeamMemberDTO();
+        teamMemberDTO.setId(1);
+        teamMemberDTO.setTeamId(1);
+        teamMemberDTO.setUserId(1);
+        teamMemberDTO.setJoinedAt(LocalDateTime.now());
+        teamMemberDTO.setIsActive(true);
+        teamMemberDTO.setTeamName("Construction Team Alpha");
+        teamMemberDTO.setUsername("worker1");
+        teamMemberDTO.setUserFullName("John Doe");
     }
 
     @Test
-    void getTeamMembersByUser_ShouldReturnMembershipsForUser() {
-        // Given
-        List<TeamMember> expectedMembers = Arrays.asList(teamMember1);
-        when(teamMemberRepository.findByUser(user1)).thenReturn(expectedMembers);
+    void getTeamMembersByUser_ShouldReturnTeamMembersForUser() {
+        // Arrange
+        when(teamMemberRepository.findByUser(user)).thenReturn(Arrays.asList(teamMember));
 
-        // When
-        List<TeamMember> actualMembers = teamMemberService.getTeamMembersByUser(user1);
+        // Act
+        List<TeamMemberDTO> result = teamMemberService.getTeamMembersByUser(user);
 
-        // Then
-        assertEquals(expectedMembers.size(), actualMembers.size());
-        assertEquals(expectedMembers.get(0).getId(), actualMembers.get(0).getId());
-        verify(teamMemberRepository, times(1)).findByUser(user1);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getTeamId());
+        assertEquals(1, result.get(0).getUserId());
     }
 
     @Test
-    void getTeamMembersByTeam_ShouldReturnMembersForTeam() {
-        // Given
-        List<TeamMember> expectedMembers = Arrays.asList(teamMember1, teamMember2);
-        when(teamMemberRepository.findByTeam(team)).thenReturn(expectedMembers);
+    void getTeamMembersByTeam_ShouldReturnTeamMembersForTeam() {
+        // Arrange
+        when(teamMemberRepository.findByTeam(team)).thenReturn(Arrays.asList(teamMember));
 
-        // When
-        List<TeamMember> actualMembers = teamMemberService.getTeamMembersByTeam(team);
+        // Act
+        List<TeamMemberDTO> result = teamMemberService.getTeamMembersByTeam(team);
 
-        // Then
-        assertEquals(expectedMembers.size(), actualMembers.size());
-        assertEquals(expectedMembers.get(0).getId(), actualMembers.get(0).getId());
-        assertEquals(expectedMembers.get(1).getId(), actualMembers.get(1).getId());
-        verify(teamMemberRepository, times(1)).findByTeam(team);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getTeamId());
+        assertEquals(1, result.get(0).getUserId());
     }
 
     @Test
-    void getTeamMembersByTeamAndActiveStatus_WithActiveTrue_ShouldReturnActiveMembers() {
-        // Given
-        List<TeamMember> activeMembers = Arrays.asList(teamMember1);
-        when(teamMemberRepository.findByTeamAndIsActive(team, true)).thenReturn(activeMembers);
+    void getTeamMembersByTeamAndActiveStatus_WhenActive_ShouldReturnActiveTeamMembers() {
+        // Arrange
+        when(teamMemberRepository.findByTeamAndIsActive(team, true)).thenReturn(Arrays.asList(teamMember));
 
-        // When
-        List<TeamMember> actualMembers = teamMemberService.getTeamMembersByTeamAndActiveStatus(team, true);
+        // Act
+        List<TeamMemberDTO> result = teamMemberService.getTeamMembersByTeamAndActiveStatus(team, true);
 
-        // Then
-        assertEquals(activeMembers.size(), actualMembers.size());
-        assertEquals(activeMembers.get(0).getId(), actualMembers.get(0).getId());
-        assertTrue(actualMembers.get(0).getIsActive());
-        verify(teamMemberRepository, times(1)).findByTeamAndIsActive(team, true);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getTeamId());
+        assertTrue(result.get(0).getIsActive());
     }
 
     @Test
-    void getTeamMembersByTeamAndActiveStatus_WithActiveFalse_ShouldReturnInactiveMembers() {
-        // Given
-        List<TeamMember> inactiveMembers = Arrays.asList(teamMember2);
-        when(teamMemberRepository.findByTeamAndIsActive(team, false)).thenReturn(inactiveMembers);
+    void getTeamMembersByTeamAndActiveStatus_WhenInactive_ShouldReturnInactiveTeamMembers() {
+        // Arrange
+        TeamMember inactiveTeamMember = new TeamMember();
+        inactiveTeamMember.setId(2);
+        inactiveTeamMember.setTeam(team);
+        inactiveTeamMember.setUser(user);
+        inactiveTeamMember.setIsActive(false);
 
-        // When
-        List<TeamMember> actualMembers = teamMemberService.getTeamMembersByTeamAndActiveStatus(team, false);
+        when(teamMemberRepository.findByTeamAndIsActive(team, false)).thenReturn(Arrays.asList(inactiveTeamMember));
 
-        // Then
-        assertEquals(inactiveMembers.size(), actualMembers.size());
-        assertEquals(inactiveMembers.get(0).getId(), actualMembers.get(0).getId());
-        assertFalse(actualMembers.get(0).getIsActive());
-        verify(teamMemberRepository, times(1)).findByTeamAndIsActive(team, false);
+        // Act
+        List<TeamMemberDTO> result = teamMemberService.getTeamMembersByTeamAndActiveStatus(team, false);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getTeamId());
+        assertFalse(result.get(0).getIsActive());
     }
 
     @Test
-    void getTeamMemberByUserAndTeam_WhenMemberExists_ShouldReturnMember() {
-        // Given
-        when(teamMemberRepository.findByUserAndTeam(user1, team)).thenReturn(Optional.of(teamMember1));
+    void getTeamMemberByUserAndTeam_WhenExists_ShouldReturnTeamMember() {
+        // Arrange
+        when(teamMemberRepository.findByUserAndTeam(user, team)).thenReturn(Optional.of(teamMember));
 
-        // When
-        Optional<TeamMember> result = teamMemberService.getTeamMemberByUserAndTeam(user1, team);
+        // Act
+        Optional<TeamMemberDTO> result = teamMemberService.getTeamMemberByUserAndTeam(user, team);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(teamMember1.getId(), result.get().getId());
-        assertEquals(user1, result.get().getUser());
-        assertEquals(team, result.get().getTeam());
-        verify(teamMemberRepository, times(1)).findByUserAndTeam(user1, team);
+        assertEquals(1, result.get().getId());
+        assertEquals(1, result.get().getTeamId());
+        assertEquals(1, result.get().getUserId());
     }
 
     @Test
-    void getTeamMemberByUserAndTeam_WhenMemberDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        User nonMemberUser = new User();
-        nonMemberUser.setId(3);
-        nonMemberUser.setUsername("nonmember");
+    void getTeamMemberByUserAndTeam_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(teamMemberRepository.findByUserAndTeam(user, team)).thenReturn(Optional.empty());
 
-        when(teamMemberRepository.findByUserAndTeam(nonMemberUser, team)).thenReturn(Optional.empty());
+        // Act
+        Optional<TeamMemberDTO> result = teamMemberService.getTeamMemberByUserAndTeam(user, team);
 
-        // When
-        Optional<TeamMember> result = teamMemberService.getTeamMemberByUserAndTeam(nonMemberUser, team);
-
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(teamMemberRepository, times(1)).findByUserAndTeam(nonMemberUser, team);
     }
 
     @Test
-    void getAllTeamMembersByTeam_ShouldReturnAllMembers() {
-        // Given
-        List<TeamMember> expectedMembers = Arrays.asList(teamMember1, teamMember2);
-        when(teamMemberRepository.findAllByTeam(team)).thenReturn(expectedMembers);
+    void getAllTeamMembersByTeam_ShouldReturnAllTeamMembers() {
+        // Arrange
+        when(teamMemberRepository.findAllByTeam(team)).thenReturn(Arrays.asList(teamMember));
 
-        // When
-        List<TeamMember> actualMembers = teamMemberService.getAllTeamMembersByTeam(team);
+        // Act
+        List<TeamMemberDTO> result = teamMemberService.getAllTeamMembersByTeam(team);
 
-        // Then
-        assertEquals(expectedMembers.size(), actualMembers.size());
-        assertEquals(expectedMembers.get(0).getId(), actualMembers.get(0).getId());
-        assertEquals(expectedMembers.get(1).getId(), actualMembers.get(1).getId());
-        verify(teamMemberRepository, times(1)).findAllByTeam(team);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals(1, result.get(0).getId());
+        assertEquals(1, result.get(0).getTeamId());
     }
 
     @Test
-    void saveTeamMember_ShouldSaveAndReturnMember() {
-        // Given
-        User newUser = new User();
-        newUser.setId(3);
-        newUser.setUsername("newuser");
-        newUser.setEmail("newuser@example.com");
-        newUser.setIsActive(true);
+    void saveTeamMember_WithValidDTO_ShouldSaveAndReturnDTO() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.of(team));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(teamMemberRepository.save(any(TeamMember.class))).thenReturn(teamMember);
 
-        TeamMember newMember = new TeamMember();
-        newMember.setUser(newUser);
-        newMember.setTeam(team);
-        newMember.setIsActive(true);
+        // Act
+        TeamMemberDTO result = teamMemberService.saveTeamMember(teamMemberDTO);
 
-        when(teamMemberRepository.save(any(TeamMember.class))).thenReturn(newMember);
-
-        // When
-        TeamMember savedMember = teamMemberService.saveTeamMember(newMember);
-
-        // Then
-        assertEquals(newMember.getUser(), savedMember.getUser());
-        assertEquals(newMember.getTeam(), savedMember.getTeam());
-        assertEquals(newMember.getIsActive(), savedMember.getIsActive());
-        verify(teamMemberRepository, times(1)).save(newMember);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.getId());
+        assertEquals(1, result.getTeamId());
+        assertEquals(1, result.getUserId());
+        verify(teamMemberRepository).save(any(TeamMember.class));
     }
 
     @Test
-    void deleteTeamMember_ShouldCallRepository() {
-        // When
-        teamMemberService.deleteTeamMember(teamMember1);
+    void saveTeamMember_WhenTeamNotFound_ShouldThrowException() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.empty());
 
-        // Then
-        verify(teamMemberRepository, times(1)).delete(teamMember1);
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> teamMemberService.saveTeamMember(teamMemberDTO));
+
+        assertEquals("Nie znaleziono zespołu o ID: 1", exception.getMessage());
+        verify(teamMemberRepository, never()).save(any(TeamMember.class));
     }
 
     @Test
-    void getTeamMemberById_WhenMemberExists_ShouldReturnMember() {
-        // Given
-        when(teamMemberRepository.findById(1L)).thenReturn(Optional.of(teamMember1));
+    void saveTeamMember_WhenUserNotFound_ShouldThrowException() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.of(team));
+        when(userRepository.findById(1)).thenReturn(Optional.empty());
 
-        // When
-        Optional<TeamMember> result = teamMemberService.getTeamMemberById(1L);
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> teamMemberService.saveTeamMember(teamMemberDTO));
 
-        // Then
+        assertEquals("Nie znaleziono użytkownika o ID: 1", exception.getMessage());
+        verify(teamMemberRepository, never()).save(any(TeamMember.class));
+    }
+
+    @Test
+    void saveTeamMember_WithNullJoinedAt_ShouldSetCurrentDateTime() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.of(team));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(teamMemberRepository.save(any(TeamMember.class))).thenAnswer(invocation -> {
+            TeamMember savedMember = invocation.getArgument(0);
+            savedMember.setId(1);
+            return savedMember;
+        });
+
+        // Set joinedAt to null
+        teamMemberDTO.setJoinedAt(null);
+
+        // Act
+        TeamMemberDTO result = teamMemberService.saveTeamMember(teamMemberDTO);
+
+        // Assert
+        assertNotNull(result);
+        assertNotNull(result.getJoinedAt()); // Should be set automatically
+    }
+
+    @Test
+    void deleteTeamMemberById_WhenExists_ShouldReturnTrue() {
+        // Arrange
+        when(teamMemberRepository.findById(1L)).thenReturn(Optional.of(teamMember));
+
+        // Act
+        boolean result = teamMemberService.deleteTeamMemberById(1L);
+
+        // Assert
+        assertTrue(result);
+        verify(teamMemberRepository).delete(teamMember);
+    }
+
+    @Test
+    void deleteTeamMemberById_WhenNotExists_ShouldReturnFalse() {
+        // Arrange
+        when(teamMemberRepository.findById(999L)).thenReturn(Optional.empty());
+
+        // Act
+        boolean result = teamMemberService.deleteTeamMemberById(999L);
+
+        // Assert
+        assertFalse(result);
+        verify(teamMemberRepository, never()).delete(any(TeamMember.class));
+    }
+
+    @Test
+    void getTeamMemberById_WhenExists_ShouldReturnTeamMember() {
+        // Arrange
+        when(teamMemberRepository.findById(1L)).thenReturn(Optional.of(teamMember));
+
+        // Act
+        Optional<TeamMemberDTO> result = teamMemberService.getTeamMemberById(1L);
+
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(teamMember1.getId(), result.get().getId());
-        assertEquals(teamMember1.getUser(), result.get().getUser());
-        assertEquals(teamMember1.getTeam(), result.get().getTeam());
-        verify(teamMemberRepository, times(1)).findById(1L);
+        assertEquals(1, result.get().getId());
+        assertEquals(1, result.get().getTeamId());
+        assertEquals(1, result.get().getUserId());
     }
 
     @Test
-    void getTeamMemberById_WhenMemberDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(teamMemberRepository.findById(99L)).thenReturn(Optional.empty());
+    void getTeamMemberById_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(teamMemberRepository.findById(999L)).thenReturn(Optional.empty());
 
-        // When
-        Optional<TeamMember> result = teamMemberService.getTeamMemberById(99L);
+        // Act
+        Optional<TeamMemberDTO> result = teamMemberService.getTeamMemberById(999L);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(teamMemberRepository, times(1)).findById(99L);
     }
 }

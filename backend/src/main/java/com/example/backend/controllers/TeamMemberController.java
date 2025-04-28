@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Kontroler REST dla encji {@link TeamMember}.
@@ -43,9 +44,13 @@ public class TeamMemberController {
      */
     @GetMapping(value = "/team/{teamId}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TeamMemberDTO>> getTeamMembersByTeam(@PathVariable Long teamId) {
-        Team team = teamService.getTeamEntityById(Math.toIntExact(teamId))
-                .orElseThrow(() -> new RuntimeException("Zespół o ID: " + teamId + " nie istnieje"));
-        return ResponseEntity.ok(teamMemberService.getTeamMembersByTeam(team));
+        Optional<Team> optionalTeam = teamService.getTeamEntityById(Math.toIntExact(teamId));
+        if (optionalTeam.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        List<TeamMemberDTO> members = teamMemberService.getTeamMembersByTeam(optionalTeam.get());
+        return ResponseEntity.ok(members);
     }
 
     /**

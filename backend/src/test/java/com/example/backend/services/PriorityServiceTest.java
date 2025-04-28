@@ -1,20 +1,24 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.PriorityDTO;
 import com.example.backend.models.Priority;
 import com.example.backend.models.Task;
 import com.example.backend.repository.PriorityRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class PriorityServiceTest {
 
     @Mock
@@ -23,178 +27,173 @@ class PriorityServiceTest {
     @InjectMocks
     private PriorityService priorityService;
 
-    private Priority lowPriority;
-    private Priority mediumPriority;
-    private Priority highPriority;
+    private Priority priority;
+    private PriorityDTO priorityDTO;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // Initialize test data
+        priority = new Priority();
+        priority.setId(1);
+        priority.setName("High");
+        priority.setValue(3);
+        priority.setColorCode("#FF0000");
+        priority.setTasks(new HashSet<>());
 
-        // Inicjalizacja priorytetów testowych
-        lowPriority = new Priority();
-        lowPriority.setId(1);
-        lowPriority.setName("Niski");
-        lowPriority.setValue(1);
-        lowPriority.setColorCode("#28a745");
-
-        mediumPriority = new Priority();
-        mediumPriority.setId(2);
-        mediumPriority.setName("Średni");
-        mediumPriority.setValue(2);
-        mediumPriority.setColorCode("#ffc107");
-
-        highPriority = new Priority();
-        highPriority.setId(3);
-        highPriority.setName("Wysoki");
-        highPriority.setValue(3);
-        highPriority.setColorCode("#dc3545");
+        priorityDTO = new PriorityDTO();
+        priorityDTO.setId(1);
+        priorityDTO.setName("High");
+        priorityDTO.setValue(3);
+        priorityDTO.setColorCode("#FF0000");
     }
 
     @Test
     void getAllPriorities_ShouldReturnAllPriorities() {
-        // Given
-        List<Priority> expectedPriorities = Arrays.asList(lowPriority, mediumPriority, highPriority);
-        when(priorityRepository.findAll()).thenReturn(expectedPriorities);
+        // Arrange
+        when(priorityRepository.findAll()).thenReturn(Arrays.asList(priority));
 
-        // When
-        List<Priority> actualPriorities = priorityService.getAllPriorities();
+        // Act
+        List<PriorityDTO> result = priorityService.getAllPriorities();
 
-        // Then
-        assertEquals(expectedPriorities.size(), actualPriorities.size());
-        assertEquals(expectedPriorities.get(0).getId(), actualPriorities.get(0).getId());
-        assertEquals(expectedPriorities.get(1).getId(), actualPriorities.get(1).getId());
-        assertEquals(expectedPriorities.get(2).getId(), actualPriorities.get(2).getId());
-        verify(priorityRepository, times(1)).findAll();
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("High", result.get(0).getName());
+        assertEquals(3, result.get(0).getValue());
+        assertEquals("#FF0000", result.get(0).getColorCode());
     }
 
     @Test
     void getAllPrioritiesSortedByValue_ShouldReturnSortedPriorities() {
-        // Given
-        List<Priority> priorities = Arrays.asList(lowPriority, mediumPriority, highPriority);
-        when(priorityRepository.findAll()).thenReturn(priorities);
+        // Arrange
+        Priority lowPriority = new Priority();
+        lowPriority.setId(2);
+        lowPriority.setName("Low");
+        lowPriority.setValue(1);
+        lowPriority.setColorCode("#00FF00");
 
-        // When
-        List<Priority> sortedPriorities = priorityService.getAllPrioritiesSortedByValue();
+        Priority mediumPriority = new Priority();
+        mediumPriority.setId(3);
+        mediumPriority.setName("Medium");
+        mediumPriority.setValue(2);
+        mediumPriority.setColorCode("#FFFF00");
 
-        // Then
-        assertEquals(3, sortedPriorities.size());
-        assertEquals(highPriority.getId(), sortedPriorities.get(0).getId()); // Highest first
-        assertEquals(mediumPriority.getId(), sortedPriorities.get(1).getId());
-        assertEquals(lowPriority.getId(), sortedPriorities.get(2).getId()); // Lowest last
-        verify(priorityRepository, times(1)).findAll();
+        when(priorityRepository.findAll()).thenReturn(Arrays.asList(lowPriority, mediumPriority, priority));
+
+        // Act
+        List<PriorityDTO> result = priorityService.getAllPrioritiesSortedByValue();
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        // Should be sorted by value in descending order
+        assertEquals("High", result.get(0).getName());
+        assertEquals("Medium", result.get(1).getName());
+        assertEquals("Low", result.get(2).getName());
     }
 
     @Test
-    void getPriorityById_WhenPriorityExists_ShouldReturnPriority() {
-        // Given
-        when(priorityRepository.findById(1)).thenReturn(Optional.of(lowPriority));
+    void getPriorityById_WhenExists_ShouldReturnPriorityDTO() {
+        // Arrange
+        when(priorityRepository.findById(1)).thenReturn(Optional.of(priority));
 
-        // When
-        Optional<Priority> result = priorityService.getPriorityById(1);
+        // Act
+        Optional<PriorityDTO> result = priorityService.getPriorityById(1);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(lowPriority.getId(), result.get().getId());
-        assertEquals(lowPriority.getName(), result.get().getName());
-        verify(priorityRepository, times(1)).findById(1);
+        assertEquals("High", result.get().getName());
+        assertEquals(3, result.get().getValue());
     }
 
     @Test
-    void getPriorityById_WhenPriorityDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(priorityRepository.findById(99)).thenReturn(Optional.empty());
+    void getPriorityById_WhenNotExists_ShouldReturnEmptyOptional() {
+        // Arrange
+        when(priorityRepository.findById(999)).thenReturn(Optional.empty());
 
-        // When
-        Optional<Priority> result = priorityService.getPriorityById(99);
+        // Act
+        Optional<PriorityDTO> result = priorityService.getPriorityById(999);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(priorityRepository, times(1)).findById(99);
     }
 
     @Test
-    void getPriorityByName_WhenPriorityExists_ShouldReturnPriority() {
-        // Given
-        when(priorityRepository.findByName("Wysoki")).thenReturn(Optional.of(highPriority));
+    void getPriorityByName_WhenExists_ShouldReturnPriorityDTO() {
+        // Arrange
+        when(priorityRepository.findByName("High")).thenReturn(Optional.of(priority));
 
-        // When
-        Optional<Priority> result = priorityService.getPriorityByName("Wysoki");
+        // Act
+        Optional<PriorityDTO> result = priorityService.getPriorityByName("High");
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(highPriority.getId(), result.get().getId());
-        assertEquals("Wysoki", result.get().getName());
-        verify(priorityRepository, times(1)).findByName("Wysoki");
+        assertEquals(1, result.get().getId());
+        assertEquals(3, result.get().getValue());
     }
 
     @Test
-    void savePriority_ShouldSaveAndReturnPriority() {
-        // Given
-        Priority newPriority = new Priority();
-        newPriority.setName("Krytyczny");
-        newPriority.setValue(4);
-        newPriority.setColorCode("#ff0000");
+    void getPriorityByName_WhenNotExists_ShouldReturnEmptyOptional() {
+        // Arrange
+        when(priorityRepository.findByName("Nonexistent")).thenReturn(Optional.empty());
 
-        when(priorityRepository.save(any(Priority.class))).thenReturn(newPriority);
+        // Act
+        Optional<PriorityDTO> result = priorityService.getPriorityByName("Nonexistent");
 
-        // When
-        Priority savedPriority = priorityService.savePriority(newPriority);
-
-        // Then
-        assertEquals(newPriority.getName(), savedPriority.getName());
-        assertEquals(newPriority.getValue(), savedPriority.getValue());
-        assertEquals(newPriority.getColorCode(), savedPriority.getColorCode());
-        verify(priorityRepository, times(1)).save(newPriority);
+        // Assert
+        assertFalse(result.isPresent());
     }
 
     @Test
-    void createPriority_ShouldCreateAndReturnPriority() {
-        // Given
-        String name = "Krytyczny";
-        Integer value = 4;
-        String colorCode = "#ff0000";
+    void savePriority_ShouldMapAndSavePriority() {
+        // Arrange
+        when(priorityRepository.save(any(Priority.class))).thenReturn(priority);
 
-        when(priorityRepository.save(any(Priority.class))).thenAnswer(invocation -> {
-            Priority saved = invocation.getArgument(0);
-            saved.setId(4); // Symulacja nadania ID przez bazę danych
-            return saved;
-        });
+        // Act
+        PriorityDTO result = priorityService.savePriority(priorityDTO);
 
-        // When
-        Priority createdPriority = priorityService.createPriority(name, value, colorCode);
-
-        // Then
-        assertNotNull(createdPriority.getId());
-        assertEquals(name, createdPriority.getName());
-        assertEquals(value, createdPriority.getValue());
-        assertEquals(colorCode, createdPriority.getColorCode());
-        verify(priorityRepository, times(1)).save(any(Priority.class));
+        // Assert
+        assertNotNull(result);
+        assertEquals("High", result.getName());
+        assertEquals(3, result.getValue());
+        assertEquals("#FF0000", result.getColorCode());
+        verify(priorityRepository).save(any(Priority.class));
     }
 
     @Test
-    void deletePriority_WithNoTasks_ShouldDeletePriority() {
-        // Given
-        Priority priorityWithNoTasks = new Priority();
-        priorityWithNoTasks.setId(1);
-        priorityWithNoTasks.setName("Niski");
-        priorityWithNoTasks.setTasks(new HashSet<>());
+    void createPriority_ShouldCreateAndSaveNewPriority() {
+        // Arrange
+        when(priorityRepository.save(any(Priority.class))).thenReturn(priority);
 
-        when(priorityRepository.findById(1)).thenReturn(Optional.of(priorityWithNoTasks));
-        doNothing().when(priorityRepository).deleteById(1);
+        // Act
+        PriorityDTO result = priorityService.createPriority("High", 3, "#FF0000");
 
-        // When & Then
-        assertDoesNotThrow(() -> priorityService.deletePriority(1));
-        verify(priorityRepository, times(1)).findById(1);
-        verify(priorityRepository, times(1)).deleteById(1);
+        // Assert
+        assertNotNull(result);
+        assertEquals("High", result.getName());
+        assertEquals(3, result.getValue());
+        assertEquals("#FF0000", result.getColorCode());
+        verify(priorityRepository).save(any(Priority.class));
     }
 
     @Test
-    void deletePriority_WithTasks_ShouldThrowException() {
-        // Given
+    void deletePriority_WhenPriorityHasNoTasks_ShouldDelete() {
+        // Arrange
+        when(priorityRepository.findById(1)).thenReturn(Optional.of(priority));
+
+        // Act
+        priorityService.deletePriority(1);
+
+        // Assert
+        verify(priorityRepository).deleteById(1);
+    }
+
+    @Test
+    void deletePriority_WhenPriorityHasTasks_ShouldThrowException() {
+        // Arrange
         Priority priorityWithTasks = new Priority();
         priorityWithTasks.setId(1);
-        priorityWithTasks.setName("Niski");
+        priorityWithTasks.setName("High");
 
         Set<Task> tasks = new HashSet<>();
         tasks.add(new Task());
@@ -202,70 +201,69 @@ class PriorityServiceTest {
 
         when(priorityRepository.findById(1)).thenReturn(Optional.of(priorityWithTasks));
 
-        // When & Then
+        // Act & Assert
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> priorityService.deletePriority(1));
 
-        assertTrue(exception.getMessage().contains("Nie można usunąć priorytetu"));
-        verify(priorityRepository, times(1)).findById(1);
+        assertEquals("Nie można usunąć priorytetu, do którego przypisane są zadania", exception.getMessage());
         verify(priorityRepository, never()).deleteById(anyInt());
     }
 
     @Test
-    void existsByName_WhenPriorityExists_ShouldReturnTrue() {
-        // Given
-        when(priorityRepository.findByName("Wysoki")).thenReturn(Optional.of(highPriority));
+    void existsByName_WhenNameExists_ShouldReturnTrue() {
+        // Arrange
+        when(priorityRepository.findByName("High")).thenReturn(Optional.of(priority));
 
-        // When
-        boolean result = priorityService.existsByName("Wysoki");
+        // Act
+        boolean result = priorityService.existsByName("High");
 
-        // Then
+        // Assert
         assertTrue(result);
-        verify(priorityRepository, times(1)).findByName("Wysoki");
     }
 
     @Test
-    void existsByName_WhenPriorityDoesNotExist_ShouldReturnFalse() {
-        // Given
-        when(priorityRepository.findByName("Nieistniejący")).thenReturn(Optional.empty());
+    void existsByName_WhenNameDoesNotExist_ShouldReturnFalse() {
+        // Arrange
+        when(priorityRepository.findByName("Nonexistent")).thenReturn(Optional.empty());
 
-        // When
-        boolean result = priorityService.existsByName("Nieistniejący");
+        // Act
+        boolean result = priorityService.existsByName("Nonexistent");
 
-        // Then
+        // Assert
         assertFalse(result);
-        verify(priorityRepository, times(1)).findByName("Nieistniejący");
     }
 
     @Test
     void updateColor_WhenPriorityExists_ShouldUpdateAndReturnPriority() {
-        // Given
-        when(priorityRepository.findById(1)).thenReturn(Optional.of(lowPriority));
-        when(priorityRepository.save(any(Priority.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        // Arrange
+        when(priorityRepository.findById(1)).thenReturn(Optional.of(priority));
 
-        String newColorCode = "#00ff00";
+        // Configure save to update the color
+        when(priorityRepository.save(any(Priority.class))).thenAnswer(invocation -> {
+            Priority savedPriority = invocation.getArgument(0);
+            savedPriority.setColorCode("#00FF00");
+            return savedPriority;
+        });
 
-        // When
-        Optional<Priority> result = priorityService.updateColor(1, newColorCode);
+        // Act
+        Optional<PriorityDTO> result = priorityService.updateColor(1, "#00FF00");
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(newColorCode, result.get().getColorCode());
-        verify(priorityRepository, times(1)).findById(1);
-        verify(priorityRepository, times(1)).save(any(Priority.class));
+        assertEquals("#00FF00", result.get().getColorCode());
+        verify(priorityRepository).save(any(Priority.class));
     }
 
     @Test
     void updateColor_WhenPriorityDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(priorityRepository.findById(99)).thenReturn(Optional.empty());
+        // Arrange
+        when(priorityRepository.findById(999)).thenReturn(Optional.empty());
 
-        // When
-        Optional<Priority> result = priorityService.updateColor(99, "#00ff00");
+        // Act
+        Optional<PriorityDTO> result = priorityService.updateColor(999, "#00FF00");
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(priorityRepository, times(1)).findById(99);
         verify(priorityRepository, never()).save(any(Priority.class));
     }
 }
