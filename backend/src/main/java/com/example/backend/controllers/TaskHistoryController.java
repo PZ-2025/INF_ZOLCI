@@ -1,6 +1,7 @@
 package com.example.backend.controllers;
 
 import com.example.backend.dto.TaskHistoryDTO;
+import com.example.backend.dto.UserDTO;
 import com.example.backend.models.Task;
 import com.example.backend.models.User;
 import com.example.backend.services.TaskHistoryService;
@@ -114,7 +115,7 @@ public class TaskHistoryController {
                     List<TaskHistoryDTO> history = taskHistoryService.getHistoryByUser(user);
                     return new ResponseEntity<>(history, HttpStatus.OK);
                 })
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+                .orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     /**
@@ -125,14 +126,15 @@ public class TaskHistoryController {
      */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskHistoryDTO> createTaskHistory(@Valid @RequestBody TaskHistoryDTO taskHistoryDTO) {
-        Optional<Task> taskOpt = taskService.getTaskById(taskHistoryDTO.getTaskId())
-                .map(dto -> {
-                    Task task = new Task();
-                    task.setId(dto.getId());
-                    return task;
-                });
-
+        // Sprawdź czy istnieje zadanie o podanym ID
+        Optional<Task> taskOpt = taskService.getTaskEntityById(taskHistoryDTO.getTaskId());
         if (taskOpt.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        // Sprawdź czy istnieje użytkownik o podanym ID
+        Optional<UserDTO> userOpt = userService.getUserById(taskHistoryDTO.getChangedById());
+        if (userOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
@@ -148,39 +150,53 @@ public class TaskHistoryController {
      */
     @PostMapping(value = "/log", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskHistoryDTO> logTaskChange(@RequestBody Map<String, Object> payload) {
-        Integer taskId = (Integer) payload.get("taskId");
-        Integer userId = (Integer) payload.get("userId");
-        String fieldName = (String) payload.get("fieldName");
-        String oldValue = (String) payload.get("oldValue");
-        String newValue = (String) payload.get("newValue");
+        // Pobieramy i konwertujemy dane z payloadu
+        Integer taskId = null;
+        Integer userId = null;
+        String fieldName = null;
+        String oldValue = null;
+        String newValue = null;
 
+        try {
+            // Pobieramy wymagane pola
+            taskId = Integer.valueOf(String.valueOf(payload.get("taskId")));
+            userId = Integer.valueOf(String.valueOf(payload.get("changedById")));
+            fieldName = (String) payload.get("fieldName");
+
+            // Opcjonalne pola
+            if (payload.containsKey("oldValue")) {
+                oldValue = String.valueOf(payload.get("oldValue"));
+            }
+            if (payload.containsKey("newValue")) {
+                newValue = String.valueOf(payload.get("newValue"));
+            }
+        } catch (NumberFormatException | ClassCastException e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        // Walidacja wymaganych pól
         if (taskId == null || userId == null || fieldName == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        Optional<Task> taskOpt = taskService.getTaskById(taskId)
-                .map(dto -> {
-                    Task task = new Task();
-                    task.setId(dto.getId());
-                    return task;
-                });
-
-        Optional<User> userOpt = userService.getUserById(userId)
-                .map(dto -> {
-                    User user = new User();
-                    user.setId(dto.getId());
-                    user.setUsername(dto.getUsername());
-                    user.setFirstName(dto.getFirstName());
-                    user.setLastName(dto.getLastName());
-                    return user;
-                });
-
-        if (taskOpt.isEmpty() || userOpt.isEmpty()) {
+        // Pobieramy zadanie
+        Optional<Task> taskOpt = taskService.getTaskEntityById(taskId);
+        if (taskOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
+        // Pobieramy użytkownika
+        Optional<UserDTO> userOpt = userService.getUserById(userId);
+        if (userOpt.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        User user = new User();
+        user.setId(userOpt.get().getId());
+
+        // Tworzymy wpis historii
         TaskHistoryDTO historyEntry = taskHistoryService.logTaskChange(
-                taskOpt.get(), userOpt.get(), fieldName, oldValue, newValue);
+                taskOpt.get(), user, fieldName, oldValue, newValue);
 
         return new ResponseEntity<>(historyEntry, HttpStatus.CREATED);
     }

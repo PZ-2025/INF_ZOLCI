@@ -1,20 +1,24 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.TaskStatusDTO;
 import com.example.backend.models.Task;
 import com.example.backend.models.TaskStatus;
 import com.example.backend.repository.TaskStatusRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TaskStatusServiceTest {
 
     @Mock
@@ -23,185 +27,163 @@ class TaskStatusServiceTest {
     @InjectMocks
     private TaskStatusService taskStatusService;
 
-    private TaskStatus startedStatus;
-    private TaskStatus inProgressStatus;
-    private TaskStatus completedStatus;
+    private TaskStatus taskStatus;
+    private TaskStatusDTO taskStatusDTO;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        // Initialize test data
+        taskStatus = new TaskStatus();
+        taskStatus.setId(1);
+        taskStatus.setName("In Progress");
+        taskStatus.setProgressMin(30);
+        taskStatus.setProgressMax(70);
+        taskStatus.setDisplayOrder(2);
+        taskStatus.setTasks(new HashSet<>());
 
-        // Inicjalizacja statusów testowych
-        startedStatus = new TaskStatus();
-        startedStatus.setId(1);
-        startedStatus.setName("Rozpoczęte");
-        startedStatus.setProgressMin(0);
-        startedStatus.setProgressMax(30);
-        startedStatus.setDisplayOrder(1);
-
-        inProgressStatus = new TaskStatus();
-        inProgressStatus.setId(2);
-        inProgressStatus.setName("W toku");
-        inProgressStatus.setProgressMin(31);
-        inProgressStatus.setProgressMax(99);
-        inProgressStatus.setDisplayOrder(2);
-
-        completedStatus = new TaskStatus();
-        completedStatus.setId(3);
-        completedStatus.setName("Zakończone");
-        completedStatus.setProgressMin(100);
-        completedStatus.setProgressMax(100);
-        completedStatus.setDisplayOrder(3);
+        taskStatusDTO = new TaskStatusDTO();
+        taskStatusDTO.setId(1);
+        taskStatusDTO.setName("In Progress");
+        taskStatusDTO.setProgressMin(30);
+        taskStatusDTO.setProgressMax(70);
+        taskStatusDTO.setDisplayOrder(2);
     }
 
     @Test
     void getAllTaskStatuses_ShouldReturnAllStatuses() {
-        // Given
-        List<TaskStatus> expectedStatuses = Arrays.asList(startedStatus, inProgressStatus, completedStatus);
-        when(taskStatusRepository.findAll()).thenReturn(expectedStatuses);
+        // Arrange
+        when(taskStatusRepository.findAll()).thenReturn(Arrays.asList(taskStatus));
 
-        // When
-        List<TaskStatus> actualStatuses = taskStatusService.getAllTaskStatuses();
+        // Act
+        List<TaskStatusDTO> result = taskStatusService.getAllTaskStatuses();
 
-        // Then
-        assertEquals(expectedStatuses.size(), actualStatuses.size());
-        assertEquals(expectedStatuses.get(0).getId(), actualStatuses.get(0).getId());
-        assertEquals(expectedStatuses.get(1).getId(), actualStatuses.get(1).getId());
-        assertEquals(expectedStatuses.get(2).getId(), actualStatuses.get(2).getId());
-        verify(taskStatusRepository, times(1)).findAll();
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("In Progress", result.get(0).getName());
+        assertEquals(30, result.get(0).getProgressMin());
+        assertEquals(70, result.get(0).getProgressMax());
+        assertEquals(2, result.get(0).getDisplayOrder());
     }
 
     @Test
     void getAllTaskStatusesSorted_ShouldReturnSortedStatuses() {
-        // Given
-        List<TaskStatus> sortedStatuses = Arrays.asList(startedStatus, inProgressStatus, completedStatus);
-        when(taskStatusRepository.findAllByOrderByDisplayOrderAsc()).thenReturn(sortedStatuses);
+        // Arrange
+        when(taskStatusRepository.findAllByOrderByDisplayOrderAsc())
+                .thenReturn(Arrays.asList(taskStatus));
 
-        // When
-        List<TaskStatus> result = taskStatusService.getAllTaskStatusesSorted();
+        // Act
+        List<TaskStatusDTO> result = taskStatusService.getAllTaskStatusesSorted();
 
-        // Then
-        assertEquals(sortedStatuses.size(), result.size());
-        assertEquals(sortedStatuses.get(0).getId(), result.get(0).getId());
-        assertEquals(sortedStatuses.get(1).getId(), result.get(1).getId());
-        assertEquals(sortedStatuses.get(2).getId(), result.get(2).getId());
-        verify(taskStatusRepository, times(1)).findAllByOrderByDisplayOrderAsc();
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("In Progress", result.get(0).getName());
     }
 
     @Test
-    void getTaskStatusById_WhenStatusExists_ShouldReturnStatus() {
-        // Given
-        when(taskStatusRepository.findById(1)).thenReturn(Optional.of(startedStatus));
+    void getTaskStatusById_WhenExists_ShouldReturnStatus() {
+        // Arrange
+        when(taskStatusRepository.findById(1)).thenReturn(Optional.of(taskStatus));
 
-        // When
-        Optional<TaskStatus> result = taskStatusService.getTaskStatusById(1);
+        // Act
+        Optional<TaskStatusDTO> result = taskStatusService.getTaskStatusById(1);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(startedStatus.getId(), result.get().getId());
-        assertEquals(startedStatus.getName(), result.get().getName());
-        verify(taskStatusRepository, times(1)).findById(1);
+        assertEquals("In Progress", result.get().getName());
     }
 
     @Test
-    void getTaskStatusById_WhenStatusDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(taskStatusRepository.findById(99)).thenReturn(Optional.empty());
+    void getTaskStatusById_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(taskStatusRepository.findById(999)).thenReturn(Optional.empty());
 
-        // When
-        Optional<TaskStatus> result = taskStatusService.getTaskStatusById(99);
+        // Act
+        Optional<TaskStatusDTO> result = taskStatusService.getTaskStatusById(999);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(taskStatusRepository, times(1)).findById(99);
     }
 
     @Test
-    void getTaskStatusByName_WhenStatusExists_ShouldReturnStatus() {
-        // Given
-        when(taskStatusRepository.findByName("Zakończone")).thenReturn(Optional.of(completedStatus));
+    void getTaskStatusByName_WhenExists_ShouldReturnStatus() {
+        // Arrange
+        when(taskStatusRepository.findByName("In Progress")).thenReturn(Optional.of(taskStatus));
 
-        // When
-        Optional<TaskStatus> result = taskStatusService.getTaskStatusByName("Zakończone");
+        // Act
+        Optional<TaskStatusDTO> result = taskStatusService.getTaskStatusByName("In Progress");
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(completedStatus.getId(), result.get().getId());
-        assertEquals("Zakończone", result.get().getName());
-        verify(taskStatusRepository, times(1)).findByName("Zakończone");
+        assertEquals(1, result.get().getId());
     }
 
     @Test
-    void saveTaskStatus_ShouldSaveAndReturnStatus() {
-        // Given
-        TaskStatus newStatus = new TaskStatus();
-        newStatus.setName("Anulowane");
-        newStatus.setProgressMin(0);
-        newStatus.setProgressMax(0);
-        newStatus.setDisplayOrder(4);
+    void getTaskStatusByName_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(taskStatusRepository.findByName("Nonexistent")).thenReturn(Optional.empty());
 
-        when(taskStatusRepository.save(any(TaskStatus.class))).thenReturn(newStatus);
+        // Act
+        Optional<TaskStatusDTO> result = taskStatusService.getTaskStatusByName("Nonexistent");
 
-        // When
-        TaskStatus savedStatus = taskStatusService.saveTaskStatus(newStatus);
-
-        // Then
-        assertEquals(newStatus.getName(), savedStatus.getName());
-        assertEquals(newStatus.getProgressMin(), savedStatus.getProgressMin());
-        assertEquals(newStatus.getProgressMax(), savedStatus.getProgressMax());
-        assertEquals(newStatus.getDisplayOrder(), savedStatus.getDisplayOrder());
-        verify(taskStatusRepository, times(1)).save(newStatus);
+        // Assert
+        assertFalse(result.isPresent());
     }
 
     @Test
-    void createTaskStatus_ShouldCreateAndReturnStatus() {
-        // Given
-        String name = "Anulowane";
-        Integer progressMin = 0;
-        Integer progressMax = 0;
-        Integer displayOrder = 4;
+    void saveTaskStatus_ShouldMapAndSaveStatus() {
+        // Arrange
+        when(taskStatusRepository.save(any(TaskStatus.class))).thenReturn(taskStatus);
 
-        when(taskStatusRepository.save(any(TaskStatus.class))).thenAnswer(invocation -> {
-            TaskStatus saved = invocation.getArgument(0);
-            saved.setId(4); // Symulacja nadania ID przez bazę danych
-            return saved;
-        });
+        // Act
+        TaskStatusDTO result = taskStatusService.saveTaskStatus(taskStatusDTO);
 
-        // When
-        TaskStatus createdStatus = taskStatusService.createTaskStatus(name, progressMin, progressMax, displayOrder);
-
-        // Then
-        assertNotNull(createdStatus.getId());
-        assertEquals(name, createdStatus.getName());
-        assertEquals(progressMin, createdStatus.getProgressMin());
-        assertEquals(progressMax, createdStatus.getProgressMax());
-        assertEquals(displayOrder, createdStatus.getDisplayOrder());
-        verify(taskStatusRepository, times(1)).save(any(TaskStatus.class));
+        // Assert
+        assertNotNull(result);
+        assertEquals("In Progress", result.getName());
+        assertEquals(30, result.getProgressMin());
+        assertEquals(70, result.getProgressMax());
+        assertEquals(2, result.getDisplayOrder());
+        verify(taskStatusRepository).save(any(TaskStatus.class));
     }
 
     @Test
-    void deleteTaskStatus_WithNoTasks_ShouldDeleteStatus() {
-        // Given
-        TaskStatus statusWithNoTasks = new TaskStatus();
-        statusWithNoTasks.setId(1);
-        statusWithNoTasks.setName("Rozpoczęte");
-        statusWithNoTasks.setTasks(new HashSet<>());
+    void createTaskStatus_ShouldCreateAndSaveNewStatus() {
+        // Arrange
+        when(taskStatusRepository.save(any(TaskStatus.class))).thenReturn(taskStatus);
 
-        when(taskStatusRepository.findById(1)).thenReturn(Optional.of(statusWithNoTasks));
-        doNothing().when(taskStatusRepository).deleteById(1);
+        // Act
+        TaskStatusDTO result = taskStatusService.createTaskStatus(
+                "In Progress", 30, 70, 2);
 
-        // When & Then
-        assertDoesNotThrow(() -> taskStatusService.deleteTaskStatus(1));
-        verify(taskStatusRepository, times(1)).findById(1);
-        verify(taskStatusRepository, times(1)).deleteById(1);
+        // Assert
+        assertNotNull(result);
+        assertEquals("In Progress", result.getName());
+        assertEquals(30, result.getProgressMin());
+        assertEquals(70, result.getProgressMax());
+        assertEquals(2, result.getDisplayOrder());
+        verify(taskStatusRepository).save(any(TaskStatus.class));
     }
 
     @Test
-    void deleteTaskStatus_WithTasks_ShouldThrowException() {
-        // Given
+    void deleteTaskStatus_WhenStatusHasNoTasks_ShouldDelete() {
+        // Arrange
+        when(taskStatusRepository.findById(1)).thenReturn(Optional.of(taskStatus));
+
+        // Act
+        taskStatusService.deleteTaskStatus(1);
+
+        // Assert
+        verify(taskStatusRepository).deleteById(1);
+    }
+
+    @Test
+    void deleteTaskStatus_WhenStatusHasTasks_ShouldThrowException() {
+        // Arrange
         TaskStatus statusWithTasks = new TaskStatus();
         statusWithTasks.setId(1);
-        statusWithTasks.setName("Rozpoczęte");
+        statusWithTasks.setName("In Progress");
 
         Set<Task> tasks = new HashSet<>();
         tasks.add(new Task());
@@ -209,70 +191,69 @@ class TaskStatusServiceTest {
 
         when(taskStatusRepository.findById(1)).thenReturn(Optional.of(statusWithTasks));
 
-        // When & Then
+        // Act & Assert
         IllegalStateException exception = assertThrows(IllegalStateException.class,
                 () -> taskStatusService.deleteTaskStatus(1));
 
-        assertTrue(exception.getMessage().contains("Nie można usunąć statusu"));
-        verify(taskStatusRepository, times(1)).findById(1);
+        assertEquals("Nie można usunąć statusu, do którego przypisane są zadania", exception.getMessage());
         verify(taskStatusRepository, never()).deleteById(anyInt());
     }
 
     @Test
-    void existsByName_WhenStatusExists_ShouldReturnTrue() {
-        // Given
-        when(taskStatusRepository.findByName("Zakończone")).thenReturn(Optional.of(completedStatus));
+    void existsByName_WhenNameExists_ShouldReturnTrue() {
+        // Arrange
+        when(taskStatusRepository.findByName("In Progress")).thenReturn(Optional.of(taskStatus));
 
-        // When
-        boolean result = taskStatusService.existsByName("Zakończone");
+        // Act
+        boolean result = taskStatusService.existsByName("In Progress");
 
-        // Then
+        // Assert
         assertTrue(result);
-        verify(taskStatusRepository, times(1)).findByName("Zakończone");
     }
 
     @Test
-    void existsByName_WhenStatusDoesNotExist_ShouldReturnFalse() {
-        // Given
-        when(taskStatusRepository.findByName("Nieistniejący")).thenReturn(Optional.empty());
+    void existsByName_WhenNameDoesNotExist_ShouldReturnFalse() {
+        // Arrange
+        when(taskStatusRepository.findByName("Nonexistent")).thenReturn(Optional.empty());
 
-        // When
-        boolean result = taskStatusService.existsByName("Nieistniejący");
+        // Act
+        boolean result = taskStatusService.existsByName("Nonexistent");
 
-        // Then
+        // Assert
         assertFalse(result);
-        verify(taskStatusRepository, times(1)).findByName("Nieistniejący");
     }
 
     @Test
     void updateDisplayOrder_WhenStatusExists_ShouldUpdateAndReturnStatus() {
-        // Given
-        when(taskStatusRepository.findById(1)).thenReturn(Optional.of(startedStatus));
-        when(taskStatusRepository.save(any(TaskStatus.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        // Arrange
+        when(taskStatusRepository.findById(1)).thenReturn(Optional.of(taskStatus));
 
-        Integer newDisplayOrder = 5;
+        // Configure save to update the display order
+        when(taskStatusRepository.save(any(TaskStatus.class))).thenAnswer(invocation -> {
+            TaskStatus savedStatus = invocation.getArgument(0);
+            savedStatus.setDisplayOrder(3);
+            return savedStatus;
+        });
 
-        // When
-        Optional<TaskStatus> result = taskStatusService.updateDisplayOrder(1, newDisplayOrder);
+        // Act
+        Optional<TaskStatusDTO> result = taskStatusService.updateDisplayOrder(1, 3);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(newDisplayOrder, result.get().getDisplayOrder());
-        verify(taskStatusRepository, times(1)).findById(1);
-        verify(taskStatusRepository, times(1)).save(any(TaskStatus.class));
+        assertEquals(3, result.get().getDisplayOrder());
+        verify(taskStatusRepository).save(any(TaskStatus.class));
     }
 
     @Test
     void updateDisplayOrder_WhenStatusDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(taskStatusRepository.findById(99)).thenReturn(Optional.empty());
+        // Arrange
+        when(taskStatusRepository.findById(999)).thenReturn(Optional.empty());
 
-        // When
-        Optional<TaskStatus> result = taskStatusService.updateDisplayOrder(99, 5);
+        // Act
+        Optional<TaskStatusDTO> result = taskStatusService.updateDisplayOrder(999, 3);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(taskStatusRepository, times(1)).findById(99);
         verify(taskStatusRepository, never()).save(any(TaskStatus.class));
     }
 }

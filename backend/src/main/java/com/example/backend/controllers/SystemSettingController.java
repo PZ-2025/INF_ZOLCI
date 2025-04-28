@@ -23,7 +23,7 @@ import java.util.Optional;
  * w tym tworzenie, odczyt, aktualizację i usuwanie ustawień.
  *
  * @author Jakub
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 @RestController
@@ -44,6 +44,26 @@ public class SystemSettingController {
                                    UserService userService) {
         this.systemSettingService = systemSettingService;
         this.userService = userService;
+    }
+
+    /**
+     * Mapuje UserDTO na encję User.
+     *
+     * @param userDTO DTO użytkownika
+     * @return encja User
+     */
+    private User mapUserDtoToEntity(UserDTO userDTO) {
+        User user = new User();
+        user.setId(userDTO.getId());
+        user.setUsername(userDTO.getUsername());
+        user.setEmail(userDTO.getEmail());
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setRole(userDTO.getRole());
+        user.setIsActive(userDTO.getIsActive());
+        // Pomijamy hasło i inne wrażliwe dane
+        // user.setCreatedAt() i user.setLastLogin() również pomijamy
+        return user;
     }
 
     /**
@@ -107,12 +127,25 @@ public class SystemSettingController {
      */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<SystemSettingDTO> createSystemSetting(@Valid @RequestBody SystemSettingDTO systemSettingDTO) {
+        // Sprawdzanie, czy klucz już istnieje
         if (systemSettingService.existsByKey(systemSettingDTO.getKey())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        SystemSettingDTO savedSetting = systemSettingService.saveSystemSetting(systemSettingDTO);
-        return new ResponseEntity<>(savedSetting, HttpStatus.CREATED);
+        // Sprawdzanie, czy podany użytkownik istnieje
+        if (systemSettingDTO.getUpdatedById() != null) {
+            Optional<UserDTO> userDtoOpt = userService.getUserById(systemSettingDTO.getUpdatedById());
+            if (userDtoOpt.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        try {
+            SystemSettingDTO savedSetting = systemSettingService.saveSystemSetting(systemSettingDTO);
+            return new ResponseEntity<>(savedSetting, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -141,20 +174,15 @@ public class SystemSettingController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        User user = new User();
-        UserDTO dto = userDtoOpt.get();
-        user.setId(dto.getId());
-        user.setUsername(dto.getUsername());
-        user.setEmail(dto.getEmail());
-        user.setFirstName(dto.getFirstName());
-        user.setLastName(dto.getLastName());
-        user.setRole(dto.getRole());
-        user.setIsActive(dto.getIsActive());
+        User user = mapUserDtoToEntity(userDtoOpt.get());
 
-        SystemSettingDTO newSetting = systemSettingService.createSystemSetting(
-                key, value, description, user);
-
-        return new ResponseEntity<>(newSetting, HttpStatus.CREATED);
+        try {
+            SystemSettingDTO newSetting = systemSettingService.createSystemSetting(
+                    key, value, description, user);
+            return new ResponseEntity<>(newSetting, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -171,9 +199,21 @@ public class SystemSettingController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
+        // Sprawdzanie, czy podany użytkownik istnieje
+        if (systemSettingDTO.getUpdatedById() != null) {
+            Optional<UserDTO> userDtoOpt = userService.getUserById(systemSettingDTO.getUpdatedById());
+            if (userDtoOpt.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        }
+
         systemSettingDTO.setId(id);
-        SystemSettingDTO updatedSetting = systemSettingService.saveSystemSetting(systemSettingDTO);
-        return new ResponseEntity<>(updatedSetting, HttpStatus.OK);
+        try {
+            SystemSettingDTO updatedSetting = systemSettingService.saveSystemSetting(systemSettingDTO);
+            return new ResponseEntity<>(updatedSetting, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -200,19 +240,15 @@ public class SystemSettingController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        User user = new User();
-        UserDTO dto = userDtoOpt.get();
-        user.setId(dto.getId());
-        user.setUsername(dto.getUsername());
-        user.setEmail(dto.getEmail());
-        user.setFirstName(dto.getFirstName());
-        user.setLastName(dto.getLastName());
-        user.setRole(dto.getRole());
-        user.setIsActive(dto.getIsActive());
+        User user = mapUserDtoToEntity(userDtoOpt.get());
 
-        return systemSettingService.updateValue(key, value, user)
-                .map(setting -> new ResponseEntity<>(setting, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        try {
+            return systemSettingService.updateValue(key, value, user)
+                    .map(setting -> new ResponseEntity<>(setting, HttpStatus.OK))
+                    .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -227,7 +263,11 @@ public class SystemSettingController {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        systemSettingService.deleteSystemSetting(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        try {
+            systemSettingService.deleteSystemSetting(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

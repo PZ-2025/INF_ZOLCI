@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Kontroler REST dla operacji na zadaniach.
@@ -20,7 +22,7 @@ import java.util.List;
  * wyszukiwanie zadań według różnych kryteriów.
  *
  * @author Karol
- * @version 1.0.0
+ * @version 1.0.2
  * @since 1.0.0
  */
 @RestController
@@ -71,8 +73,12 @@ public class TaskController {
      */
     @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskDTO taskDTO) {
-        TaskDTO savedTask = taskService.saveTask(taskDTO);
-        return new ResponseEntity<>(savedTask, HttpStatus.CREATED);
+        try {
+            TaskDTO savedTask = taskService.saveTask(taskDTO);
+            return new ResponseEntity<>(savedTask, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -83,14 +89,45 @@ public class TaskController {
      * @return Zaktualizowane zadanie lub status 404, jeśli nie istnieje
      */
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TaskDTO> updateTask(@PathVariable Integer id, @Valid @RequestBody TaskDTO taskDTO) {
-        return taskService.getTaskById(id)
-                .map(existingTask -> {
-                    taskDTO.setId(id);
-                    TaskDTO updatedTask = taskService.updateTask(taskDTO);
-                    return new ResponseEntity<>(updatedTask, HttpStatus.OK);
-                })
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    public ResponseEntity<?> updateTask(@PathVariable Integer id, @Valid @RequestBody TaskDTO taskDTO) {
+        try {
+            return taskService.getTaskById(id)
+                    .map(existingTask -> {
+                        // Upewniamy się, że ID w DTO jest prawidłowe
+                        taskDTO.setId(id);
+
+                        // Zachowujemy ważne pola z istniejącego zadania, jeśli nie zostały podane w żądaniu
+                        if (taskDTO.getTeamId() == null && existingTask.getTeamId() != null) {
+                            taskDTO.setTeamId(existingTask.getTeamId());
+                        }
+
+                        if (taskDTO.getPriorityId() == null && existingTask.getPriorityId() != null) {
+                            taskDTO.setPriorityId(existingTask.getPriorityId());
+                        }
+
+                        if (taskDTO.getStatusId() == null && existingTask.getStatusId() != null) {
+                            taskDTO.setStatusId(existingTask.getStatusId());
+                        }
+
+                        if (taskDTO.getCreatedById() == null && existingTask.getCreatedById() != null) {
+                            taskDTO.setCreatedById(existingTask.getCreatedById());
+                        }
+
+                        // Zachowujemy datę utworzenia z istniejącego zadania
+                        if (existingTask.getCreatedAt() != null) {
+                            taskDTO.setCreatedAt(existingTask.getCreatedAt());
+                        }
+
+                        TaskDTO updatedTask = taskService.updateTask(taskDTO);
+                        return new ResponseEntity<>(updatedTask, HttpStatus.OK);
+                    })
+                    .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Wystąpił błąd podczas aktualizacji zadania");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -166,8 +203,12 @@ public class TaskController {
      */
     @GetMapping(value = "/deadline-before/{date}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaskDTO>> getTasksWithDeadlineBefore(@PathVariable String date) {
-        LocalDate localDate = LocalDate.parse(date);
-        List<TaskDTO> tasks = taskService.getTasksWithDeadlineBefore(localDate);
-        return new ResponseEntity<>(tasks, HttpStatus.OK);
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            List<TaskDTO> tasks = taskService.getTasksWithDeadlineBefore(localDate);
+            return new ResponseEntity<>(tasks, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 }
