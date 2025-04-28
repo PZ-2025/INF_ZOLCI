@@ -45,7 +45,7 @@ public class TaskStatusController {
      */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaskStatusDTO>> getAllTaskStatuses() {
-        List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatuses();
+        List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatusesDTO();
         return new ResponseEntity<>(statuses, HttpStatus.OK);
     }
 
@@ -56,7 +56,7 @@ public class TaskStatusController {
      */
     @GetMapping(value = "/sorted", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaskStatusDTO>> getAllTaskStatusesSorted() {
-        List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatusesSorted();
+        List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatusesSortedDTO();
         return new ResponseEntity<>(statuses, HttpStatus.OK);
     }
 
@@ -68,7 +68,7 @@ public class TaskStatusController {
      */
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskStatusDTO> getTaskStatusById(@PathVariable Integer id) {
-        return taskStatusService.getTaskStatusById(id)
+        return taskStatusService.getTaskStatusDTOById(id)
                 .map(status -> new ResponseEntity<>(status, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -81,7 +81,7 @@ public class TaskStatusController {
      */
     @GetMapping(value = "/name/{name}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskStatusDTO> getTaskStatusByName(@PathVariable String name) {
-        return taskStatusService.getTaskStatusByName(name)
+        return taskStatusService.getTaskStatusDTOByName(name)
                 .map(status -> new ResponseEntity<>(status, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -98,7 +98,7 @@ public class TaskStatusController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        TaskStatusDTO savedStatus = taskStatusService.saveTaskStatus(taskStatusDTO);
+        TaskStatusDTO savedStatus = taskStatusService.saveTaskStatusDTO(taskStatusDTO);
         return new ResponseEntity<>(savedStatus, HttpStatus.CREATED);
     }
 
@@ -123,7 +123,7 @@ public class TaskStatusController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        TaskStatusDTO newStatus = taskStatusService.createTaskStatus(
+        TaskStatusDTO newStatus = taskStatusService.createTaskStatusDTO(
                 name, progressMin, progressMax, displayOrder);
 
         return new ResponseEntity<>(newStatus, HttpStatus.CREATED);
@@ -139,12 +139,12 @@ public class TaskStatusController {
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<TaskStatusDTO> updateTaskStatus(@PathVariable Integer id,
                                                           @Valid @RequestBody TaskStatusDTO taskStatusDTO) {
-        if (taskStatusService.getTaskStatusById(id).isEmpty()) {
+        if (taskStatusService.getTaskStatusDTOById(id).isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         taskStatusDTO.setId(id);
-        TaskStatusDTO updatedStatus = taskStatusService.saveTaskStatus(taskStatusDTO);
+        TaskStatusDTO updatedStatus = taskStatusService.saveTaskStatusDTO(taskStatusDTO);
         return new ResponseEntity<>(updatedStatus, HttpStatus.OK);
     }
 
@@ -164,7 +164,7 @@ public class TaskStatusController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        return taskStatusService.updateDisplayOrder(id, displayOrder)
+        return taskStatusService.updateDisplayOrderDTO(id, displayOrder)
                 .map(status -> new ResponseEntity<>(status, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -177,7 +177,7 @@ public class TaskStatusController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTaskStatus(@PathVariable Integer id) {
-        if (taskStatusService.getTaskStatusById(id).isEmpty()) {
+        if (taskStatusService.getTaskStatusDTOById(id).isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
