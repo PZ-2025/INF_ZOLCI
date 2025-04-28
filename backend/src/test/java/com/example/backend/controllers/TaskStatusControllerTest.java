@@ -1,6 +1,6 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.TaskStatus;
+import com.example.backend.dto.TaskStatusDTO;
 import com.example.backend.services.TaskStatusService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
