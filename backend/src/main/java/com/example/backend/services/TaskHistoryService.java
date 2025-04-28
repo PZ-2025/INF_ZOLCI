@@ -141,6 +141,7 @@ public class TaskHistoryService {
      */
     public List<TaskHistoryDTO> getHistoryByUser(User user) {
         return taskHistoryRepository.findByChangedBy(user.getId()).stream()
+
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }

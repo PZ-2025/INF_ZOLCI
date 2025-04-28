@@ -4,6 +4,7 @@ import com.example.backend.dto.SystemSettingDTO;
 import com.example.backend.models.SystemSetting;
 import com.example.backend.models.User;
 import com.example.backend.repository.SystemSettingRepository;
+import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,15 +29,19 @@ import java.util.stream.Collectors;
 public class SystemSettingService {
 
     private final SystemSettingRepository systemSettingRepository;
+    private final UserRepository userRepository;
 
     /**
      * Konstruktor wstrzykujący zależność do repozytorium ustawień systemowych.
      *
      * @param systemSettingRepository Repozytorium ustawień systemowych
+     * @param userRepository Repozytorium użytkowników
      */
     @Autowired
-    public SystemSettingService(SystemSettingRepository systemSettingRepository) {
+    public SystemSettingService(SystemSettingRepository systemSettingRepository,
+                                UserRepository userRepository) {
         this.systemSettingRepository = systemSettingRepository;
+        this.userRepository = userRepository;
     }
 
     /**
@@ -71,6 +76,7 @@ public class SystemSettingService {
      *
      * @param dto Obiekt DTO do mapowania
      * @param updatedBy Użytkownik, który zaktualizował ustawienie (może być null)
+
      * @return Encja reprezentująca ustawienie systemowe
      */
     private SystemSetting mapToEntity(SystemSettingDTO dto, User updatedBy) {
@@ -111,7 +117,6 @@ public class SystemSettingService {
                 .collect(Collectors.toList());
     }
 
-    /**
      * Pobiera ustawienie systemowe na podstawie jego identyfikatora jako DTO.
      *
      * @param id Identyfikator ustawienia systemowego
@@ -156,6 +161,7 @@ public class SystemSettingService {
         // Jeśli istnieje i ma updatedBy, zachowujemy tę wartość
         if (existingEntity != null && existingEntity.getUpdatedBy() != null) {
             updatedBy = existingEntity.getUpdatedBy();
+
         }
 
         SystemSetting entity = mapToEntity(systemSettingDTO, updatedBy);

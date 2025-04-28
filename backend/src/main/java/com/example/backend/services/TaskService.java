@@ -72,6 +72,7 @@ public class TaskService {
         dto.setStartDate(task.getStartDate());
         dto.setDeadline(task.getDeadline());
         dto.setCompletedDate(task.getCompletedDate());
+
         dto.setCreatedAt(task.getCreatedAt());
         dto.setUpdatedAt(task.getUpdatedAt());
 
@@ -96,6 +97,7 @@ public class TaskService {
         }
 
         // Aktualizujemy zespół tylko jeśli teamId jest ustawione w DTO
+
         if (dto.getTeamId() != null) {
             teamRepository.findById(dto.getTeamId())
                     .ifPresent(task::setTeam);
