@@ -1,15 +1,14 @@
 package com.example.backend.controllers;
 
-import com.example.backend.dto.ReportTypeDTO;
+import com.example.backend.models.ReportType;
 import com.example.backend.services.ReportTypeService;
-import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Kontroler REST dla operacji na typach raportów.
@@ -42,9 +41,10 @@ public class ReportTypeController {
      *
      * @return Lista wszystkich typów raportów
      */
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<ReportTypeDTO>> getAllReportTypes() {
-        return ResponseEntity.ok(reportTypeService.getAllReportTypes());
+    @GetMapping
+    public ResponseEntity<List<ReportType>> getAllReportTypes() {
+        List<ReportType> reportTypes = reportTypeService.getAllReportTypes();
+        return new ResponseEntity<>(reportTypes, HttpStatus.OK);
     }
 
     /**
@@ -53,43 +53,106 @@ public class ReportTypeController {
      * @param id Identyfikator typu raportu
      * @return Typ raportu lub status 404, jeśli nie istnieje
      */
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ReportTypeDTO> getReportTypeById(@PathVariable Integer id) {
+    @GetMapping("/{id}")
+    public ResponseEntity<ReportType> getReportTypeById(@PathVariable Integer id) {
         return reportTypeService.getReportTypeById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+                .map(reportType -> new ResponseEntity<>(reportType, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    /**
+     * Pobiera typ raportu na podstawie jego nazwy.
+     *
+     * @param name Nazwa typu raportu
+     * @return Typ raportu lub status 404, jeśli nie istnieje
+     */
+    @GetMapping("/name/{name}")
+    public ResponseEntity<ReportType> getReportTypeByName(@PathVariable String name) {
+        return reportTypeService.getReportTypeByName(name)
+                .map(reportType -> new ResponseEntity<>(reportType, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     /**
      * Tworzy nowy typ raportu.
      *
-     * @param reportTypeDTO Dane nowego typu raportu
+     * @param reportType Dane nowego typu raportu
      * @return Utworzony typ raportu
      */
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ReportTypeDTO> createReportType(@Valid @RequestBody ReportTypeDTO reportTypeDTO) {
-        if (reportTypeService.existsByName(reportTypeDTO.getName())) {
+    @PostMapping
+    public ResponseEntity<ReportType> createReportType(@RequestBody ReportType reportType) {
+        if (reportTypeService.existsByName(reportType.getName())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
-        return new ResponseEntity<>(reportTypeService.saveReportType(reportTypeDTO), HttpStatus.CREATED);
+
+        ReportType savedReportType = reportTypeService.saveReportType(reportType);
+        return new ResponseEntity<>(savedReportType, HttpStatus.CREATED);
+    }
+
+    /**
+     * Tworzy nowy typ raportu na podstawie podanych parametrów.
+     *
+     * @param payload Mapa zawierająca name, description, templatePath
+     * @return Utworzony typ raportu lub status błędu
+     */
+    @PostMapping("/create")
+    public ResponseEntity<ReportType> createReportTypeFromParams(@RequestBody Map<String, Object> payload) {
+        String name = (String) payload.get("name");
+        String description = (String) payload.get("description");
+        String templatePath = (String) payload.get("templatePath");
+
+        if (name == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        if (reportTypeService.existsByName(name)) {
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
+        }
+
+        ReportType newReportType = reportTypeService.createReportType(
+                name, description, templatePath);
+
+        return new ResponseEntity<>(newReportType, HttpStatus.CREATED);
     }
 
     /**
      * Aktualizuje istniejący typ raportu.
      *
-     * @param id           Identyfikator typu raportu
-     * @param reportTypeDTO Zaktualizowane dane typu raportu
+     * @param id         Identyfikator typu raportu
+     * @param reportType Zaktualizowane dane typu raportu
      * @return Zaktualizowany typ raportu lub status 404, jeśli nie istnieje
      */
-    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<ReportTypeDTO> updateReportType(
-            @PathVariable Integer id,
-            @Valid @RequestBody ReportTypeDTO reportTypeDTO) {
+    @PutMapping("/{id}")
+    public ResponseEntity<ReportType> updateReportType(@PathVariable Integer id,
+                                                       @RequestBody ReportType reportType) {
         if (!reportTypeService.getReportTypeById(id).isPresent()) {
-            return ResponseEntity.notFound().build();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
-        reportTypeDTO.setId(id);
-        return ResponseEntity.ok(reportTypeService.saveReportType(reportTypeDTO));
+
+        reportType.setId(id);
+        ReportType updatedReportType = reportTypeService.saveReportType(reportType);
+        return new ResponseEntity<>(updatedReportType, HttpStatus.OK);
+    }
+
+    /**
+     * Aktualizuje ścieżkę szablonu dla typu raportu.
+     *
+     * @param id        Identyfikator typu raportu
+     * @param payload   Mapa zawierająca templatePath
+     * @return Zaktualizowany typ raportu lub status 404, jeśli nie istnieje
+     */
+    @PatchMapping("/{id}/template")
+    public ResponseEntity<ReportType> updateTemplatePath(@PathVariable Integer id,
+                                                         @RequestBody Map<String, String> payload) {
+        String templatePath = payload.get("templatePath");
+
+        if (templatePath == null) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        return reportTypeService.updateTemplatePath(id, templatePath)
+                .map(reportType -> new ResponseEntity<>(reportType, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     /**
@@ -101,13 +164,14 @@ public class ReportTypeController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteReportType(@PathVariable Integer id) {
         if (!reportTypeService.getReportTypeById(id).isPresent()) {
-            return ResponseEntity.notFound().build();
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
+
         try {
             reportTypeService.deleteReportType(id);
-            return ResponseEntity.noContent().build();
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (IllegalStateException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).build();
+            return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
     }
 }
