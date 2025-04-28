@@ -1,18 +1,16 @@
 package com.example.backend.controllers;
 
-import com.example.backend.dto.TaskHistoryDTO;
 import com.example.backend.models.Task;
+import com.example.backend.models.TaskHistory;
 import com.example.backend.models.User;
 import com.example.backend.services.TaskHistoryService;
 import com.example.backend.services.TaskService;
 import com.example.backend.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -57,9 +55,9 @@ public class TaskHistoryController {
      *
      * @return Lista wszystkich wpisów historii zmian
      */
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<TaskHistoryDTO>> getAllTaskHistory() {
-        List<TaskHistoryDTO> history = taskHistoryService.getAllTaskHistory();
+    @GetMapping
+    public ResponseEntity<List<TaskHistory>> getAllTaskHistory() {
+        List<TaskHistory> history = taskHistoryService.getAllTaskHistory();
         return new ResponseEntity<>(history, HttpStatus.OK);
     }
 
@@ -69,8 +67,8 @@ public class TaskHistoryController {
      * @param id Identyfikator wpisu historii
      * @return Wpis historii lub status 404, jeśli nie istnieje
      */
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TaskHistoryDTO> getTaskHistoryById(@PathVariable Integer id) {
+    @GetMapping("/{id}")
+    public ResponseEntity<TaskHistory> getTaskHistoryById(@PathVariable Integer id) {
         return taskHistoryService.getTaskHistoryById(id)
                 .map(history -> new ResponseEntity<>(history, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -82,21 +80,14 @@ public class TaskHistoryController {
      * @param taskId Identyfikator zadania
      * @return Lista wpisów historii dla zadania lub status 404, jeśli zadanie nie istnieje
      */
-    @GetMapping(value = "/task/{taskId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<TaskHistoryDTO>> getHistoryByTask(@PathVariable Integer taskId) {
-        Optional<Task> taskOpt = taskService.getTaskById(taskId)
-                .map(dto -> {
-                    Task task = new Task();
-                    task.setId(dto.getId());
-                    return task;
-                });
-
-        if (taskOpt.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        List<TaskHistoryDTO> history = taskHistoryService.getHistoryByTask(taskOpt.get());
-        return new ResponseEntity<>(history, HttpStatus.OK);
+    @GetMapping("/task/{taskId}")
+    public ResponseEntity<List<TaskHistory>> getHistoryByTask(@PathVariable Integer taskId) {
+        return taskService.getTaskById(taskId)
+                .map(task -> {
+                    List<TaskHistory> history = taskHistoryService.getHistoryByTask(task);
+                    return new ResponseEntity<>(history, HttpStatus.OK);
+                })
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     /**
@@ -105,13 +96,11 @@ public class TaskHistoryController {
      * @param userId Identyfikator użytkownika
      * @return Lista wpisów historii użytkownika lub status 404, jeśli użytkownik nie istnieje
      */
-    @GetMapping(value = "/user/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<TaskHistoryDTO>> getHistoryByUser(@PathVariable Integer userId) {
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<TaskHistory>> getHistoryByUser(@PathVariable Integer userId) {
         return userService.getUserById(userId)
-                .map(dto -> {
-                    User user = new User();
-                    user.setId(dto.getId());
-                    List<TaskHistoryDTO> history = taskHistoryService.getHistoryByUser(user);
+                .map(user -> {
+                    List<TaskHistory> history = taskHistoryService.getHistoryByUser(user);
                     return new ResponseEntity<>(history, HttpStatus.OK);
                 })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -120,23 +109,12 @@ public class TaskHistoryController {
     /**
      * Tworzy nowy wpis historii zmian.
      *
-     * @param taskHistoryDTO Dane nowego wpisu historii
+     * @param taskHistory Dane nowego wpisu historii
      * @return Utworzony wpis historii
      */
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TaskHistoryDTO> createTaskHistory(@Valid @RequestBody TaskHistoryDTO taskHistoryDTO) {
-        Optional<Task> taskOpt = taskService.getTaskById(taskHistoryDTO.getTaskId())
-                .map(dto -> {
-                    Task task = new Task();
-                    task.setId(dto.getId());
-                    return task;
-                });
-
-        if (taskOpt.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-        }
-
-        TaskHistoryDTO savedHistory = taskHistoryService.saveTaskHistory(taskHistoryDTO, taskOpt.get());
+    @PostMapping
+    public ResponseEntity<TaskHistory> createTaskHistory(@RequestBody TaskHistory taskHistory) {
+        TaskHistory savedHistory = taskHistoryService.saveTaskHistory(taskHistory);
         return new ResponseEntity<>(savedHistory, HttpStatus.CREATED);
     }
 
@@ -146,8 +124,8 @@ public class TaskHistoryController {
      * @param payload Mapa zawierająca taskId, userId, fieldName, oldValue, newValue
      * @return Utworzony wpis historii lub status błędu
      */
-    @PostMapping(value = "/log", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TaskHistoryDTO> logTaskChange(@RequestBody Map<String, Object> payload) {
+    @PostMapping("/log")
+    public ResponseEntity<TaskHistory> logTaskChange(@RequestBody Map<String, Object> payload) {
         Integer taskId = (Integer) payload.get("taskId");
         Integer userId = (Integer) payload.get("userId");
         String fieldName = (String) payload.get("fieldName");
@@ -158,28 +136,14 @@ public class TaskHistoryController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        Optional<Task> taskOpt = taskService.getTaskById(taskId)
-                .map(dto -> {
-                    Task task = new Task();
-                    task.setId(dto.getId());
-                    return task;
-                });
-
-        Optional<User> userOpt = userService.getUserById(userId)
-                .map(dto -> {
-                    User user = new User();
-                    user.setId(dto.getId());
-                    user.setUsername(dto.getUsername());
-                    user.setFirstName(dto.getFirstName());
-                    user.setLastName(dto.getLastName());
-                    return user;
-                });
+        Optional<Task> taskOpt = taskService.getTaskById(taskId);
+        Optional<User> userOpt = userService.getUserById(userId);
 
         if (taskOpt.isEmpty() || userOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        TaskHistoryDTO historyEntry = taskHistoryService.logTaskChange(
+        TaskHistory historyEntry = taskHistoryService.logTaskChange(
                 taskOpt.get(), userOpt.get(), fieldName, oldValue, newValue);
 
         return new ResponseEntity<>(historyEntry, HttpStatus.CREATED);
@@ -209,18 +173,11 @@ public class TaskHistoryController {
      */
     @DeleteMapping("/task/{taskId}")
     public ResponseEntity<Void> deleteAllHistoryForTask(@PathVariable Integer taskId) {
-        Optional<Task> taskOpt = taskService.getTaskById(taskId)
-                .map(dto -> {
-                    Task task = new Task();
-                    task.setId(dto.getId());
-                    return task;
-                });
-
-        if (taskOpt.isEmpty()) {
-            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-        }
-
-        taskHistoryService.deleteAllHistoryForTask(taskOpt.get());
-        return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+        return taskService.getTaskById(taskId)
+                .map(task -> {
+                    taskHistoryService.deleteAllHistoryForTask(task);
+                    return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
+                })
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 }
