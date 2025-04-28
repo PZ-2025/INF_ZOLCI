@@ -31,7 +31,7 @@ class TeamServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
-
+    
     @Mock
     private UserService userService;
 

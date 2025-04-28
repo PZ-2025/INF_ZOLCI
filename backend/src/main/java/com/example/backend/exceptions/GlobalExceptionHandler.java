@@ -65,7 +65,6 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         logger.error("Błąd dostępu do bazy danych: {}", ex.getMessage(), ex);
 
         Map<String, String> response = new HashMap<>();
-        response.put("message", databaseErrorMessage);
         response.put("status", String.valueOf(HttpStatus.SERVICE_UNAVAILABLE.value()));
         response.put("exception", ex.getClass().getSimpleName());
         response.put("details", ex.getMessage());
