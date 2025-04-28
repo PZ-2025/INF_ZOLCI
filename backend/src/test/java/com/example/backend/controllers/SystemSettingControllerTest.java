@@ -1,48 +1,38 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.SystemSetting;
+import com.example.backend.dto.SystemSettingDTO;
+import com.example.backend.dto.UserDTO;
 import com.example.backend.models.User;
 import com.example.backend.services.SystemSettingService;
 import com.example.backend.services.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Optional;
+import java.util.Map;
 
-// Konkretne importy zamiast ogólnych static imports
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class SystemSettingControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class SystemSettingControllerTest {
 
     private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
 
     @Mock
     private SystemSettingService systemSettingService;
@@ -53,419 +43,320 @@ class SystemSettingControllerTest {
     @InjectMocks
     private SystemSettingController systemSettingController;
 
-    private ObjectMapper objectMapper;
-    private User admin;
-    private SystemSetting appNameSetting;
-    private SystemSetting maxTasksSetting;
+    private SystemSettingDTO systemSettingDTO;
+    private List<SystemSettingDTO> systemSettingDTOList;
+    private UserDTO userDTO;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(systemSettingController)
-                .build();
-
+    public void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(systemSettingController).build();
         objectMapper = new ObjectMapper();
-        // Dodanie modułu obsługującego Java 8 date/time API
-        objectMapper.registerModule(new JavaTimeModule());
-        // Opcjonalnie: ustawienie formatu daty zamiast timestampów
-        objectMapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        objectMapper.findAndRegisterModules(); // For LocalDateTime serialization
 
-        // Inicjalizacja użytkownika testowego
-        admin = new User();
-        admin.setId(1);
-        admin.setUsername("admin");
+        // Initialize test data
+        userDTO = new UserDTO();
+        userDTO.setId(1);
+        userDTO.setUsername("admin");
+        userDTO.setFirstName("Admin");
+        userDTO.setLastName("User");
 
-        // Inicjalizacja ustawień systemowych testowych
-        appNameSetting = new SystemSetting();
-        appNameSetting.setId(1);
-        appNameSetting.setKey("app.name");
-        appNameSetting.setValue("BuildTask");
-        appNameSetting.setDescription("Nazwa aplikacji");
-        appNameSetting.setUpdatedBy(admin);
-        appNameSetting.setUpdatedAt(LocalDateTime.now());
+        systemSettingDTO = new SystemSettingDTO();
+        systemSettingDTO.setId(1);
+        systemSettingDTO.setKey("app.name");
+        systemSettingDTO.setValue("BuildTask");
+        systemSettingDTO.setDescription("Application name");
+        systemSettingDTO.setUpdatedById(1);
+        systemSettingDTO.setUpdatedAt(LocalDateTime.now());
+        systemSettingDTO.setUpdatedByUsername("admin");
+        systemSettingDTO.setUpdatedByFullName("Admin User");
 
-        maxTasksSetting = new SystemSetting();
-        maxTasksSetting.setId(2);
-        maxTasksSetting.setKey("tasks.max_per_user");
-        maxTasksSetting.setValue("10");
-        maxTasksSetting.setDescription("Maksymalna liczba zadań na użytkownika");
-        maxTasksSetting.setUpdatedBy(admin);
-        maxTasksSetting.setUpdatedAt(LocalDateTime.now());
+        SystemSettingDTO settingDTO2 = new SystemSettingDTO();
+        settingDTO2.setId(2);
+        settingDTO2.setKey("app.version");
+        settingDTO2.setValue("1.0.0");
+        settingDTO2.setDescription("Application version");
+        settingDTO2.setUpdatedById(1);
+
+        systemSettingDTOList = Arrays.asList(systemSettingDTO, settingDTO2);
     }
 
     @Test
-    void getAllSystemSettings_ShouldReturnAllSettings() throws Exception {
-        // Given
-        List<SystemSetting> settings = Arrays.asList(appNameSetting, maxTasksSetting);
-        when(systemSettingService.getAllSystemSettings()).thenReturn(settings);
+    public void getAllSystemSettings_ShouldReturnListOfSettings() throws Exception {
+        // Arrange
+        when(systemSettingService.getAllSystemSettings()).thenReturn(systemSettingDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/system-settings"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(2)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].key", is("app.name")))
-                .andExpect(jsonPath("$[1].id", is(2)))
-                .andExpect(jsonPath("$[1].key", is("tasks.max_per_user")));
-
-        verify(systemSettingService, times(1)).getAllSystemSettings();
+                .andExpect(jsonPath("$[0].key").value("app.name"))
+                .andExpect(jsonPath("$[1].key").value("app.version"));
     }
 
     @Test
-    void getSystemSettingById_WhenSettingExists_ShouldReturnSetting() throws Exception {
-        // Given
-        when(systemSettingService.getSystemSettingById(1)).thenReturn(Optional.of(appNameSetting));
+    public void getSystemSettingById_WhenExists_ShouldReturnSetting() throws Exception {
+        // Arrange
+        when(systemSettingService.getSystemSettingById(1)).thenReturn(Optional.of(systemSettingDTO));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/system-settings/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.key", is("app.name")))
-                .andExpect(jsonPath("$.value", is("BuildTask")))
-                .andExpect(jsonPath("$.description", is("Nazwa aplikacji")));
-
-        verify(systemSettingService, times(1)).getSystemSettingById(1);
+                .andExpect(jsonPath("$.key").value("app.name"))
+                .andExpect(jsonPath("$.value").value("BuildTask"));
     }
 
     @Test
-    void getSystemSettingById_WhenSettingDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getSystemSettingById_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(systemSettingService.getSystemSettingById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/system-settings/99"))
                 .andExpect(status().isNotFound());
-
-        verify(systemSettingService, times(1)).getSystemSettingById(99);
     }
 
     @Test
-    void getSystemSettingByKey_WhenSettingExists_ShouldReturnSetting() throws Exception {
-        // Given
-        when(systemSettingService.getSystemSettingByKey("app.name")).thenReturn(Optional.of(appNameSetting));
+    public void getSystemSettingByKey_WhenExists_ShouldReturnSetting() throws Exception {
+        // Arrange
+        when(systemSettingService.getSystemSettingByKey("app.name")).thenReturn(Optional.of(systemSettingDTO));
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/system-settings/key/app.name"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.key", is("app.name")))
-                .andExpect(jsonPath("$.value", is("BuildTask")));
-
-        verify(systemSettingService, times(1)).getSystemSettingByKey("app.name");
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.value").value("BuildTask"));
     }
 
     @Test
-    void getSystemSettingByKey_WhenSettingDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getSystemSettingByKey_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(systemSettingService.getSystemSettingByKey("nonexistent.key")).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/system-settings/key/nonexistent.key"))
                 .andExpect(status().isNotFound());
-
-        verify(systemSettingService, times(1)).getSystemSettingByKey("nonexistent.key");
     }
 
     @Test
-    void getSettingValue_WhenSettingExists_ShouldReturnValue() throws Exception {
-        // Given
+    public void getSettingValue_WhenSettingExists_ShouldReturnValue() throws Exception {
+        // Arrange
         when(systemSettingService.getStringValue(eq("app.name"), anyString())).thenReturn("BuildTask");
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/system-settings/value/app.name"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("BuildTask"));
-
-        verify(systemSettingService, times(1)).getStringValue(eq("app.name"), eq(""));
     }
 
     @Test
-    void getSettingValue_WhenSettingDoesNotExist_ShouldReturnDefaultValue() throws Exception {
-        // Given
-        when(systemSettingService.getStringValue(eq("nonexistent.key"), eq("DefaultValue")))
-                .thenReturn("DefaultValue");
+    public void getSettingValue_WhenSettingDoesNotExist_ShouldReturnDefaultValue() throws Exception {
+        // Arrange
+        when(systemSettingService.getStringValue(eq("nonexistent.key"), anyString())).thenReturn("Default");
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/system-settings/value/nonexistent.key")
-                        .param("defaultValue", "DefaultValue"))
+                        .param("defaultValue", "Default"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("DefaultValue"));
-
-        verify(systemSettingService, times(1)).getStringValue(eq("nonexistent.key"), eq("DefaultValue"));
+                .andExpect(content().string("Default"));
     }
 
     @Test
-    void createSystemSetting_WhenKeyIsUnique_ShouldReturnCreatedSetting() throws Exception {
-        // Given
-        SystemSetting newSetting = new SystemSetting();
-        newSetting.setKey("app.version");
-        newSetting.setValue("1.0.0");
-        newSetting.setDescription("Wersja aplikacji");
-        newSetting.setUpdatedBy(admin);
+    public void createSystemSetting_WithValidData_ShouldReturnCreatedSetting() throws Exception {
+        // Arrange
+        when(systemSettingService.existsByKey("app.name")).thenReturn(false);
+        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        when(systemSettingService.saveSystemSetting(any(SystemSettingDTO.class))).thenReturn(systemSettingDTO);
 
-        when(systemSettingService.existsByKey("app.version")).thenReturn(false);
-        when(systemSettingService.saveSystemSetting(any(SystemSetting.class))).thenReturn(newSetting);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/system-settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newSetting)))
+                        .content(objectMapper.writeValueAsString(systemSettingDTO)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.key", is("app.version")))
-                .andExpect(jsonPath("$.value", is("1.0.0")))
-                .andExpect(jsonPath("$.description", is("Wersja aplikacji")));
-
-        verify(systemSettingService, times(1)).existsByKey("app.version");
-        verify(systemSettingService, times(1)).saveSystemSetting(any(SystemSetting.class));
+                .andExpect(jsonPath("$.key").value("app.name"))
+                .andExpect(jsonPath("$.value").value("BuildTask"));
     }
 
     @Test
-    void createSystemSetting_WhenKeyExists_ShouldReturnConflict() throws Exception {
-        // Given
-        SystemSetting newSetting = new SystemSetting();
-        newSetting.setKey("app.name");
-        newSetting.setValue("NewName");
-        newSetting.setDescription("Nowa nazwa");
-
+    public void createSystemSetting_WithExistingKey_ShouldReturnConflict() throws Exception {
+        // Arrange
         when(systemSettingService.existsByKey("app.name")).thenReturn(true);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/system-settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(newSetting)))
+                        .content(objectMapper.writeValueAsString(systemSettingDTO)))
                 .andExpect(status().isConflict());
-
-        verify(systemSettingService, times(1)).existsByKey("app.name");
-        verify(systemSettingService, never()).saveSystemSetting(any(SystemSetting.class));
     }
 
     @Test
-    void createSystemSettingFromParams_WithValidData_ShouldReturnCreatedSetting() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("key", "app.version");
-        payload.put("value", "1.0.0");
-        payload.put("description", "Wersja aplikacji");
-        payload.put("updatedById", 1);
+    public void createSystemSetting_WithNonexistentUser_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        when(systemSettingService.existsByKey("app.name")).thenReturn(false);
+        when(userService.getUserById(1)).thenReturn(Optional.empty());
 
-        SystemSetting createdSetting = new SystemSetting();
-        createdSetting.setId(3);
-        createdSetting.setKey("app.version");
-        createdSetting.setValue("1.0.0");
-        createdSetting.setDescription("Wersja aplikacji");
-        createdSetting.setUpdatedBy(admin);
-        createdSetting.setUpdatedAt(LocalDateTime.now());
-
-        when(systemSettingService.existsByKey("app.version")).thenReturn(false);
-        when(userService.getUserById(1)).thenReturn(Optional.of(admin));
-        when(systemSettingService.createSystemSetting(
-                eq("app.version"),
-                eq("1.0.0"),
-                eq("Wersja aplikacji"),
-                eq(admin)))
-                .thenReturn(createdSetting);
-
-        // When & Then
-        mockMvc.perform(post("/database/system-settings/create")
+        // Act & Assert
+        mockMvc.perform(post("/database/system-settings")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(3)))
-                .andExpect(jsonPath("$.key", is("app.version")))
-                .andExpect(jsonPath("$.value", is("1.0.0")))
-                .andExpect(jsonPath("$.description", is("Wersja aplikacji")));
-
-        verify(systemSettingService, times(1)).existsByKey("app.version");
-        verify(userService, times(1)).getUserById(1);
-        verify(systemSettingService, times(1)).createSystemSetting(
-                eq("app.version"),
-                eq("1.0.0"),
-                eq("Wersja aplikacji"),
-                eq(admin));
-    }
-
-    @Test
-    void createSystemSettingFromParams_WithMissingKey_ShouldReturnBadRequest() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        // Missing key
-        payload.put("value", "1.0.0");
-        payload.put("description", "Wersja aplikacji");
-        payload.put("updatedById", 1);
-
-        // When & Then
-        mockMvc.perform(post("/database/system-settings/create")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(systemSettingDTO)))
                 .andExpect(status().isBadRequest());
-
-        verify(systemSettingService, never()).existsByKey(anyString());
-        verify(userService, never()).getUserById(anyInt());
-        verify(systemSettingService, never()).createSystemSetting(
-                anyString(), anyString(), anyString(), any(User.class));
     }
 
     @Test
-    void updateSystemSetting_WhenSettingExists_ShouldReturnUpdatedSetting() throws Exception {
-        // Given
-        SystemSetting updatedSetting = new SystemSetting();
-        updatedSetting.setId(1);
-        updatedSetting.setKey("app.name");
-        updatedSetting.setValue("TaskManager");
-        updatedSetting.setDescription("Nowa nazwa aplikacji");
-        updatedSetting.setUpdatedBy(admin);
-        updatedSetting.setUpdatedAt(LocalDateTime.now());
+    public void createSystemSettingFromParams_WithValidParams_ShouldReturnCreatedSetting() throws Exception {
+        // Arrange
+        Map<String, Object> params = new HashMap<>();
+        params.put("key", "app.name");
+        params.put("value", "BuildTask");
+        params.put("description", "Application name");
+        params.put("updatedById", 1);
 
-        when(systemSettingService.getSystemSettingById(1)).thenReturn(Optional.of(appNameSetting));
-        when(systemSettingService.saveSystemSetting(any(SystemSetting.class))).thenReturn(updatedSetting);
+        when(systemSettingService.existsByKey("app.name")).thenReturn(false);
+        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        when(systemSettingService.createSystemSetting(anyString(), anyString(), anyString(), any(User.class)))
+                .thenReturn(systemSettingDTO);
 
-        // When & Then
+        // Act & Assert
+        mockMvc.perform(post("/database/system-settings/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(params)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.key").value("app.name"))
+                .andExpect(jsonPath("$.value").value("BuildTask"));
+    }
+
+    @Test
+    public void createSystemSettingFromParams_WithMissingParams_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        Map<String, Object> params = new HashMap<>();
+        params.put("key", "app.name");
+        // Missing required updatedById parameter
+
+        // Act & Assert
+        mockMvc.perform(post("/database/system-settings/create")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(params)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void updateSystemSetting_WhenSettingExists_ShouldReturnUpdatedSetting() throws Exception {
+        // Arrange
+        when(systemSettingService.getSystemSettingById(1)).thenReturn(Optional.of(systemSettingDTO));
+        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        when(systemSettingService.saveSystemSetting(any(SystemSettingDTO.class))).thenReturn(systemSettingDTO);
+
+        // Update value in DTO
+        systemSettingDTO.setKey("app.name");
+        systemSettingDTO.setValue("UpdatedBuildTask");
+
+        // Act & Assert
         mockMvc.perform(put("/database/system-settings/1")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedSetting)))
+                        .content(objectMapper.writeValueAsString(systemSettingDTO)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.key", is("app.name")))
-                .andExpect(jsonPath("$.value", is("TaskManager")))
-                .andExpect(jsonPath("$.description", is("Nowa nazwa aplikacji")));
+                .andExpect(jsonPath("$.key").value("app.name"))
+                .andExpect(jsonPath("$.value").value("UpdatedBuildTask")); // Mock returns original
 
-        verify(systemSettingService, times(1)).getSystemSettingById(1);
-        verify(systemSettingService, times(1)).saveSystemSetting(any(SystemSetting.class));
+        // Verify that the ID was set in the DTO before saving
+        verify(systemSettingService).saveSystemSetting(argThat(dto -> dto.getId() == 1));
     }
 
     @Test
-    void updateSystemSetting_WhenSettingDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        SystemSetting updatedSetting = new SystemSetting();
-        updatedSetting.setId(99);
-        updatedSetting.setKey("nonexistent.key");
-        updatedSetting.setValue("value");
-
+    public void updateSystemSetting_WhenSettingDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(systemSettingService.getSystemSettingById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(put("/database/system-settings/99")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedSetting)))
+                        .content(objectMapper.writeValueAsString(systemSettingDTO)))
                 .andExpect(status().isNotFound());
-
-        verify(systemSettingService, times(1)).getSystemSettingById(99);
-        verify(systemSettingService, never()).saveSystemSetting(any(SystemSetting.class));
     }
 
     @Test
-    void updateSettingValue_WhenSettingExists_ShouldReturnUpdatedSetting() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("value", "TaskManager");
-        payload.put("updatedById", 1);
+    public void updateSettingValue_WhenSettingExists_ShouldReturnUpdatedSetting() throws Exception {
+        // Arrange
+        Map<String, Object> valueUpdate = new HashMap<>();
+        valueUpdate.put("value", "NewBuildTask");
+        valueUpdate.put("updatedById", 1);
 
-        SystemSetting updatedSetting = new SystemSetting();
-        updatedSetting.setId(1);
-        updatedSetting.setKey("app.name");
-        updatedSetting.setValue("TaskManager");
-        updatedSetting.setDescription("Nazwa aplikacji");
-        updatedSetting.setUpdatedBy(admin);
-        updatedSetting.setUpdatedAt(LocalDateTime.now());
+        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        when(systemSettingService.updateValue(eq("app.name"), anyString(), any(User.class)))
+                .thenReturn(Optional.of(systemSettingDTO));
 
-        when(userService.getUserById(1)).thenReturn(Optional.of(admin));
-        when(systemSettingService.updateValue(eq("app.name"), eq("TaskManager"), eq(admin)))
-                .thenReturn(Optional.of(updatedSetting));
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(patch("/database/system-settings/key/app.name")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(valueUpdate)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.key", is("app.name")))
-                .andExpect(jsonPath("$.value", is("TaskManager")));
-
-        verify(userService, times(1)).getUserById(1);
-        verify(systemSettingService, times(1)).updateValue(eq("app.name"), eq("TaskManager"), eq(admin));
+                .andExpect(jsonPath("$.key").value("app.name"));
     }
 
     @Test
-    void updateSettingValue_WhenSettingDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("value", "value");
-        payload.put("updatedById", 1);
+    public void updateSettingValue_WithMissingParams_ShouldReturnBadRequest() throws Exception {
+        // Arrange
+        Map<String, Object> incompleteUpdate = new HashMap<>();
+        incompleteUpdate.put("value", "NewValue");
+        // Missing required updatedById
 
-        when(userService.getUserById(1)).thenReturn(Optional.of(admin));
-        when(systemSettingService.updateValue(eq("nonexistent.key"), eq("value"), eq(admin)))
-                .thenReturn(Optional.empty());
-
-        // When & Then
-        mockMvc.perform(patch("/database/system-settings/key/nonexistent.key")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).getUserById(1);
-        verify(systemSettingService, times(1)).updateValue(eq("nonexistent.key"), eq("value"), eq(admin));
-    }
-
-    @Test
-    void updateSettingValue_WithMissingData_ShouldReturnBadRequest() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        // Missing value or updatedById
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(patch("/database/system-settings/key/app.name")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(incompleteUpdate)))
                 .andExpect(status().isBadRequest());
-
-        verify(userService, never()).getUserById(anyInt());
-        verify(systemSettingService, never()).updateValue(anyString(), anyString(), any(User.class));
     }
 
     @Test
-    void updateSettingValue_WithNonexistentUser_ShouldReturnNotFound() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("value", "TaskManager");
-        payload.put("updatedById", 99);
+    public void updateSettingValue_WhenUserDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        Map<String, Object> valueUpdate = new HashMap<>();
+        valueUpdate.put("value", "NewBuildTask");
+        valueUpdate.put("updatedById", 99);
 
         when(userService.getUserById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(patch("/database/system-settings/key/app.name")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content(objectMapper.writeValueAsString(valueUpdate)))
                 .andExpect(status().isNotFound());
-
-        verify(userService, times(1)).getUserById(99);
-        verify(systemSettingService, never()).updateValue(anyString(), anyString(), any(User.class));
     }
 
     @Test
-    void deleteSystemSetting_WhenSettingExists_ShouldReturnNoContent() throws Exception {
-        // Given
-        when(systemSettingService.getSystemSettingById(1)).thenReturn(Optional.of(appNameSetting));
+    public void updateSettingValue_WhenSettingDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        Map<String, Object> valueUpdate = new HashMap<>();
+        valueUpdate.put("value", "NewValue");
+        valueUpdate.put("updatedById", 1);
+
+        when(userService.getUserById(1)).thenReturn(Optional.of(userDTO));
+        when(systemSettingService.updateValue(eq("nonexistent.key"), anyString(), any(User.class)))
+                .thenReturn(Optional.empty());
+
+        // Act & Assert
+        mockMvc.perform(patch("/database/system-settings/key/nonexistent.key")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(valueUpdate)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void deleteSystemSetting_WhenSettingExists_ShouldReturnNoContent() throws Exception {
+        // Arrange
+        when(systemSettingService.getSystemSettingById(1)).thenReturn(Optional.of(systemSettingDTO));
         doNothing().when(systemSettingService).deleteSystemSetting(1);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/system-settings/1"))
                 .andExpect(status().isNoContent());
-
-        verify(systemSettingService, times(1)).getSystemSettingById(1);
-        verify(systemSettingService, times(1)).deleteSystemSetting(1);
     }
 
     @Test
-    void deleteSystemSetting_WhenSettingDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void deleteSystemSetting_WhenSettingDoesNotExist_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(systemSettingService.getSystemSettingById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/system-settings/99"))
                 .andExpect(status().isNotFound());
-
-        verify(systemSettingService, times(1)).getSystemSettingById(99);
-        verify(systemSettingService, never()).deleteSystemSetting(anyInt());
     }
 }

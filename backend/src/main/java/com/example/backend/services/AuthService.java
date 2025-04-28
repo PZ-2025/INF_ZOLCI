@@ -34,11 +34,12 @@ public class AuthService {
      * Konstruktor wstrzykujący zależności.
      *
      * @param userRepository repozytorium użytkowników
+     * @param passwordEncoder enkoder haseł
      */
     @Autowired
-    public AuthService(UserRepository userRepository) {
+    public AuthService(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
-        this.passwordEncoder = new BCryptPasswordEncoder();
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**

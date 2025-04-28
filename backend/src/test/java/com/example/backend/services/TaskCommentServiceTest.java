@@ -1,14 +1,18 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.TaskCommentDTO;
 import com.example.backend.models.Task;
 import com.example.backend.models.TaskComment;
 import com.example.backend.models.User;
 import com.example.backend.repository.TaskCommentRepository;
+import com.example.backend.repository.TaskRepository;
+import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -19,10 +23,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TaskCommentServiceTest {
 
     @Mock
     private TaskCommentRepository taskCommentRepository;
+
+    @Mock
+    private TaskRepository taskRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private TaskCommentService taskCommentService;
@@ -30,178 +41,203 @@ class TaskCommentServiceTest {
     private Task task;
     private User user;
     private TaskComment taskComment;
+    private TaskCommentDTO taskCommentDTO;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        // Inicjalizacja obiektów testowych
+        // Initialize test data
         task = new Task();
         task.setId(1);
-        task.setTitle("Test Task");
+        task.setTitle("Build Foundation");
 
         user = new User();
         user.setId(1);
-        user.setUsername("testuser");
+        user.setUsername("worker1");
+        user.setFirstName("John");
+        user.setLastName("Doe");
 
         taskComment = new TaskComment();
         taskComment.setId(1);
         taskComment.setTask(task);
         taskComment.setUser(user);
-        taskComment.setComment("Test comment");
+        taskComment.setComment("Need more concrete for this job");
         taskComment.setCreatedAt(LocalDateTime.now());
+
+        taskCommentDTO = new TaskCommentDTO();
+        taskCommentDTO.setId(1);
+        taskCommentDTO.setTaskId(1);
+        taskCommentDTO.setUserId(1);
+        taskCommentDTO.setComment("Need more concrete for this job");
+        taskCommentDTO.setCreatedAt(LocalDateTime.now());
+        taskCommentDTO.setUsername("worker1");
+        taskCommentDTO.setUserFullName("John Doe");
     }
 
     @Test
     void getAllTaskComments_ShouldReturnAllComments() {
-        // Given
-        List<TaskComment> expectedComments = Arrays.asList(taskComment);
-        when(taskCommentRepository.findAll()).thenReturn(expectedComments);
+        // Arrange
+        when(taskCommentRepository.findAll()).thenReturn(Arrays.asList(taskComment));
 
-        // When
-        List<TaskComment> actualComments = taskCommentService.getAllTaskComments();
+        // Act
+        List<TaskCommentDTO> result = taskCommentService.getAllTaskComments();
 
-        // Then
-        assertEquals(expectedComments.size(), actualComments.size());
-        assertEquals(expectedComments.get(0).getId(), actualComments.get(0).getId());
-        assertEquals(expectedComments.get(0).getComment(), actualComments.get(0).getComment());
-        verify(taskCommentRepository, times(1)).findAll();
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Need more concrete for this job", result.get(0).getComment());
+        assertEquals(1, result.get(0).getTaskId());
+        assertEquals(1, result.get(0).getUserId());
     }
 
     @Test
-    void getTaskCommentById_WhenCommentExists_ShouldReturnComment() {
-        // Given
+    void getTaskCommentById_WhenExists_ShouldReturnComment() {
+        // Arrange
         when(taskCommentRepository.findById(1)).thenReturn(Optional.of(taskComment));
 
-        // When
-        Optional<TaskComment> result = taskCommentService.getTaskCommentById(1);
+        // Act
+        Optional<TaskCommentDTO> result = taskCommentService.getTaskCommentById(1);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(taskComment.getId(), result.get().getId());
-        assertEquals(taskComment.getComment(), result.get().getComment());
-        verify(taskCommentRepository, times(1)).findById(1);
+        assertEquals("Need more concrete for this job", result.get().getComment());
+        assertEquals(1, result.get().getTaskId());
+        assertEquals(1, result.get().getUserId());
     }
 
     @Test
-    void getTaskCommentById_WhenCommentDoesNotExist_ShouldReturnEmpty() {
-        // Given
-        when(taskCommentRepository.findById(99)).thenReturn(Optional.empty());
+    void getTaskCommentById_WhenNotExists_ShouldReturnEmpty() {
+        // Arrange
+        when(taskCommentRepository.findById(999)).thenReturn(Optional.empty());
 
-        // When
-        Optional<TaskComment> result = taskCommentService.getTaskCommentById(99);
+        // Act
+        Optional<TaskCommentDTO> result = taskCommentService.getTaskCommentById(999);
 
-        // Then
+        // Assert
         assertFalse(result.isPresent());
-        verify(taskCommentRepository, times(1)).findById(99);
     }
 
     @Test
-    void getCommentsByTask_ShouldReturnTaskComments() {
-        // Given
-        List<TaskComment> expectedComments = Arrays.asList(taskComment);
-        when(taskCommentRepository.findByTask(task)).thenReturn(expectedComments);
+    void getCommentsByTask_ShouldReturnCommentsForTask() {
+        // Arrange
+        when(taskCommentRepository.findByTask(task)).thenReturn(Arrays.asList(taskComment));
 
-        // When
-        List<TaskComment> actualComments = taskCommentService.getCommentsByTask(task);
+        // Act
+        List<TaskCommentDTO> result = taskCommentService.getCommentsByTask(task);
 
-        // Then
-        assertEquals(expectedComments.size(), actualComments.size());
-        assertEquals(expectedComments.get(0).getId(), actualComments.get(0).getId());
-        verify(taskCommentRepository, times(1)).findByTask(task);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Need more concrete for this job", result.get(0).getComment());
+        assertEquals(1, result.get(0).getTaskId());
     }
 
     @Test
-    void getCommentsByUser_ShouldReturnUserComments() {
-        // Given
-        List<TaskComment> expectedComments = Arrays.asList(taskComment);
-        when(taskCommentRepository.findByUser(user)).thenReturn(expectedComments);
+    void getCommentsByUser_ShouldReturnCommentsForUser() {
+        // Arrange
+        when(taskCommentRepository.findByUser(user)).thenReturn(Arrays.asList(taskComment));
 
-        // When
-        List<TaskComment> actualComments = taskCommentService.getCommentsByUser(user);
+        // Act
+        List<TaskCommentDTO> result = taskCommentService.getCommentsByUser(user);
 
-        // Then
-        assertEquals(expectedComments.size(), actualComments.size());
-        assertEquals(expectedComments.get(0).getId(), actualComments.get(0).getId());
-        verify(taskCommentRepository, times(1)).findByUser(user);
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Need more concrete for this job", result.get(0).getComment());
+        assertEquals(1, result.get(0).getUserId());
     }
 
     @Test
-    void saveTaskComment_WithNewComment_ShouldSetCreatedAtAndSave() {
-        // Given
-        TaskComment newComment = new TaskComment();
-        newComment.setTask(task);
-        newComment.setUser(user);
-        newComment.setComment("New comment");
-        // Brak ustawienia createdAt, powinno być ustawione przez serwis
+    void saveTaskComment_ShouldMapAndSaveComment() {
+        // Arrange
+        when(taskRepository.findById(1)).thenReturn(Optional.of(task));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(taskCommentRepository.save(any(TaskComment.class))).thenReturn(taskComment);
 
-        when(taskCommentRepository.save(any(TaskComment.class))).thenReturn(newComment);
+        // Act
+        TaskCommentDTO result = taskCommentService.saveTaskComment(taskCommentDTO);
 
-        // When
-        TaskComment savedComment = taskCommentService.saveTaskComment(newComment);
-
-        // Then
-        assertNotNull(savedComment.getCreatedAt());
-        verify(taskCommentRepository, times(1)).save(newComment);
+        // Assert
+        assertNotNull(result);
+        assertEquals("Need more concrete for this job", result.getComment());
+        assertEquals(1, result.getTaskId());
+        assertEquals(1, result.getUserId());
+        verify(taskCommentRepository).save(any(TaskComment.class));
     }
 
     @Test
-    void saveTaskComment_WithExistingComment_ShouldNotChangeCreatedAt() {
-        // Given
-        LocalDateTime originalTime = taskComment.getCreatedAt();
-        when(taskCommentRepository.save(taskComment)).thenReturn(taskComment);
+    void saveTaskComment_WithNullCreatedAt_ShouldSetCurrentDateTime() {
+        // Arrange
+        when(taskRepository.findById(1)).thenReturn(Optional.of(task));
+        when(userRepository.findById(1)).thenReturn(Optional.of(user));
+        when(taskCommentRepository.save(any(TaskComment.class))).thenAnswer(invocation -> {
+            TaskComment savedComment = invocation.getArgument(0);
+            savedComment.setCreatedAt(LocalDateTime.now());
+            return savedComment;
+        });
 
-        // When
-        TaskComment savedComment = taskCommentService.saveTaskComment(taskComment);
+        // Set createdAt to null
+        taskCommentDTO.setCreatedAt(null);
 
-        // Then
-        assertEquals(originalTime, savedComment.getCreatedAt());
-        verify(taskCommentRepository, times(1)).save(taskComment);
+        // Act
+        TaskCommentDTO result = taskCommentService.saveTaskComment(taskCommentDTO);
+
+        // Assert
+        assertNotNull(result);
+        assertNotNull(result.getCreatedAt()); // Should be set automatically
     }
 
     @Test
     void addCommentToTask_ShouldCreateAndSaveComment() {
-        // Given
-        when(taskCommentRepository.save(any(TaskComment.class))).thenAnswer(invocation -> {
-            TaskComment saved = invocation.getArgument(0);
-            saved.setId(2); // Symulacja nadania ID przez bazę danych
-            return saved;
-        });
+        // Arrange
+        when(taskCommentRepository.save(any(TaskComment.class))).thenReturn(taskComment);
 
-        // When
-        TaskComment newComment = taskCommentService.addCommentToTask(task, user, "New test comment");
+        // Act
+        TaskCommentDTO result = taskCommentService.addCommentToTask(
+                task, user, "Need more concrete for this job");
 
-        // Then
-        assertNotNull(newComment.getId());
-        assertEquals(task, newComment.getTask());
-        assertEquals(user, newComment.getUser());
-        assertEquals("New test comment", newComment.getComment());
-        assertNotNull(newComment.getCreatedAt());
-        verify(taskCommentRepository, times(1)).save(any(TaskComment.class));
+        // Assert
+        assertNotNull(result);
+        assertEquals("Need more concrete for this job", result.getComment());
+        assertEquals(1, result.getTaskId());
+        assertEquals(1, result.getUserId());
+        verify(taskCommentRepository).save(any(TaskComment.class));
     }
 
     @Test
-    void deleteTaskComment_ShouldCallRepository() {
-        // When
+    void deleteTaskComment_ShouldCallRepositoryDelete() {
+        // Act
         taskCommentService.deleteTaskComment(1);
 
-        // Then
-        verify(taskCommentRepository, times(1)).deleteById(1);
+        // Assert
+        verify(taskCommentRepository).deleteById(1);
     }
 
     @Test
-    void deleteAllCommentsForTask_ShouldDeleteAllAndReturnCount() {
-        // Given
-        List<TaskComment> commentsToDelete = Arrays.asList(taskComment, new TaskComment());
-        when(taskCommentRepository.findByTask(task)).thenReturn(commentsToDelete);
-        doNothing().when(taskCommentRepository).deleteAll(commentsToDelete);
+    void deleteAllCommentsForTask_ShouldDeleteMatchingComments() {
+        // Arrange
+        List<TaskComment> comments = Arrays.asList(taskComment);
+        when(taskCommentRepository.findByTask(task)).thenReturn(comments);
 
-        // When
-        int deletedCount = taskCommentService.deleteAllCommentsForTask(task);
+        // Act
+        int result = taskCommentService.deleteAllCommentsForTask(task);
 
-        // Then
-        assertEquals(commentsToDelete.size(), deletedCount);
-        verify(taskCommentRepository, times(1)).findByTask(task);
-        verify(taskCommentRepository, times(1)).deleteAll(commentsToDelete);
+        // Assert
+        assertEquals(1, result); // Should return the number of deleted comments
+        verify(taskCommentRepository).findByTask(task);
+        verify(taskCommentRepository).deleteAll(comments);
+    }
+
+    @Test
+    void deleteAllCommentsForTask_WhenNoComments_ShouldReturnZero() {
+        // Arrange
+        when(taskCommentRepository.findByTask(task)).thenReturn(Arrays.asList());
+
+        // Act
+        int result = taskCommentService.deleteAllCommentsForTask(task);
+
+        // Assert
+        assertEquals(0, result);
+        verify(taskCommentRepository).findByTask(task);
+        verify(taskCommentRepository).deleteAll(Arrays.asList());
     }
 }

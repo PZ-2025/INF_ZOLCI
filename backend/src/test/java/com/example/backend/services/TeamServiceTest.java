@@ -1,6 +1,7 @@
 package com.example.backend.services;
 
 import com.example.backend.dto.TeamDTO;
+import com.example.backend.dto.UserDTO;
 import com.example.backend.models.Team;
 import com.example.backend.models.User;
 import com.example.backend.repository.TaskRepository;
@@ -8,9 +9,10 @@ import com.example.backend.repository.TeamMemberRepository;
 import com.example.backend.repository.TeamRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -19,8 +21,10 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class TeamServiceTest {
 
     @Mock
@@ -38,246 +42,333 @@ class TeamServiceTest {
     @InjectMocks
     private TeamService teamService;
 
+    private Team team;
+    private TeamDTO teamDTO;
     private User manager;
-    private Team team1;
-    private Team team2;
-    private TeamDTO teamDTO1;
-    private TeamDTO teamDTO2;
-    private LocalDateTime now;
+    private UserDTO managerDTO;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
-
-        now = LocalDateTime.now();
-
-        // Inicjalizacja menedżera testowego
+        // Initialize test data
         manager = new User();
         manager.setId(1);
         manager.setUsername("manager");
+        manager.setFirstName("Test");
+        manager.setLastName("Manager");
         manager.setEmail("manager@example.com");
-        manager.setFirstName("Manager");
-        manager.setLastName("User");
-        manager.setRole("MANAGER");
-        manager.setIsActive(true);
 
-        // Inicjalizacja zespołów testowych - encje
-        team1 = new Team();
-        team1.setId(1);
-        team1.setName("Team Alpha");
-        team1.setManager(manager);
-        team1.setCreatedAt(now);
-        team1.setIsActive(true);
+        managerDTO = new UserDTO();
+        managerDTO.setId(1);
+        managerDTO.setUsername("manager");
+        managerDTO.setFirstName("Test");
+        managerDTO.setLastName("Manager");
+        managerDTO.setEmail("manager@example.com");
+        managerDTO.setRole("kierownik");
 
-        team2 = new Team();
-        team2.setId(2);
-        team2.setName("Team Beta");
-        team2.setManager(manager);
-        team2.setCreatedAt(now);
-        team2.setIsActive(false);
+        team = new Team();
+        team.setId(1);
+        team.setName("Construction Team Alpha");
+        team.setManager(manager);
+        team.setIsActive(true);
+        team.setCreatedAt(LocalDateTime.now());
 
-        // Inicjalizacja zespołów testowych - DTO
-        teamDTO1 = new TeamDTO();
-        teamDTO1.setId(1);
-        teamDTO1.setName("Team Alpha");
-        teamDTO1.setManagerId(1);
-        teamDTO1.setIsActive(true);
-
-        teamDTO2 = new TeamDTO();
-        teamDTO2.setId(2);
-        teamDTO2.setName("Team Beta");
-        teamDTO2.setManagerId(1);
-        teamDTO2.setIsActive(false);
-
-        // Konfiguracja UserService mock
-        when(userService.getUserById(1)).thenReturn(Optional.of(manager));
+        teamDTO = new TeamDTO();
+        teamDTO.setId(1);
+        teamDTO.setName("Construction Team Alpha");
+        teamDTO.setManagerId(1);
+        teamDTO.setIsActive(true);
     }
 
     @Test
-    void getAllTeams_ShouldReturnAllTeamsAsDTO() {
-        // Given
-        when(teamRepository.findAll()).thenReturn(Arrays.asList(team1, team2));
+    void getAllTeams_ShouldReturnAllTeams() {
+        // Arrange
+        when(teamRepository.findAll()).thenReturn(Arrays.asList(team));
 
-        // When
-        List<TeamDTO> actualTeams = teamService.getAllTeams();
+        // Act
+        List<TeamDTO> result = teamService.getAllTeams();
 
-        // Then
-        assertEquals(2, actualTeams.size());
-        assertEquals(teamDTO1.getName(), actualTeams.get(0).getName());
-        assertEquals(teamDTO1.getManagerId(), actualTeams.get(0).getManagerId());
-        verify(teamRepository).findAll();
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Construction Team Alpha", result.get(0).getName());
+        assertEquals(1, result.get(0).getManagerId());
     }
 
     @Test
-    void getTeamById_WhenTeamExists_ShouldReturnTeamDTO() {
-        // Given
-        when(teamRepository.findById(1)).thenReturn(Optional.of(team1));
+    void getTeamById_WhenTeamExists_ShouldReturnTeam() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.of(team));
 
-        // When
+        // Act
         Optional<TeamDTO> result = teamService.getTeamById(1);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(teamDTO1.getName(), result.get().getName());
-        assertEquals(teamDTO1.getManagerId(), result.get().getManagerId());
-        verify(teamRepository).findById(1);
+        assertEquals("Construction Team Alpha", result.get().getName());
+        assertEquals(1, result.get().getManagerId());
     }
 
     @Test
-    void saveTeam_ShouldSaveAndReturnTeamDTO() {
-        // Given
-        when(teamRepository.save(any(Team.class))).thenReturn(team1);
+    void getTeamById_WhenTeamDoesNotExist_ShouldReturnEmpty() {
+        // Arrange
+        when(teamRepository.findById(999)).thenReturn(Optional.empty());
 
-        // When
-        TeamDTO savedTeam = teamService.saveTeam(teamDTO1);
+        // Act
+        Optional<TeamDTO> result = teamService.getTeamById(999);
 
-        // Then
-        assertEquals(teamDTO1.getName(), savedTeam.getName());
-        assertEquals(teamDTO1.getManagerId(), savedTeam.getManagerId());
-        verify(teamRepository).save(any(Team.class));
-        verify(userService).getUserById(teamDTO1.getManagerId());
+        // Assert
+        assertFalse(result.isPresent());
     }
 
     @Test
-    void updateTeam_ShouldUpdateAndReturnTeamDTO() {
-        // Given
-        TeamDTO updateDTO = new TeamDTO();
-        updateDTO.setId(1);
-        updateDTO.setName("Updated Team Alpha");
-        updateDTO.setManagerId(1);
-        updateDTO.setIsActive(true);
+    void getTeamEntityById_WhenTeamExists_ShouldReturnTeamEntity() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.of(team));
 
-        Team updatedTeam = new Team();
-        updatedTeam.setId(1);
-        updatedTeam.setName("Updated Team Alpha");
-        updatedTeam.setManager(manager);
-        updatedTeam.setIsActive(true);
+        // Act
+        Optional<Team> result = teamService.getTeamEntityById(1);
 
-        when(teamRepository.findById(1)).thenReturn(Optional.of(team1));
-        when(teamRepository.save(any(Team.class))).thenReturn(updatedTeam);
-        when(userService.getUserById(1)).thenReturn(Optional.of(manager));
-
-        // When
-        TeamDTO result = teamService.updateTeam(updateDTO);
-
-        // Then
-        assertEquals(updateDTO.getName(), result.getName());
-        assertEquals(updateDTO.getManagerId(), result.getManagerId());
-        verify(teamRepository).save(any(Team.class));
-        verify(userService).getUserById(updateDTO.getManagerId());
-    }
-
-    @Test
-    void getActiveTeams_ShouldReturnActiveTeamsAsDTO() {
-        // Given
-        when(teamRepository.findByIsActiveTrue()).thenReturn(Arrays.asList(team1));
-
-        // When
-        List<TeamDTO> actualTeams = teamService.getActiveTeams();
-
-        // Then
-        assertEquals(1, actualTeams.size());
-        assertTrue(actualTeams.get(0).getIsActive());
-        assertEquals(teamDTO1.getName(), actualTeams.get(0).getName());
-        verify(teamRepository).findByIsActiveTrue();
-    }
-
-    @Test
-    void getTeamsByActiveStatus_ShouldReturnTeamsAsDTO() {
-        // Given
-        when(teamRepository.findByIsActive(false)).thenReturn(Arrays.asList(team2));
-
-        // When
-        List<TeamDTO> actualTeams = teamService.getTeamsByActiveStatus(false);
-
-        // Then
-        assertEquals(1, actualTeams.size());
-        assertFalse(actualTeams.get(0).getIsActive());
-        assertEquals(teamDTO2.getName(), actualTeams.get(0).getName());
-        verify(teamRepository).findByIsActive(false);
-    }
-
-    @Test
-    void getTeamByName_WhenTeamExists_ShouldReturnTeamDTO() {
-        // Given
-        when(teamRepository.findByName("Team Alpha")).thenReturn(Optional.of(team1));
-
-        // When
-        Optional<TeamDTO> result = teamService.getTeamByName("Team Alpha");
-
-        // Then
+        // Assert
         assertTrue(result.isPresent());
-        assertEquals(teamDTO1.getName(), result.get().getName());
-        assertEquals(teamDTO1.getManagerId(), result.get().getManagerId());
-        verify(teamRepository).findByName("Team Alpha");
+        assertEquals("Construction Team Alpha", result.get().getName());
+        assertEquals(1, result.get().getId());
     }
 
     @Test
-    void activateTeam_WhenTeamExists_ShouldReturnActivatedTeamDTO() {
-        // Given
-        Team inactiveTeam = team2;
-        when(teamRepository.findById(2)).thenReturn(Optional.of(inactiveTeam));
+    void getActiveTeams_ShouldReturnOnlyActiveTeams() {
+        // Arrange
+        when(teamRepository.findByIsActiveTrue()).thenReturn(Arrays.asList(team));
+
+        // Act
+        List<TeamDTO> result = teamService.getActiveTeams();
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Construction Team Alpha", result.get(0).getName());
+        assertTrue(result.get(0).getIsActive());
+    }
+
+    @Test
+    void getTeamsByActiveStatus_WhenActive_ShouldReturnActiveTeams() {
+        // Arrange
+        when(teamRepository.findByIsActive(true)).thenReturn(Arrays.asList(team));
+
+        // Act
+        List<TeamDTO> result = teamService.getTeamsByActiveStatus(true);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Construction Team Alpha", result.get(0).getName());
+        assertTrue(result.get(0).getIsActive());
+    }
+
+    @Test
+    void getTeamsByActiveStatus_WhenInactive_ShouldReturnInactiveTeams() {
+        // Arrange
+        Team inactiveTeam = new Team();
+        inactiveTeam.setId(2);
+        inactiveTeam.setName("Inactive Team");
+        inactiveTeam.setManager(manager);
+        inactiveTeam.setIsActive(false);
+
+        when(teamRepository.findByIsActive(false)).thenReturn(Arrays.asList(inactiveTeam));
+
+        // Act
+        List<TeamDTO> result = teamService.getTeamsByActiveStatus(false);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Inactive Team", result.get(0).getName());
+        assertFalse(result.get(0).getIsActive());
+    }
+
+    @Test
+    void getTeamByName_WhenTeamExists_ShouldReturnTeam() {
+        // Arrange
+        when(teamRepository.findByName("Construction Team Alpha")).thenReturn(Optional.of(team));
+
+        // Act
+        Optional<TeamDTO> result = teamService.getTeamByName("Construction Team Alpha");
+
+        // Assert
+        assertTrue(result.isPresent());
+        assertEquals(1, result.get().getId());
+        assertEquals(1, result.get().getManagerId());
+    }
+
+    @Test
+    void getTeamByName_WhenTeamDoesNotExist_ShouldReturnEmpty() {
+        // Arrange
+        when(teamRepository.findByName("Nonexistent Team")).thenReturn(Optional.empty());
+
+        // Act
+        Optional<TeamDTO> result = teamService.getTeamByName("Nonexistent Team");
+
+        // Assert
+        assertFalse(result.isPresent());
+    }
+
+    @Test
+    void activateTeam_WhenTeamExists_ShouldSetIsActiveTrue() {
+        // Arrange
+        Team inactiveTeam = new Team();
+        inactiveTeam.setId(1);
+        inactiveTeam.setName("Construction Team Alpha");
+        inactiveTeam.setManager(manager);
+        inactiveTeam.setIsActive(false);
+
+        when(teamRepository.findById(1)).thenReturn(Optional.of(inactiveTeam));
         when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> {
             Team savedTeam = invocation.getArgument(0);
             savedTeam.setIsActive(true);
             return savedTeam;
         });
 
-        // When
-        Optional<TeamDTO> result = teamService.activateTeam(2);
+        // Act
+        Optional<TeamDTO> result = teamService.activateTeam(1);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
         assertTrue(result.get().getIsActive());
-        verify(teamRepository).findById(2);
         verify(teamRepository).save(any(Team.class));
     }
 
     @Test
-    void deactivateTeam_WhenTeamExists_ShouldReturnDeactivatedTeamDTO() {
-        // Given
-        when(teamRepository.findById(1)).thenReturn(Optional.of(team1));
+    void activateTeam_WhenTeamDoesNotExist_ShouldReturnEmpty() {
+        // Arrange
+        when(teamRepository.findById(999)).thenReturn(Optional.empty());
+
+        // Act
+        Optional<TeamDTO> result = teamService.activateTeam(999);
+
+        // Assert
+        assertFalse(result.isPresent());
+        verify(teamRepository, never()).save(any(Team.class));
+    }
+
+    @Test
+    void deactivateTeam_WhenTeamExists_ShouldSetIsActiveFalse() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.of(team));
         when(teamRepository.save(any(Team.class))).thenAnswer(invocation -> {
             Team savedTeam = invocation.getArgument(0);
             savedTeam.setIsActive(false);
             return savedTeam;
         });
 
-        // When
+        // Act
         Optional<TeamDTO> result = teamService.deactivateTeam(1);
 
-        // Then
+        // Assert
         assertTrue(result.isPresent());
         assertFalse(result.get().getIsActive());
-        verify(teamRepository).findById(1);
         verify(teamRepository).save(any(Team.class));
     }
 
     @Test
-    void deleteTeam_ShouldVerifyRepositoryCalls() {
-        // Given
-        when(teamRepository.findById(1)).thenReturn(Optional.of(team1));
-        doNothing().when(taskRepository).deleteAllByTeam(team1);
-        doNothing().when(teamMemberRepository).deleteAllByTeam(team1);
+    void saveTeam_ShouldMapDTOAndSaveEntity() {
+        // Arrange
+        when(userService.getUserById(1)).thenReturn(Optional.of(managerDTO));
+        when(teamRepository.save(any(Team.class))).thenReturn(team);
 
-        // When
-        teamService.deleteTeam(1);
+        // Act
+        TeamDTO result = teamService.saveTeam(teamDTO);
 
-        // Then
-        verify(teamRepository).findById(1);
-        verify(taskRepository).deleteAllByTeam(team1);
-        verify(teamMemberRepository).deleteAllByTeam(team1);
-        verify(teamRepository).delete(team1);
+        // Assert
+        assertNotNull(result);
+        assertEquals("Construction Team Alpha", result.getName());
+        assertEquals(1, result.getManagerId());
+        verify(teamRepository).save(any(Team.class));
     }
 
     @Test
-    void updateTeam_WithNullId_ShouldThrowException() {
-        // Given
-        TeamDTO invalidDTO = new TeamDTO();
-        invalidDTO.setName("Test");
-        invalidDTO.setManagerId(1);
+    void updateTeam_WhenTeamExists_ShouldUpdateAndReturnDTO() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.of(team));
+        when(userService.getUserById(1)).thenReturn(Optional.of(managerDTO));
+        when(teamRepository.save(any(Team.class))).thenReturn(team);
 
-        // When & Then
-        assertThrows(RuntimeException.class, () -> teamService.updateTeam(invalidDTO));
+        // Update name in DTO
+        teamDTO.setName("Updated Team Name");
+
+        // Act
+        TeamDTO result = teamService.updateTeam(teamDTO);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("Construction Team Alpha", result.getName()); // Mocked to return original team
+
+        // Verify save was called with updated name
+        verify(teamRepository).save(argThat(savedTeam ->
+                savedTeam.getName().equals("Updated Team Name")));
+    }
+
+    @Test
+    void updateTeam_WhenTeamDoesNotExist_ShouldThrowException() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> teamService.updateTeam(teamDTO));
+
+        assertEquals("Nie znaleziono zespołu o ID: 1", exception.getMessage());
+        verify(teamRepository, never()).save(any(Team.class));
+    }
+
+    @Test
+    void deleteTeam_WhenTeamExists_ShouldDeleteTeamAndRelatedEntities() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.of(team));
+
+        // Act
+        teamService.deleteTeam(1);
+
+        // Assert
+        verify(taskRepository).deleteAllByTeam(team);
+        verify(teamMemberRepository).deleteAllByTeam(team);
+        verify(teamRepository).delete(team);
+    }
+
+    @Test
+    void deleteTeam_WhenTeamDoesNotExist_ShouldThrowException() {
+        // Arrange
+        when(teamRepository.findById(1)).thenReturn(Optional.empty());
+
+        // Act & Assert
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> teamService.deleteTeam(1));
+
+        assertEquals("Nie znaleziono zespołu o ID: 1", exception.getMessage());
+        verify(taskRepository, never()).deleteAllByTeam(any(Team.class));
+        verify(teamMemberRepository, never()).deleteAllByTeam(any(Team.class));
+        verify(teamRepository, never()).delete(any(Team.class));
+    }
+
+    @Test
+    void existsById_WhenTeamExists_ShouldReturnTrue() {
+        // Arrange
+        when(teamRepository.existsById(1)).thenReturn(true);
+
+        // Act
+        boolean result = teamService.existsById(1);
+
+        // Assert
+        assertTrue(result);
+    }
+
+    @Test
+    void existsById_WhenTeamDoesNotExist_ShouldReturnFalse() {
+        // Arrange
+        when(teamRepository.existsById(999)).thenReturn(false);
+
+        // Act
+        boolean result = teamService.existsById(999);
+
+        // Assert
+        assertFalse(result);
     }
 }

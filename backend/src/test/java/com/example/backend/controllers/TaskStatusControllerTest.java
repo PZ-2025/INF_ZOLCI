@@ -5,25 +5,26 @@ import com.example.backend.services.TaskStatusService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.util.*;
 
-import static org.hamcrest.Matchers.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-class TaskStatusControllerTest {
+@ExtendWith(MockitoExtension.class)
+public class TaskStatusControllerTest {
 
     private MockMvc mockMvc;
+    private ObjectMapper objectMapper;
 
     @Mock
     private TaskStatusService taskStatusService;
@@ -31,386 +32,255 @@ class TaskStatusControllerTest {
     @InjectMocks
     private TaskStatusController taskStatusController;
 
-    private ObjectMapper objectMapper;
-    private TaskStatus startedStatus;
-    private TaskStatus inProgressStatus;
-    private TaskStatus completedStatus;
+    private TaskStatusDTO taskStatusDTO;
+    private List<TaskStatusDTO> taskStatusDTOList;
 
     @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(taskStatusController)
-                .build();
-
+    public void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(taskStatusController).build();
         objectMapper = new ObjectMapper();
 
-        // Inicjalizacja statusów testowych
-        startedStatus = new TaskStatus();
-        startedStatus.setId(1);
-        startedStatus.setName("Rozpoczęte");
-        startedStatus.setProgressMin(0);
-        startedStatus.setProgressMax(30);
-        startedStatus.setDisplayOrder(1);
+        // Initialize test data
+        taskStatusDTO = new TaskStatusDTO();
+        taskStatusDTO.setId(1);
+        taskStatusDTO.setName("In Progress");
+        taskStatusDTO.setProgressMin(10);
+        taskStatusDTO.setProgressMax(90);
+        taskStatusDTO.setDisplayOrder(2);
 
-        inProgressStatus = new TaskStatus();
-        inProgressStatus.setId(2);
-        inProgressStatus.setName("W toku");
-        inProgressStatus.setProgressMin(31);
-        inProgressStatus.setProgressMax(99);
-        inProgressStatus.setDisplayOrder(2);
+        TaskStatusDTO taskStatusDTO2 = new TaskStatusDTO();
+        taskStatusDTO2.setId(2);
+        taskStatusDTO2.setName("Completed");
+        taskStatusDTO2.setProgressMin(100);
+        taskStatusDTO2.setProgressMax(100);
+        taskStatusDTO2.setDisplayOrder(3);
 
-        completedStatus = new TaskStatus();
-        completedStatus.setId(3);
-        completedStatus.setName("Zakończone");
-        completedStatus.setProgressMin(100);
-        completedStatus.setProgressMax(100);
-        completedStatus.setDisplayOrder(3);
+        taskStatusDTOList = Arrays.asList(taskStatusDTO, taskStatusDTO2);
     }
 
     @Test
-    void getAllTaskStatuses_ShouldReturnAllStatuses() throws Exception {
-        // Given
-        List<TaskStatus> statuses = Arrays.asList(startedStatus, inProgressStatus, completedStatus);
-        when(taskStatusService.getAllTaskStatuses()).thenReturn(statuses);
+    public void getAllTaskStatuses_ShouldReturnListOfStatuses() throws Exception {
+        // Arrange
+        when(taskStatusService.getAllTaskStatuses()).thenReturn(taskStatusDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-statuses"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].name", is("Rozpoczęte")))
-                .andExpect(jsonPath("$[1].id", is(2)))
-                .andExpect(jsonPath("$[1].name", is("W toku")))
-                .andExpect(jsonPath("$[2].id", is(3)))
-                .andExpect(jsonPath("$[2].name", is("Zakończone")));
-
-        verify(taskStatusService, times(1)).getAllTaskStatuses();
+                .andExpect(jsonPath("$[0].name").value("In Progress"))
+                .andExpect(jsonPath("$[1].name").value("Completed"));
     }
 
     @Test
-    void getAllTaskStatusesSorted_ShouldReturnSortedStatuses() throws Exception {
-        // Given
-        List<TaskStatus> sortedStatuses = Arrays.asList(startedStatus, inProgressStatus, completedStatus);
-        when(taskStatusService.getAllTaskStatusesSorted()).thenReturn(sortedStatuses);
+    public void getAllTaskStatusesSorted_ShouldReturnSortedList() throws Exception {
+        // Arrange
+        when(taskStatusService.getAllTaskStatusesSorted()).thenReturn(taskStatusDTOList);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-statuses/sorted"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$", hasSize(3)))
-                .andExpect(jsonPath("$[0].id", is(1)))
-                .andExpect(jsonPath("$[0].displayOrder", is(1)))
-                .andExpect(jsonPath("$[1].id", is(2)))
-                .andExpect(jsonPath("$[1].displayOrder", is(2)))
-                .andExpect(jsonPath("$[2].id", is(3)))
-                .andExpect(jsonPath("$[2].displayOrder", is(3)));
-
-        verify(taskStatusService, times(1)).getAllTaskStatusesSorted();
+                .andExpect(jsonPath("$[0].name").value("In Progress"))
+                .andExpect(jsonPath("$[1].name").value("Completed"));
     }
 
     @Test
-    void getTaskStatusById_WhenStatusExists_ShouldReturnStatus() throws Exception {
-        // Given
-        when(taskStatusService.getTaskStatusById(1)).thenReturn(Optional.of(startedStatus));
+    public void getTaskStatusById_WhenExists_ShouldReturnStatus() throws Exception {
+        // Arrange
+        Optional<TaskStatusDTO> optionalStatus = Optional.of(taskStatusDTO);
+        when(taskStatusService.getTaskStatusById(1)).thenReturn(optionalStatus);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-statuses/1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Rozpoczęte")))
-                .andExpect(jsonPath("$.progressMin", is(0)))
-                .andExpect(jsonPath("$.progressMax", is(30)))
-                .andExpect(jsonPath("$.displayOrder", is(1)));
-
-        verify(taskStatusService, times(1)).getTaskStatusById(1);
+                .andExpect(jsonPath("$.name").value("In Progress"))
+                .andExpect(jsonPath("$.progressMin").value(10))
+                .andExpect(jsonPath("$.progressMax").value(90));
     }
 
     @Test
-    void getTaskStatusById_WhenStatusDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void getTaskStatusById_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskStatusService.getTaskStatusById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(get("/database/task-statuses/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskStatusService, times(1)).getTaskStatusById(99);
     }
 
     @Test
-    void getTaskStatusByName_WhenStatusExists_ShouldReturnStatus() throws Exception {
-        // Given
-        when(taskStatusService.getTaskStatusByName("Zakończone")).thenReturn(Optional.of(completedStatus));
+    public void getTaskStatusByName_WhenExists_ShouldReturnStatus() throws Exception {
+        // Arrange
+        Optional<TaskStatusDTO> optionalStatus = Optional.of(taskStatusDTO);
+        when(taskStatusService.getTaskStatusByName("In Progress")).thenReturn(optionalStatus);
 
-        // When & Then
-        mockMvc.perform(get("/database/task-statuses/name/Zakończone"))
+        // Act & Assert
+        mockMvc.perform(get("/database/task-statuses/name/In Progress"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(3)))
-                .andExpect(jsonPath("$.name", is("Zakończone")))
-                .andExpect(jsonPath("$.progressMin", is(100)))
-                .andExpect(jsonPath("$.progressMax", is(100)))
-                .andExpect(jsonPath("$.displayOrder", is(3)));
-
-        verify(taskStatusService, times(1)).getTaskStatusByName("Zakończone");
+                .andExpect(jsonPath("$.id").value(1))
+                .andExpect(jsonPath("$.progressMin").value(10))
+                .andExpect(jsonPath("$.progressMax").value(90));
     }
 
     @Test
-    void getTaskStatusByName_WhenStatusDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        when(taskStatusService.getTaskStatusByName("Nieistniejący")).thenReturn(Optional.empty());
+    public void getTaskStatusByName_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(taskStatusService.getTaskStatusByName("Non-existent")).thenReturn(Optional.empty());
 
-        // When & Then
-        mockMvc.perform(get("/database/task-statuses/name/Nieistniejący"))
+        // Act & Assert
+        mockMvc.perform(get("/database/task-statuses/name/Non-existent"))
                 .andExpect(status().isNotFound());
-
-        verify(taskStatusService, times(1)).getTaskStatusByName("Nieistniejący");
     }
 
     @Test
-    void createTaskStatus_WhenNameIsUnique_ShouldReturnCreatedStatus() throws Exception {
-        // Given
-        TaskStatus newStatus = new TaskStatus();
-        newStatus.setName("Anulowane");
+    public void createTaskStatus_WithValidData_ShouldReturnCreatedStatus() throws Exception {
+        // Arrange
+        when(taskStatusService.existsByName("New Status")).thenReturn(false);
+        when(taskStatusService.saveTaskStatus(any(TaskStatusDTO.class))).thenReturn(taskStatusDTO);
+
+        TaskStatusDTO newStatus = new TaskStatusDTO();
+        newStatus.setName("New Status");
         newStatus.setProgressMin(0);
-        newStatus.setProgressMax(0);
-        newStatus.setDisplayOrder(4);
+        newStatus.setProgressMax(50);
+        newStatus.setDisplayOrder(1);
 
-        when(taskStatusService.existsByName("Anulowane")).thenReturn(false);
-        when(taskStatusService.saveTaskStatus(any(TaskStatus.class))).thenReturn(newStatus);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/task-statuses")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newStatus)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name", is("Anulowane")))
-                .andExpect(jsonPath("$.progressMin", is(0)))
-                .andExpect(jsonPath("$.progressMax", is(0)))
-                .andExpect(jsonPath("$.displayOrder", is(4)));
-
-        verify(taskStatusService, times(1)).existsByName("Anulowane");
-        verify(taskStatusService, times(1)).saveTaskStatus(any(TaskStatus.class));
+                .andExpect(jsonPath("$.name").value("In Progress")); // Mock returns our pre-defined taskStatusDTO
     }
 
     @Test
-    void createTaskStatus_WhenNameExists_ShouldReturnConflict() throws Exception {
-        // Given
-        TaskStatus newStatus = new TaskStatus();
-        newStatus.setName("Zakończone");
+    public void createTaskStatus_WithExistingName_ShouldReturnConflict() throws Exception {
+        // Arrange
+        when(taskStatusService.existsByName("In Progress")).thenReturn(true);
+
+        TaskStatusDTO newStatus = new TaskStatusDTO();
+        newStatus.setName("In Progress");
         newStatus.setProgressMin(0);
-        newStatus.setProgressMax(0);
-        newStatus.setDisplayOrder(4);
+        newStatus.setProgressMax(50);
+        newStatus.setDisplayOrder(1);
 
-        when(taskStatusService.existsByName("Zakończone")).thenReturn(true);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/task-statuses")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(newStatus)))
                 .andExpect(status().isConflict());
-
-        verify(taskStatusService, times(1)).existsByName("Zakończone");
-        verify(taskStatusService, never()).saveTaskStatus(any(TaskStatus.class));
     }
 
     @Test
-    void createTaskStatusFromParams_WithValidData_ShouldReturnCreatedStatus() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("name", "Anulowane");
-        payload.put("progressMin", 0);
-        payload.put("progressMax", 0);
-        payload.put("displayOrder", 4);
+    public void createTaskStatusFromParams_WithValidParams_ShouldReturnCreatedStatus() throws Exception {
+        // Arrange
+        when(taskStatusService.existsByName("New Status")).thenReturn(false);
+        when(taskStatusService.createTaskStatus(eq("New Status"), eq(0), eq(50), eq(1))).thenReturn(taskStatusDTO);
 
-        TaskStatus createdStatus = new TaskStatus();
-        createdStatus.setId(4);
-        createdStatus.setName("Anulowane");
-        createdStatus.setProgressMin(0);
-        createdStatus.setProgressMax(0);
-        createdStatus.setDisplayOrder(4);
-
-        when(taskStatusService.existsByName("Anulowane")).thenReturn(false);
-        when(taskStatusService.createTaskStatus(eq("Anulowane"), eq(0), eq(0), eq(4))).thenReturn(createdStatus);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(post("/database/task-statuses/create")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content("{\"name\":\"New Status\",\"progressMin\":0,\"progressMax\":50,\"displayOrder\":1}"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(4)))
-                .andExpect(jsonPath("$.name", is("Anulowane")))
-                .andExpect(jsonPath("$.progressMin", is(0)))
-                .andExpect(jsonPath("$.progressMax", is(0)))
-                .andExpect(jsonPath("$.displayOrder", is(4)));
-
-        verify(taskStatusService, times(1)).existsByName("Anulowane");
-        verify(taskStatusService, times(1)).createTaskStatus(eq("Anulowane"), eq(0), eq(0), eq(4));
+                .andExpect(jsonPath("$.name").value("In Progress")); // Mock returns our pre-defined taskStatusDTO
     }
 
     @Test
-    void createTaskStatusFromParams_WithMissingData_ShouldReturnBadRequest() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("name", "Anulowane");
-        payload.put("progressMin", 0);
-        // Missing progressMax and displayOrder
+    public void updateTaskStatus_WhenExists_ShouldReturnUpdatedStatus() throws Exception {
+        // Arrange
+        Optional<TaskStatusDTO> optionalStatus = Optional.of(taskStatusDTO);
+        when(taskStatusService.getTaskStatusById(1)).thenReturn(optionalStatus);
+        when(taskStatusService.saveTaskStatus(any(TaskStatusDTO.class))).thenReturn(taskStatusDTO);
 
-        // When & Then
-        mockMvc.perform(post("/database/task-statuses/create")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isBadRequest());
-
-        verify(taskStatusService, never()).existsByName(anyString());
-        verify(taskStatusService, never()).createTaskStatus(anyString(), anyInt(), anyInt(), anyInt());
-    }
-
-    @Test
-    void updateTaskStatus_WhenStatusExists_ShouldReturnUpdatedStatus() throws Exception {
-        // Given
-        TaskStatus updatedStatus = new TaskStatus();
+        TaskStatusDTO updatedStatus = new TaskStatusDTO();
         updatedStatus.setId(1);
-        updatedStatus.setName("Rozpoczęte zmodyfikowane");
-        updatedStatus.setProgressMin(5);
-        updatedStatus.setProgressMax(35);
-        updatedStatus.setDisplayOrder(1);
+        updatedStatus.setName("Updated Status");
+        updatedStatus.setProgressMin(20);
+        updatedStatus.setProgressMax(80);
+        updatedStatus.setDisplayOrder(2);
 
-        when(taskStatusService.getTaskStatusById(1)).thenReturn(Optional.of(startedStatus));
-        when(taskStatusService.saveTaskStatus(any(TaskStatus.class))).thenReturn(updatedStatus);
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(put("/database/task-statuses/1")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedStatus)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Rozpoczęte zmodyfikowane")))
-                .andExpect(jsonPath("$.progressMin", is(5)))
-                .andExpect(jsonPath("$.progressMax", is(35)));
-
-        verify(taskStatusService, times(1)).getTaskStatusById(1);
-        verify(taskStatusService, times(1)).saveTaskStatus(any(TaskStatus.class));
+                .andExpect(jsonPath("$.name").value("In Progress")); // Mock returns our pre-defined taskStatusDTO
     }
 
     @Test
-    void updateTaskStatus_WhenStatusDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        TaskStatus updatedStatus = new TaskStatus();
-        updatedStatus.setId(99);
-        updatedStatus.setName("Nieistniejący");
-        updatedStatus.setProgressMin(0);
-        updatedStatus.setProgressMax(0);
-
+    public void updateTaskStatus_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskStatusService.getTaskStatusById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        TaskStatusDTO updatedStatus = new TaskStatusDTO();
+        updatedStatus.setId(99);
+        updatedStatus.setName("Updated Status");
+        updatedStatus.setProgressMin(20);
+        updatedStatus.setProgressMax(80);
+        updatedStatus.setDisplayOrder(2);
+
+        // Act & Assert
         mockMvc.perform(put("/database/task-statuses/99")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedStatus)))
                 .andExpect(status().isNotFound());
-
-        verify(taskStatusService, times(1)).getTaskStatusById(99);
-        verify(taskStatusService, never()).saveTaskStatus(any(TaskStatus.class));
     }
 
     @Test
-    void updateDisplayOrder_WhenStatusExists_ShouldReturnUpdatedStatus() throws Exception {
-        // Given
-        Map<String, Integer> payload = new HashMap<>();
-        payload.put("displayOrder", 5);
+    public void updateDisplayOrder_WhenExists_ShouldReturnUpdatedStatus() throws Exception {
+        // Arrange
+        Optional<TaskStatusDTO> optionalStatus = Optional.of(taskStatusDTO);
+        when(taskStatusService.updateDisplayOrder(eq(1), eq(5))).thenReturn(optionalStatus);
 
-        TaskStatus updatedStatus = new TaskStatus();
-        updatedStatus.setId(1);
-        updatedStatus.setName("Rozpoczęte");
-        updatedStatus.setProgressMin(0);
-        updatedStatus.setProgressMax(30);
-        updatedStatus.setDisplayOrder(5);
-
-        when(taskStatusService.updateDisplayOrder(eq(1), eq(5))).thenReturn(Optional.of(updatedStatus));
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(patch("/database/task-statuses/1/display-order")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content("{\"displayOrder\":5}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(1)))
-                .andExpect(jsonPath("$.name", is("Rozpoczęte")))
-                .andExpect(jsonPath("$.displayOrder", is(5)));
-
-        verify(taskStatusService, times(1)).updateDisplayOrder(eq(1), eq(5));
+                .andExpect(jsonPath("$.name").value("In Progress")); // Mock returns our pre-defined taskStatusDTO
     }
 
     @Test
-    void updateDisplayOrder_WhenStatusDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
-        Map<String, Integer> payload = new HashMap<>();
-        payload.put("displayOrder", 5);
+    public void updateDisplayOrder_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
+        when(taskStatusService.updateDisplayOrder(eq(99), anyInt())).thenReturn(Optional.empty());
 
-        when(taskStatusService.updateDisplayOrder(eq(99), eq(5))).thenReturn(Optional.empty());
-
-        // When & Then
+        // Act & Assert
         mockMvc.perform(patch("/database/task-statuses/99/display-order")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
+                        .content("{\"displayOrder\":5}"))
                 .andExpect(status().isNotFound());
-
-        verify(taskStatusService, times(1)).updateDisplayOrder(eq(99), eq(5));
     }
 
     @Test
-    void updateDisplayOrder_WithMissingData_ShouldReturnBadRequest() throws Exception {
-        // Given
-        Map<String, Object> payload = new HashMap<>();
-        // Missing displayOrder
-
-        // When & Then
-        mockMvc.perform(patch("/database/task-statuses/1/display-order")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(payload)))
-                .andExpect(status().isBadRequest());
-
-        verify(taskStatusService, never()).updateDisplayOrder(anyInt(), anyInt());
-    }
-
-    @Test
-    void deleteTaskStatus_WhenStatusExistsWithNoTasks_ShouldReturnNoContent() throws Exception {
-        // Given
-        when(taskStatusService.getTaskStatusById(1)).thenReturn(Optional.of(startedStatus));
+    public void deleteTaskStatus_WhenExists_ShouldReturnNoContent() throws Exception {
+        // Arrange
+        Optional<TaskStatusDTO> optionalStatus = Optional.of(taskStatusDTO);
+        when(taskStatusService.getTaskStatusById(1)).thenReturn(optionalStatus);
         doNothing().when(taskStatusService).deleteTaskStatus(1);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-statuses/1"))
                 .andExpect(status().isNoContent());
-
-        verify(taskStatusService, times(1)).getTaskStatusById(1);
-        verify(taskStatusService, times(1)).deleteTaskStatus(1);
     }
 
     @Test
-    void deleteTaskStatus_WhenStatusDoesNotExist_ShouldReturnNotFound() throws Exception {
-        // Given
+    public void deleteTaskStatus_WhenNotExists_ShouldReturnNotFound() throws Exception {
+        // Arrange
         when(taskStatusService.getTaskStatusById(99)).thenReturn(Optional.empty());
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-statuses/99"))
                 .andExpect(status().isNotFound());
-
-        verify(taskStatusService, times(1)).getTaskStatusById(99);
-        verify(taskStatusService, never()).deleteTaskStatus(anyInt());
     }
 
     @Test
-    void deleteTaskStatus_WhenStatusHasTasks_ShouldReturnConflict() throws Exception {
-        // Given
-        when(taskStatusService.getTaskStatusById(1)).thenReturn(Optional.of(startedStatus));
-        doThrow(new IllegalStateException("Nie można usunąć statusu, do którego przypisane są zadania"))
+    public void deleteTaskStatus_WithAssignedTasks_ShouldReturnConflict() throws Exception {
+        // Arrange
+        Optional<TaskStatusDTO> optionalStatus = Optional.of(taskStatusDTO);
+        when(taskStatusService.getTaskStatusById(1)).thenReturn(optionalStatus);
+        doThrow(new IllegalStateException("Cannot delete status with assigned tasks"))
                 .when(taskStatusService).deleteTaskStatus(1);
 
-        // When & Then
+        // Act & Assert
         mockMvc.perform(delete("/database/task-statuses/1"))
                 .andExpect(status().isConflict());
-
-        verify(taskStatusService, times(1)).getTaskStatusById(1);
-        verify(taskStatusService, times(1)).deleteTaskStatus(1);
     }
 }

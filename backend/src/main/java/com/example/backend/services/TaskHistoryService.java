@@ -140,7 +140,7 @@ public class TaskHistoryService {
      * @return Lista wpisów historii dokonanych przez użytkownika jako DTO
      */
     public List<TaskHistoryDTO> getHistoryByUser(User user) {
-        return taskHistoryRepository.findByChangedBy(user).stream()
+        return taskHistoryRepository.findByChangedBy(user.getId()).stream()
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
     }
@@ -153,10 +153,26 @@ public class TaskHistoryService {
      * @return Zapisany wpis historii jako DTO
      */
     public TaskHistoryDTO saveTaskHistory(TaskHistoryDTO taskHistoryDTO, Task task) {
-        TaskHistory taskHistory = mapToEntity(taskHistoryDTO, task);
-        if (taskHistory.getChangedAt() == null) {
+        TaskHistory taskHistory = new TaskHistory();
+
+        // Ustawiamy ID tylko jeśli zostało podane (aktualizacja istniejącego wpisu)
+        if (taskHistoryDTO.getId() != null) {
+            taskHistory.setId(taskHistoryDTO.getId());
+        }
+
+        taskHistory.setTask(task);
+        taskHistory.setChangedBy(taskHistoryDTO.getChangedById());
+        taskHistory.setFieldName(taskHistoryDTO.getFieldName());
+        taskHistory.setOldValue(taskHistoryDTO.getOldValue());
+        taskHistory.setNewValue(taskHistoryDTO.getNewValue());
+
+        // Ustawiamy datę zmiany, jeśli nie jest ustawiona
+        if (taskHistoryDTO.getChangedAt() != null) {
+            taskHistory.setChangedAt(taskHistoryDTO.getChangedAt());
+        } else {
             taskHistory.setChangedAt(LocalDateTime.now());
         }
+
         TaskHistory savedHistory = taskHistoryRepository.save(taskHistory);
         return mapToDTO(savedHistory);
     }

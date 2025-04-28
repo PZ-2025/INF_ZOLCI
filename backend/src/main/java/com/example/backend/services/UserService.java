@@ -5,6 +5,7 @@ import com.example.backend.models.User;
 import com.example.backend.repository.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final BCryptPasswordEncoder passwordEncoder;
 
     /**
      * Mapuje encję User na obiekt DTO.
@@ -70,7 +72,7 @@ public class UserService {
 
         // Zachowujemy hasło tylko jeśli jest ustawione w DTO
         if (dto.getPassword() != null && !dto.getPassword().isEmpty()) {
-            user.setPassword(dto.getPassword());
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
         }
 
         user.setEmail(dto.getEmail());
@@ -156,9 +158,17 @@ public class UserService {
      */
     @Transactional
     public UserDTO createUser(UserDTO userDTO) {
+        // Sprawdzamy czy hasło jest podane
+        if (userDTO.getPassword() == null || userDTO.getPassword().isEmpty()) {
+            throw new IllegalArgumentException("Hasło jest wymagane dla nowych użytkowników");
+        }
+
         User user = mapToEntity(userDTO);
         user.setCreatedAt(LocalDateTime.now());
         user.setIsActive(true);
+
+        // Hasło jest już hashowane w mapToEntity
+
         User savedUser = userRepository.save(user);
         return mapToDTO(savedUser);
     }
@@ -170,17 +180,34 @@ public class UserService {
     public Optional<UserDTO> updateUser(Integer userId, UserDTO userDTO) {
         return userRepository.findById(userId)
                 .map(existingUser -> {
-                    // Aktualizujemy tylko dozwolone pola
-                    existingUser.setUsername(userDTO.getUsername());
-                    existingUser.setEmail(userDTO.getEmail());
-                    existingUser.setFirstName(userDTO.getFirstName());
-                    existingUser.setLastName(userDTO.getLastName());
-                    existingUser.setPhone(userDTO.getPhone());
-                    existingUser.setRole(userDTO.getRole());
+                    // Aktualizujemy tylko pola, które nie są null w DTO
+                    if (userDTO.getUsername() != null) {
+                        existingUser.setUsername(userDTO.getUsername());
+                    }
+                    if (userDTO.getEmail() != null) {
+                        existingUser.setEmail(userDTO.getEmail());
+                    }
+                    if (userDTO.getFirstName() != null) {
+                        existingUser.setFirstName(userDTO.getFirstName());
+                    }
+                    if (userDTO.getLastName() != null) {
+                        existingUser.setLastName(userDTO.getLastName());
+                    }
+                    // Aktualizujemy telefon tylko jeśli nie jest null
+                    if (userDTO.getPhone() != null) {
+                        existingUser.setPhone(userDTO.getPhone());
+                    }
 
-                    // Aktualizacja hasła tylko jeśli zostało podane
+                    if (userDTO.getRole() != null) {
+                        existingUser.setRole(userDTO.getRole());
+                    }
+                    if (userDTO.getIsActive() != null) {
+                        existingUser.setIsActive(userDTO.getIsActive());
+                    }
+
+                    // Aktualizacja hasła tylko jeśli zostało explicite podane
                     if (userDTO.getPassword() != null && !userDTO.getPassword().isEmpty()) {
-                        existingUser.setPassword(userDTO.getPassword());
+                        existingUser.setPassword(passwordEncoder.encode(userDTO.getPassword()));
                     }
 
                     return mapToDTO(userRepository.save(existingUser));
