@@ -1,7 +1,8 @@
-package com.example.backend.models;
+package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -65,6 +66,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "team_id")
+    @JsonManagedReference(value = "team-tasks")
     private Team team;
 
     /**
@@ -73,6 +75,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "priority_id", nullable = false)
+    @JsonBackReference(value = "priority-tasks")
     private Priority priority;
 
     /**
@@ -81,6 +84,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "status_id", nullable = false)
+    @JsonBackReference(value = "status-tasks")
     private TaskStatus status;
 
     /**
@@ -109,6 +113,7 @@ public class Task {
      */
     @ManyToOne
     @JoinColumn(name = "created_by", nullable = false)
+    @JsonManagedReference(value = "user-created-tasks")
     private User createdBy;
 
     /**
@@ -132,7 +137,7 @@ public class Task {
      * Relacja jednokierunkowa - jedno {@code Task} może mieć wiele {@code TaskComment}.
      */
     @OneToMany(mappedBy = "task")
-    @JsonIgnore
+    @JsonBackReference(value = "task-comments")
     private Set<TaskComment> comments = new HashSet<>();
 
     /**
@@ -140,7 +145,7 @@ public class Task {
      * Relacja jednokierunkowa - jedno {@code Task} może mieć wiele {@code TaskHistory}.
      */
     @OneToMany(mappedBy = "task")
-    @JsonIgnore
+    @JsonBackReference(value = "task-history")
     private Set<TaskHistory> history = new HashSet<>();
 
     /**
@@ -150,4 +155,6 @@ public class Task {
     public Task() {
         // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
+
+
 }
