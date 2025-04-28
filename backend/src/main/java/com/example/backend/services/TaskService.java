@@ -1,228 +1,169 @@
-package com.example.backend.services;
+package  com.example.backend.services;
 
-import com.example.backend.dto.TaskDTO;
-import com.example.backend.models.*;
-import com.example.backend.repository.*;
+import com.example.backend.models.Task;
+import com.example.backend.models.TaskStatus;
+import com.example.backend.models.User;
+import com.example.backend.models.Team;
+import com.example.backend.repository.TaskRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 /**
  * Serwis obsługujący operacje dla encji {@link Task}.
+ * <p>
+ * Klasa ta zawiera logikę biznesową związaną z zadaniami w systemie.
+ * Implementuje operacje tworzenia, odczytu, aktualizacji i usuwania zadań,
+ * a także bardziej złożone operacje biznesowe.
+ *
+ * @author Karol
+ * @version 1.0.0
+ * @since 1.0.0
  */
 @Service
 public class TaskService {
 
     private final TaskRepository taskRepository;
-    private final TeamRepository teamRepository;
-    private final PriorityRepository priorityRepository;
-    private final TaskStatusRepository taskStatusRepository;
-    private final UserRepository userRepository;
 
     /**
      * Konstruktor wstrzykujący zależności.
+     *
+     * @param taskRepository Repozytorium zadań
      */
     @Autowired
-    public TaskService(TaskRepository taskRepository,
-                       TeamRepository teamRepository,
-                       PriorityRepository priorityRepository,
-                       TaskStatusRepository taskStatusRepository,
-                       UserRepository userRepository) {
+    public TaskService(TaskRepository taskRepository) {
         this.taskRepository = taskRepository;
-        this.teamRepository = teamRepository;
-        this.priorityRepository = priorityRepository;
-        this.taskStatusRepository = taskStatusRepository;
-        this.userRepository = userRepository;
     }
 
     /**
-     * Mapuje encję Task na obiekt DTO.
+     * Pobiera wszystkie zadania z bazy danych.
+     *
+     * @return Lista wszystkich zadań
      */
-    public TaskDTO mapToDTO(Task task) {
-        if (task == null) return null;
-
-        TaskDTO dto = new TaskDTO();
-        dto.setId(task.getId());
-        dto.setTitle(task.getTitle());
-        dto.setDescription(task.getDescription());
-
-        if (task.getTeam() != null) {
-            dto.setTeamId(task.getTeam().getId());
-        }
-
-        dto.setPriorityId(task.getPriority().getId());
-        dto.setStatusId(task.getStatus().getId());
-        dto.setStartDate(task.getStartDate());
-        dto.setDeadline(task.getDeadline());
-        dto.setCompletedDate(task.getCompletedDate());
-        dto.setCreatedById(task.getCreatedBy().getId());
-        dto.setCreatedAt(task.getCreatedAt());
-        dto.setUpdatedAt(task.getUpdatedAt());
-
-        return dto;
+    public List<Task> getAllTasks() {
+        return taskRepository.findAll();
     }
 
     /**
-     * Mapuje obiekt DTO na encję Task.
+     * Pobiera zadanie na podstawie jego identyfikatora.
+     *
+     * @param id Identyfikator zadania
+     * @return Opcjonalne zadanie, jeśli istnieje
      */
-    public Task mapToEntity(TaskDTO dto) {
-        if (dto == null) return null;
-
-        Task task = new Task();
-        task.setId(dto.getId());
-        task.setTitle(dto.getTitle());
-        task.setDescription(dto.getDescription());
-
-        if (dto.getTeamId() != null) {
-            teamRepository.findById(dto.getTeamId())
-                    .ifPresent(task::setTeam);
-        }
-
-        priorityRepository.findById(dto.getPriorityId())
-                .ifPresent(task::setPriority);
-
-        taskStatusRepository.findById(dto.getStatusId())
-                .ifPresent(task::setStatus);
-
-        task.setStartDate(dto.getStartDate());
-        task.setDeadline(dto.getDeadline());
-        task.setCompletedDate(dto.getCompletedDate());
-
-        userRepository.findById(dto.getCreatedById())
-                .ifPresent(task::setCreatedBy);
-
-        task.setCreatedAt(dto.getCreatedAt());
-        task.setUpdatedAt(dto.getUpdatedAt());
-
-        return task;
+    public Optional<Task> getTaskById(Integer id) {
+        return taskRepository.findById(id);
     }
 
     /**
-     * Pobiera wszystkie zadania jako DTO.
+     * Zapisuje nowe zadanie w bazie danych.
+     *
+     * @param task Zadanie do zapisania
+     * @return Zapisane zadanie
      */
-    public List<TaskDTO> getAllTasks() {
-        return taskRepository.findAll().stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public Task saveTask(Task task) {
+        return taskRepository.save(task);
     }
 
     /**
-     * Pobiera zadanie po ID jako DTO.
+     * Aktualizuje istniejące zadanie.
+     *
+     * @param task Zadanie ze zaktualizowanymi danymi
+     * @return Zaktualizowane zadanie
      */
-    public Optional<TaskDTO> getTaskById(Integer id) {
-        return taskRepository.findById(id)
-                .map(this::mapToDTO);
+    public Task updateTask(Task task) {
+        return taskRepository.save(task);
     }
 
     /**
-     * Zapisuje nowe zadanie jako DTO.
-     */
-    public TaskDTO saveTask(TaskDTO taskDTO) {
-        Task task = mapToEntity(taskDTO);
-
-        // Ustawiamy brakujące daty, jeśli nie zostały podane
-        if (task.getCreatedAt() == null) {
-            task.setCreatedAt(LocalDateTime.now());
-        }
-
-        Task savedTask = taskRepository.save(task);
-        return mapToDTO(savedTask);
-    }
-
-    /**
-     * Aktualizuje istniejące zadanie jako DTO.
-     */
-    public TaskDTO updateTask(TaskDTO taskDTO) {
-        Task task = mapToEntity(taskDTO);
-
-        // Aktualizujemy updatedAt
-        task.setUpdatedAt(LocalDateTime.now());
-
-        Task updatedTask = taskRepository.save(task);
-        return mapToDTO(updatedTask);
-    }
-
-    /**
-     * Usuwa zadanie po ID.
+     * Usuwa zadanie na podstawie jego identyfikatora.
+     *
+     * @param id Identyfikator zadania do usunięcia
      */
     public void deleteTask(Integer id) {
         taskRepository.deleteById(id);
     }
 
     /**
-     * Pobiera zadania dla zespołu jako DTO.
+     * Pobiera zadania dla konkretnego zespołu.
+     *
+     * @param team Zespół, dla którego pobierane są zadania
+     * @return Lista zadań przypisanych do zespołu
      */
-    public List<TaskDTO> getTasksByTeam(Team team) {
-        return taskRepository.findByTeam(team).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<Task> getTasksByTeam(Team team) {
+        return taskRepository.findByTeam(team);
     }
 
     /**
-     * Pobiera zadania o określonym statusie jako DTO.
+     * Pobiera zadania o określonym statusie.
+     *
+     * @param status Status zadań
+     * @return Lista zadań o określonym statusie
      */
-    public List<TaskDTO> getTasksByStatus(TaskStatus status) {
-        return taskRepository.findByStatus(status).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<Task> getTasksByStatus(TaskStatus status) {
+        return taskRepository.findByStatus(status);
     }
 
     /**
-     * Pobiera zadania stworzone przez użytkownika jako DTO.
+     * Pobiera zadania stworzone przez konkretnego użytkownika.
+     *
+     * @param user Użytkownik, który stworzył zadania
+     * @return Lista zadań stworzonych przez użytkownika
      */
-    public List<TaskDTO> getTasksCreatedBy(User user) {
-        return taskRepository.findByCreatedBy(user).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<Task> getTasksCreatedBy(User user) {
+        return taskRepository.findByCreatedBy(user);
     }
 
     /**
-     * Pobiera zadania z terminem przed podaną datą jako DTO.
+     * Pobiera zadania, których termin wykonania jest przed podaną datą.
+     *
+     * @param date Data graniczna
+     * @return Lista zadań z terminem przed podaną datą
      */
-    public List<TaskDTO> getTasksWithDeadlineBefore(LocalDate date) {
-        return taskRepository.findByDeadlineBefore(date).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<Task> getTasksWithDeadlineBefore(LocalDate date) {
+        return taskRepository.findByDeadlineBefore(date);
     }
 
     /**
-     * Pobiera zadanie po tytule jako DTO.
+     * Znajduje zadanie o określonym tytule.
+     *
+     * @param title Tytuł zadania
+     * @return Opcjonalne zadanie o podanym tytule
      */
-    public Optional<TaskDTO> getTaskByTitle(String title) {
-        return taskRepository.findByTitle(title)
-                .map(this::mapToDTO);
+    public Optional<Task> getTaskByTitle(String title) {
+        return taskRepository.findByTitle(title);
     }
 
     /**
-     * Pobiera zadania dla zespołu po ID jako DTO.
+     * Pobiera zadania dla konkretnego zespołu na podstawie ID zespołu.
+     *
+     * @param teamId ID zespołu
+     * @return Lista zadań przypisanych do zespołu
      */
-    public List<TaskDTO> getTasksByTeamId(Integer teamId) {
-        return taskRepository.findByTeamId(teamId).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<Task> getTasksByTeamId(Integer teamId) {
+        return taskRepository.findByTeamId(teamId);
     }
 
     /**
-     * Pobiera zadania o określonym statusie po ID jako DTO.
+     * Pobiera zadania o określonym statusie na podstawie ID statusu.
+     *
+     * @param statusId ID statusu
+     * @return Lista zadań o określonym statusie
      */
-    public List<TaskDTO> getTasksByStatusId(Integer statusId) {
-        return taskRepository.findByStatusId(statusId).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<Task> getTasksByStatusId(Integer statusId) {
+        return taskRepository.findByStatusId(statusId);
     }
 
     /**
-     * Pobiera zadania o określonym priorytecie po ID jako DTO.
+     * Pobiera zadania o określonym priorytecie na podstawie ID priorytetu.
+     *
+     * @param priorityId ID priorytetu
+     * @return Lista zadań o określonym priorytecie
      */
-    public List<TaskDTO> getTasksByPriorityId(Integer priorityId) {
-        return taskRepository.findByPriorityId(priorityId).stream()
-                .map(this::mapToDTO)
-                .collect(Collectors.toList());
+    public List<Task> getTasksByPriorityId(Integer priorityId) {
+        return taskRepository.findByPriorityId(priorityId);
     }
 
     public static class TaskStatusService {
