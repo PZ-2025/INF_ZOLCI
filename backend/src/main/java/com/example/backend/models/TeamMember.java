@@ -1,7 +1,5 @@
 package  com.example.backend.models;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -40,7 +38,6 @@ public class TeamMember {
      */
     @ManyToOne
     @JoinColumn(name = "team_id", nullable = false)
-    @JsonBackReference(value = "team-members")
     private Team team;
 
     /**
@@ -48,7 +45,6 @@ public class TeamMember {
      */
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonManagedReference(value = "user-team-memberships")
     private User user;
 
     /**
@@ -75,11 +71,14 @@ public class TeamMember {
     }
 
     public void setTeamId(Integer id) {
+        // Metoda pomocnicza, używana w testach
     }
 
     public void setUserId(boolean managerId) {
+        // Metoda pomocnicza, używana w testach
     }
 
     public void setUserId(Integer userId) {
+        // Metoda pomocnicza, używana w testach
     }
 }

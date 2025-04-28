@@ -1,12 +1,14 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.Priority;
+import com.example.backend.dto.PriorityDTO;
 import com.example.backend.services.PriorityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
@@ -41,9 +43,9 @@ public class PriorityController {
      *
      * @return Lista wszystkich priorytetów
      */
-    @GetMapping
-    public ResponseEntity<List<Priority>> getAllPriorities() {
-        List<Priority> priorities = priorityService.getAllPriorities();
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<PriorityDTO>> getAllPriorities() {
+        List<PriorityDTO> priorities = priorityService.getAllPriorities();
         return new ResponseEntity<>(priorities, HttpStatus.OK);
     }
 
@@ -52,9 +54,9 @@ public class PriorityController {
      *
      * @return Lista priorytetów posortowanych według wartości
      */
-    @GetMapping("/sorted")
-    public ResponseEntity<List<Priority>> getAllPrioritiesSorted() {
-        List<Priority> priorities = priorityService.getAllPrioritiesSortedByValue();
+    @GetMapping(value = "/sorted", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<PriorityDTO>> getAllPrioritiesSorted() {
+        List<PriorityDTO> priorities = priorityService.getAllPrioritiesSortedByValue();
         return new ResponseEntity<>(priorities, HttpStatus.OK);
     }
 
@@ -64,8 +66,8 @@ public class PriorityController {
      * @param id Identyfikator priorytetu
      * @return Priorytet lub status 404, jeśli nie istnieje
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<Priority> getPriorityById(@PathVariable Integer id) {
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PriorityDTO> getPriorityById(@PathVariable Integer id) {
         return priorityService.getPriorityById(id)
                 .map(priority -> new ResponseEntity<>(priority, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -77,8 +79,8 @@ public class PriorityController {
      * @param name Nazwa priorytetu
      * @return Priorytet lub status 404, jeśli nie istnieje
      */
-    @GetMapping("/name/{name}")
-    public ResponseEntity<Priority> getPriorityByName(@PathVariable String name) {
+    @GetMapping(value = "/name/{name}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PriorityDTO> getPriorityByName(@PathVariable String name) {
         return priorityService.getPriorityByName(name)
                 .map(priority -> new ResponseEntity<>(priority, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -87,16 +89,16 @@ public class PriorityController {
     /**
      * Tworzy nowy priorytet.
      *
-     * @param priority Dane nowego priorytetu
+     * @param priorityDTO Dane nowego priorytetu
      * @return Utworzony priorytet
      */
-    @PostMapping
-    public ResponseEntity<Priority> createPriority(@RequestBody Priority priority) {
-        if (priorityService.existsByName(priority.getName())) {
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PriorityDTO> createPriority(@Valid @RequestBody PriorityDTO priorityDTO) {
+        if (priorityService.existsByName(priorityDTO.getName())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        Priority savedPriority = priorityService.savePriority(priority);
+        PriorityDTO savedPriority = priorityService.savePriority(priorityDTO);
         return new ResponseEntity<>(savedPriority, HttpStatus.CREATED);
     }
 
@@ -106,8 +108,8 @@ public class PriorityController {
      * @param payload Mapa zawierająca name, value, colorCode
      * @return Utworzony priorytet lub status błędu
      */
-    @PostMapping("/create")
-    public ResponseEntity<Priority> createPriorityFromParams(@RequestBody Map<String, Object> payload) {
+    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PriorityDTO> createPriorityFromParams(@RequestBody Map<String, Object> payload) {
         String name = (String) payload.get("name");
         Integer value = (Integer) payload.get("value");
         String colorCode = (String) payload.get("colorCode");
@@ -120,26 +122,26 @@ public class PriorityController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        Priority newPriority = priorityService.createPriority(name, value, colorCode);
+        PriorityDTO newPriority = priorityService.createPriority(name, value, colorCode);
         return new ResponseEntity<>(newPriority, HttpStatus.CREATED);
     }
 
     /**
      * Aktualizuje istniejący priorytet.
      *
-     * @param id       Identyfikator priorytetu
-     * @param priority Zaktualizowane dane priorytetu
+     * @param id         Identyfikator priorytetu
+     * @param priorityDTO Zaktualizowane dane priorytetu
      * @return Zaktualizowany priorytet lub status 404, jeśli nie istnieje
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<Priority> updatePriority(@PathVariable Integer id,
-                                                   @RequestBody Priority priority) {
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PriorityDTO> updatePriority(@PathVariable Integer id,
+                                                      @Valid @RequestBody PriorityDTO priorityDTO) {
         if (!priorityService.getPriorityById(id).isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        priority.setId(id);
-        Priority updatedPriority = priorityService.savePriority(priority);
+        priorityDTO.setId(id);
+        PriorityDTO updatedPriority = priorityService.savePriority(priorityDTO);
         return new ResponseEntity<>(updatedPriority, HttpStatus.OK);
     }
 
@@ -150,9 +152,9 @@ public class PriorityController {
      * @param payload   Mapa zawierająca colorCode
      * @return Zaktualizowany priorytet lub status 404, jeśli nie istnieje
      */
-    @PatchMapping("/{id}/color")
-    public ResponseEntity<Priority> updatePriorityColor(@PathVariable Integer id,
-                                                        @RequestBody Map<String, String> payload) {
+    @PatchMapping(value = "/{id}/color", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<PriorityDTO> updatePriorityColor(@PathVariable Integer id,
+                                                           @RequestBody Map<String, String> payload) {
         String colorCode = payload.get("colorCode");
 
         if (colorCode == null) {

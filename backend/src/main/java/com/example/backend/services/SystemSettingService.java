@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.SystemSettingDTO;
 import com.example.backend.models.SystemSetting;
 import com.example.backend.models.User;
 import com.example.backend.repository.SystemSettingRepository;
@@ -10,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Serwis obsługujący operacje dla encji {@link SystemSetting}.
@@ -38,42 +40,127 @@ public class SystemSettingService {
     }
 
     /**
-     * Pobiera wszystkie ustawienia systemowe.
+     * Mapuje encję SystemSetting na obiekt DTO.
      *
-     * @return Lista wszystkich ustawień systemowych
+     * @param systemSetting Encja do mapowania
+     * @return Obiekt DTO reprezentujący ustawienie systemowe
      */
-    public List<SystemSetting> getAllSystemSettings() {
-        return systemSettingRepository.findAll();
+    private SystemSettingDTO mapToDTO(SystemSetting systemSetting) {
+        if (systemSetting == null) return null;
+
+        SystemSettingDTO dto = new SystemSettingDTO();
+        dto.setId(systemSetting.getId());
+        dto.setKey(systemSetting.getKey());
+        dto.setValue(systemSetting.getValue());
+        dto.setDescription(systemSetting.getDescription());
+
+        if (systemSetting.getUpdatedBy() != null) {
+            dto.setUpdatedById(systemSetting.getUpdatedBy().getId());
+            dto.setUpdatedByUsername(systemSetting.getUpdatedBy().getUsername());
+            dto.setUpdatedByFullName(systemSetting.getUpdatedBy().getFirstName() + " " +
+                    systemSetting.getUpdatedBy().getLastName());
+        }
+
+        dto.setUpdatedAt(systemSetting.getUpdatedAt());
+
+        return dto;
     }
 
     /**
-     * Pobiera ustawienie systemowe na podstawie jego identyfikatora.
+     * Mapuje obiekt DTO na encję SystemSetting.
+     *
+     * @param dto Obiekt DTO do mapowania
+     * @param updatedBy Użytkownik, który zaktualizował ustawienie (może być null)
+     * @return Encja reprezentująca ustawienie systemowe
+     */
+    private SystemSetting mapToEntity(SystemSettingDTO dto, User updatedBy) {
+        if (dto == null) return null;
+
+        SystemSetting entity = null;
+
+        // Jeśli ID istnieje, próbujemy znaleźć istniejącą encję
+        if (dto.getId() != null) {
+            entity = systemSettingRepository.findById(dto.getId()).orElse(new SystemSetting());
+        } else {
+            entity = new SystemSetting();
+        }
+
+        entity.setKey(dto.getKey());
+        entity.setValue(dto.getValue());
+        entity.setDescription(dto.getDescription());
+        entity.setUpdatedBy(updatedBy);
+
+        // Aktualizuj datę tylko jeśli nie jest ustawiona lub jesteśmy w trybie aktualizacji
+        if (dto.getUpdatedAt() != null) {
+            entity.setUpdatedAt(dto.getUpdatedAt());
+        } else {
+            entity.setUpdatedAt(LocalDateTime.now());
+        }
+
+        return entity;
+    }
+
+    /**
+     * Pobiera wszystkie ustawienia systemowe jako DTO.
+     *
+     * @return Lista wszystkich ustawień systemowych jako DTO
+     */
+    public List<SystemSettingDTO> getAllSystemSettings() {
+        return systemSettingRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Pobiera ustawienie systemowe na podstawie jego identyfikatora jako DTO.
      *
      * @param id Identyfikator ustawienia systemowego
-     * @return Opcjonalne ustawienie systemowe, jeśli istnieje
+     * @return Opcjonalne ustawienie systemowe jako DTO, jeśli istnieje
      */
-    public Optional<SystemSetting> getSystemSettingById(Integer id) {
-        return systemSettingRepository.findById(id);
+    public Optional<SystemSettingDTO> getSystemSettingById(Integer id) {
+        return systemSettingRepository.findById(id)
+                .map(this::mapToDTO);
     }
 
     /**
-     * Pobiera ustawienie systemowe na podstawie jego klucza.
+     * Pobiera ustawienie systemowe na podstawie jego klucza jako DTO.
      *
      * @param key Klucz ustawienia systemowego
-     * @return Opcjonalne ustawienie systemowe, jeśli istnieje
+     * @return Opcjonalne ustawienie systemowe jako DTO, jeśli istnieje
      */
-    public Optional<SystemSetting> getSystemSettingByKey(String key) {
-        return systemSettingRepository.findByKey(key);
+    public Optional<SystemSettingDTO> getSystemSettingByKey(String key) {
+        return systemSettingRepository.findByKey(key)
+                .map(this::mapToDTO);
     }
 
     /**
      * Zapisuje nowe ustawienie systemowe lub aktualizuje istniejące.
      *
-     * @param systemSetting Ustawienie systemowe do zapisania
-     * @return Zapisane ustawienie systemowe
+     * @param systemSettingDTO Ustawienie systemowe jako DTO do zapisania
+     * @return Zapisane ustawienie systemowe jako DTO
      */
-    public SystemSetting saveSystemSetting(SystemSetting systemSetting) {
-        return systemSettingRepository.save(systemSetting);
+    public SystemSettingDTO saveSystemSetting(SystemSettingDTO systemSettingDTO) {
+        User updatedBy = null;
+
+        // Próbujemy znaleźć istniejące ustawienie, jeśli podano ID
+        SystemSetting existingEntity = null;
+        if (systemSettingDTO.getId() != null) {
+            existingEntity = systemSettingRepository.findById(systemSettingDTO.getId()).orElse(null);
+        }
+
+        // Jeśli nie znaleziono i klucz istnieje, szukamy po kluczu
+        if (existingEntity == null && systemSettingDTO.getKey() != null) {
+            existingEntity = systemSettingRepository.findByKey(systemSettingDTO.getKey()).orElse(null);
+        }
+
+        // Jeśli istnieje i ma updatedBy, zachowujemy tę wartość
+        if (existingEntity != null && existingEntity.getUpdatedBy() != null) {
+            updatedBy = existingEntity.getUpdatedBy();
+        }
+
+        SystemSetting entity = mapToEntity(systemSettingDTO, updatedBy);
+        SystemSetting savedEntity = systemSettingRepository.save(entity);
+        return mapToDTO(savedEntity);
     }
 
     /**
@@ -83,10 +170,10 @@ public class SystemSettingService {
      * @param value       Wartość ustawienia systemowego
      * @param description Opis ustawienia systemowego
      * @param updatedBy   Użytkownik, który utworzył ustawienie
-     * @return Utworzone ustawienie systemowe
+     * @return Utworzone ustawienie systemowe jako DTO
      */
-    public SystemSetting createSystemSetting(String key, String value,
-                                             String description, User updatedBy) {
+    public SystemSettingDTO createSystemSetting(String key, String value,
+                                                String description, User updatedBy) {
         SystemSetting setting = new SystemSetting();
         setting.setKey(key);
         setting.setValue(value);
@@ -94,7 +181,8 @@ public class SystemSettingService {
         setting.setUpdatedBy(updatedBy);
         setting.setUpdatedAt(LocalDateTime.now());
 
-        return systemSettingRepository.save(setting);
+        SystemSetting savedSetting = systemSettingRepository.save(setting);
+        return mapToDTO(savedSetting);
     }
 
     /**
@@ -103,15 +191,15 @@ public class SystemSettingService {
      * @param key       Klucz ustawienia systemowego
      * @param value     Nowa wartość
      * @param updatedBy Użytkownik dokonujący aktualizacji
-     * @return Zaktualizowane ustawienie systemowe lub Optional.empty() jeśli ustawienie nie istnieje
+     * @return Zaktualizowane ustawienie systemowe jako DTO lub Optional.empty() jeśli ustawienie nie istnieje
      */
-    public Optional<SystemSetting> updateValue(String key, String value, User updatedBy) {
+    public Optional<SystemSettingDTO> updateValue(String key, String value, User updatedBy) {
         return systemSettingRepository.findByKey(key)
                 .map(setting -> {
                     setting.setValue(value);
                     setting.setUpdatedBy(updatedBy);
                     setting.setUpdatedAt(LocalDateTime.now());
-                    return systemSettingRepository.save(setting);
+                    return mapToDTO(systemSettingRepository.save(setting));
                 });
     }
 

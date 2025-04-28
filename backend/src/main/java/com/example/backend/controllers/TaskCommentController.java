@@ -1,16 +1,18 @@
 package com.example.backend.controllers;
 
+import com.example.backend.dto.TaskCommentDTO;
 import com.example.backend.models.Task;
-import com.example.backend.models.TaskComment;
 import com.example.backend.models.User;
 import com.example.backend.services.TaskCommentService;
 import com.example.backend.services.TaskService;
 import com.example.backend.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,9 +57,9 @@ public class TaskCommentController {
      *
      * @return Lista wszystkich komentarzy
      */
-    @GetMapping
-    public ResponseEntity<List<TaskComment>> getAllTaskComments() {
-        List<TaskComment> comments = taskCommentService.getAllTaskComments();
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TaskCommentDTO>> getAllTaskComments() {
+        List<TaskCommentDTO> comments = taskCommentService.getAllTaskComments();
         return new ResponseEntity<>(comments, HttpStatus.OK);
     }
 
@@ -67,8 +69,8 @@ public class TaskCommentController {
      * @param id Identyfikator komentarza
      * @return Komentarz lub status 404, jeśli nie istnieje
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<TaskComment> getTaskCommentById(@PathVariable Integer id) {
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskCommentDTO> getTaskCommentById(@PathVariable Integer id) {
         return taskCommentService.getTaskCommentById(id)
                 .map(comment -> new ResponseEntity<>(comment, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -80,14 +82,21 @@ public class TaskCommentController {
      * @param taskId Identyfikator zadania
      * @return Lista komentarzy do zadania lub status 404, jeśli zadanie nie istnieje
      */
-    @GetMapping("/task/{taskId}")
-    public ResponseEntity<List<TaskComment>> getCommentsByTask(@PathVariable Integer taskId) {
-        return taskService.getTaskById(taskId)
-                .map(task -> {
-                    List<TaskComment> comments = taskCommentService.getCommentsByTask(task);
-                    return new ResponseEntity<>(comments, HttpStatus.OK);
-                })
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    @GetMapping(value = "/task/{taskId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TaskCommentDTO>> getCommentsByTask(@PathVariable Integer taskId) {
+        Optional<Task> taskOpt = taskService.getTaskById(taskId)
+                .map(dto -> {
+                    Task task = new Task();
+                    task.setId(dto.getId());
+                    return task;
+                });
+
+        if (taskOpt.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        List<TaskCommentDTO> comments = taskCommentService.getCommentsByTask(taskOpt.get());
+        return new ResponseEntity<>(comments, HttpStatus.OK);
     }
 
     /**
@@ -96,11 +105,13 @@ public class TaskCommentController {
      * @param userId Identyfikator użytkownika
      * @return Lista komentarzy użytkownika lub status 404, jeśli użytkownik nie istnieje
      */
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<TaskComment>> getCommentsByUser(@PathVariable Integer userId) {
+    @GetMapping(value = "/user/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TaskCommentDTO>> getCommentsByUser(@PathVariable Integer userId) {
         return userService.getUserById(userId)
-                .map(user -> {
-                    List<TaskComment> comments = taskCommentService.getCommentsByUser(user);
+                .map(dto -> {
+                    User user = new User();
+                    user.setId(dto.getId());
+                    List<TaskCommentDTO> comments = taskCommentService.getCommentsByUser(user);
                     return new ResponseEntity<>(comments, HttpStatus.OK);
                 })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -109,12 +120,12 @@ public class TaskCommentController {
     /**
      * Tworzy nowy komentarz do zadania.
      *
-     * @param taskComment Dane nowego komentarza
+     * @param taskCommentDTO Dane nowego komentarza
      * @return Utworzony komentarz
      */
-    @PostMapping
-    public ResponseEntity<TaskComment> createTaskComment(@RequestBody TaskComment taskComment) {
-        TaskComment savedComment = taskCommentService.saveTaskComment(taskComment);
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskCommentDTO> createTaskComment(@Valid @RequestBody TaskCommentDTO taskCommentDTO) {
+        TaskCommentDTO savedComment = taskCommentService.saveTaskComment(taskCommentDTO);
         return new ResponseEntity<>(savedComment, HttpStatus.CREATED);
     }
 
@@ -124,8 +135,8 @@ public class TaskCommentController {
      * @param payload Mapa zawierająca taskId, userId i comment
      * @return Utworzony komentarz lub status błędu
      */
-    @PostMapping("/add")
-    public ResponseEntity<TaskComment> addCommentToTask(@RequestBody Map<String, Object> payload) {
+    @PostMapping(value = "/add", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskCommentDTO> addCommentToTask(@RequestBody Map<String, Object> payload) {
         Integer taskId = (Integer) payload.get("taskId");
         Integer userId = (Integer) payload.get("userId");
         String comment = (String) payload.get("comment");
@@ -134,14 +145,28 @@ public class TaskCommentController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        Optional<Task> taskOpt = taskService.getTaskById(taskId);
-        Optional<User> userOpt = userService.getUserById(userId);
+        Optional<Task> taskOpt = taskService.getTaskById(taskId)
+                .map(dto -> {
+                    Task task = new Task();
+                    task.setId(dto.getId());
+                    return task;
+                });
+
+        Optional<User> userOpt = userService.getUserById(userId)
+                .map(dto -> {
+                    User user = new User();
+                    user.setId(dto.getId());
+                    user.setUsername(dto.getUsername());
+                    user.setFirstName(dto.getFirstName());
+                    user.setLastName(dto.getLastName());
+                    return user;
+                });
 
         if (taskOpt.isEmpty() || userOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        TaskComment newComment = taskCommentService.addCommentToTask(
+        TaskCommentDTO newComment = taskCommentService.addCommentToTask(
                 taskOpt.get(), userOpt.get(), comment);
 
         return new ResponseEntity<>(newComment, HttpStatus.CREATED);
@@ -151,16 +176,16 @@ public class TaskCommentController {
      * Aktualizuje istniejący komentarz.
      *
      * @param id           Identyfikator komentarza
-     * @param taskComment Zaktualizowane dane komentarza
+     * @param taskCommentDTO Zaktualizowane dane komentarza
      * @return Zaktualizowany komentarz lub status 404, jeśli nie istnieje
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<TaskComment> updateTaskComment(@PathVariable Integer id,
-                                                         @RequestBody TaskComment taskComment) {
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskCommentDTO> updateTaskComment(@PathVariable Integer id,
+                                                            @Valid @RequestBody TaskCommentDTO taskCommentDTO) {
         return taskCommentService.getTaskCommentById(id)
                 .map(existingComment -> {
-                    taskComment.setId(id);
-                    TaskComment updatedComment = taskCommentService.saveTaskComment(taskComment);
+                    taskCommentDTO.setId(id);
+                    TaskCommentDTO updatedComment = taskCommentService.saveTaskComment(taskCommentDTO);
                     return new ResponseEntity<>(updatedComment, HttpStatus.OK);
                 })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -190,11 +215,18 @@ public class TaskCommentController {
      */
     @DeleteMapping("/task/{taskId}")
     public ResponseEntity<Void> deleteAllCommentsForTask(@PathVariable Integer taskId) {
-        return taskService.getTaskById(taskId)
-                .map(task -> {
-                    taskCommentService.deleteAllCommentsForTask(task);
-                    return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
-                })
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        Optional<Task> taskOpt = taskService.getTaskById(taskId)
+                .map(dto -> {
+                    Task task = new Task();
+                    task.setId(dto.getId());
+                    return task;
+                });
+
+        if (taskOpt.isEmpty()) {
+            return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+        }
+
+        taskCommentService.deleteAllCommentsForTask(taskOpt.get());
+        return new ResponseEntity<Void>(HttpStatus.NO_CONTENT);
     }
 }

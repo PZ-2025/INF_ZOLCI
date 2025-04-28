@@ -1,6 +1,5 @@
-package  com.example.backend.models;
+package com.example.backend.models;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -38,8 +37,9 @@ public class SystemSetting {
     /**
      * Klucz identyfikujący ustawienie systemowe, np. "system_name".
      * Musi być unikalny i ma maksymalnie 100 znaków.
+     * Użycie `` wokół nazwy key, ponieważ jest to słowo zarezerwowane w SQL.
      */
-    @Column(name = "key", nullable = false, unique = true, length = 100)
+    @Column(name = "`key`", nullable = false, unique = true, length = 100)
     private String key;
 
     /**
@@ -62,7 +62,6 @@ public class SystemSetting {
      */
     @ManyToOne
     @JoinColumn(name = "updated_by")
-    @JsonManagedReference(value = "user-updated-settings")
     private User updatedBy;
 
     /**

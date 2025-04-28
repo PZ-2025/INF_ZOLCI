@@ -1,6 +1,6 @@
-package  com.example.backend.models;
+package com.example.backend.models;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -59,7 +59,7 @@ public class ReportType {
      * Relacja jednokierunkowa - jeden {@code ReportType} może mieć wiele {@code Report}.
      */
     @OneToMany(mappedBy = "type")
-    @JsonManagedReference(value = "report-type")
+    @JsonIgnore // Zamiast @JsonManagedReference używamy @JsonIgnore
     private Set<Report> reports = new HashSet<>();
 
     /**

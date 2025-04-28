@@ -1,6 +1,5 @@
-package  com.example.backend.models;
+package com.example.backend.models;
 
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -62,7 +61,6 @@ public class Priority {
      * Relacja jednokierunkowa - jedno {@code Priority} może być powiązane z wieloma {@code Task}.
      */
     @OneToMany(mappedBy = "priority")
-    @JsonManagedReference(value = "priority-tasks")
     private Set<Task> tasks = new HashSet<>();
 
     /**

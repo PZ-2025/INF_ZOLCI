@@ -1,171 +1,316 @@
-package  com.example.backend.services;
+package com.example.backend.services;
 
-import com.example.backend.models.Task;
-import com.example.backend.models.TaskStatus;
-import com.example.backend.models.User;
-import com.example.backend.models.Team;
-import com.example.backend.repository.TaskRepository;
+import com.example.backend.dto.TaskDTO;
+import com.example.backend.models.*;
+import com.example.backend.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Serwis obsługujący operacje dla encji {@link Task}.
- * <p>
- * Klasa ta zawiera logikę biznesową związaną z zadaniami w systemie.
- * Implementuje operacje tworzenia, odczytu, aktualizacji i usuwania zadań,
- * a także bardziej złożone operacje biznesowe.
- *
- * @author Karol
- * @version 1.0.0
- * @since 1.0.0
  */
 @Service
+@Transactional
 public class TaskService {
 
     private final TaskRepository taskRepository;
+    private final TeamRepository teamRepository;
+    private final PriorityRepository priorityRepository;
+    private final TaskStatusRepository taskStatusRepository;
+    private final UserRepository userRepository;
 
     /**
      * Konstruktor wstrzykujący zależności.
-     *
-     * @param taskRepository Repozytorium zadań
      */
     @Autowired
-    public TaskService(TaskRepository taskRepository) {
+    public TaskService(TaskRepository taskRepository,
+                       TeamRepository teamRepository,
+                       PriorityRepository priorityRepository,
+                       TaskStatusRepository taskStatusRepository,
+                       UserRepository userRepository) {
         this.taskRepository = taskRepository;
+        this.teamRepository = teamRepository;
+        this.priorityRepository = priorityRepository;
+        this.taskStatusRepository = taskStatusRepository;
+        this.userRepository = userRepository;
     }
 
     /**
-     * Pobiera wszystkie zadania z bazy danych.
-     *
-     * @return Lista wszystkich zadań
+     * Mapuje encję Task na obiekt DTO.
      */
-    public List<Task> getAllTasks() {
-        return taskRepository.findAll();
+    public TaskDTO mapToDTO(Task task) {
+        if (task == null) return null;
+
+        TaskDTO dto = new TaskDTO();
+        dto.setId(task.getId());
+        dto.setTitle(task.getTitle());
+        dto.setDescription(task.getDescription());
+
+        if (task.getTeam() != null) {
+            dto.setTeamId(task.getTeam().getId());
+        }
+
+        if (task.getPriority() != null) {
+            dto.setPriorityId(task.getPriority().getId());
+        }
+
+        if (task.getStatus() != null) {
+            dto.setStatusId(task.getStatus().getId());
+        }
+
+        if (task.getCreatedBy() != null) {
+            dto.setCreatedById(task.getCreatedBy().getId());
+        }
+
+        dto.setStartDate(task.getStartDate());
+        dto.setDeadline(task.getDeadline());
+        dto.setCompletedDate(task.getCompletedDate());
+        dto.setCreatedAt(task.getCreatedAt());
+        dto.setUpdatedAt(task.getUpdatedAt());
+
+        return dto;
     }
 
     /**
-     * Pobiera zadanie na podstawie jego identyfikatora.
-     *
-     * @param id Identyfikator zadania
-     * @return Opcjonalne zadanie, jeśli istnieje
+     * Mapuje obiekt DTO na encję Task, zachowując istniejące wartości dla pól, które są null w DTO.
      */
-    public Optional<Task> getTaskById(Integer id) {
+    public Task mapToEntity(TaskDTO dto, Task existingTask) {
+        if (dto == null) return null;
+
+        Task task = existingTask != null ? existingTask : new Task();
+
+        // Aktualizujemy tylko pola które są ustawione w DTO
+        if (dto.getTitle() != null) {
+            task.setTitle(dto.getTitle());
+        }
+
+        if (dto.getDescription() != null) {
+            task.setDescription(dto.getDescription());
+        }
+
+        // Aktualizujemy zespół tylko jeśli teamId jest ustawione w DTO
+        if (dto.getTeamId() != null) {
+            teamRepository.findById(dto.getTeamId())
+                    .ifPresent(task::setTeam);
+        }
+
+        if (dto.getPriorityId() != null) {
+            priorityRepository.findById(dto.getPriorityId())
+                    .ifPresent(task::setPriority);
+        }
+
+        if (dto.getStatusId() != null) {
+            taskStatusRepository.findById(dto.getStatusId())
+                    .ifPresent(task::setStatus);
+        }
+
+        if (dto.getStartDate() != null) {
+            task.setStartDate(dto.getStartDate());
+        }
+
+        if (dto.getDeadline() != null) {
+            task.setDeadline(dto.getDeadline());
+        }
+
+        if (dto.getCompletedDate() != null) {
+            task.setCompletedDate(dto.getCompletedDate());
+        }
+
+        if (dto.getCreatedById() != null) {
+            userRepository.findById(dto.getCreatedById())
+                    .ifPresent(task::setCreatedBy);
+        }
+
+        // Dla nowej encji ustawiamy createdAt
+        if (existingTask == null && dto.getCreatedAt() == null) {
+            task.setCreatedAt(LocalDateTime.now());
+        } else if (dto.getCreatedAt() != null) {
+            task.setCreatedAt(dto.getCreatedAt());
+        }
+
+        // Zawsze aktualizujemy updatedAt podczas modyfikacji
+        task.setUpdatedAt(LocalDateTime.now());
+
+        return task;
+    }
+
+    /**
+     * Stara wersja mapToEntity - pozostawiona dla zachowania kompatybilności.
+     */
+    public Task mapToEntity(TaskDTO dto) {
+        return mapToEntity(dto, null);
+    }
+
+    /**
+     * Pobiera wszystkie zadania jako DTO.
+     */
+    public List<TaskDTO> getAllTasks() {
+        return taskRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Pobiera zadanie po ID jako DTO.
+     */
+    public Optional<TaskDTO> getTaskById(Integer id) {
+        return taskRepository.findById(id)
+                .map(this::mapToDTO);
+    }
+
+    /**
+     * Pobiera encję zadania po ID.
+     */
+    public Optional<Task> getTaskEntityById(Integer id) {
         return taskRepository.findById(id);
     }
 
     /**
-     * Zapisuje nowe zadanie w bazie danych.
-     *
-     * @param task Zadanie do zapisania
-     * @return Zapisane zadanie
+     * Zapisuje nowe zadanie jako DTO.
      */
-    public Task saveTask(Task task) {
-        return taskRepository.save(task);
+    public TaskDTO saveTask(TaskDTO taskDTO) {
+        Task task = mapToEntity(taskDTO, null);
+
+        // Ustawiamy brakujące daty, jeśli nie zostały podane
+        if (task.getCreatedAt() == null) {
+            task.setCreatedAt(LocalDateTime.now());
+        }
+
+        Task savedTask = taskRepository.save(task);
+        return mapToDTO(savedTask);
     }
 
     /**
-     * Aktualizuje istniejące zadanie.
-     *
-     * @param task Zadanie ze zaktualizowanymi danymi
-     * @return Zaktualizowane zadanie
+     * Aktualizuje istniejące zadanie jako DTO.
      */
-    public Task updateTask(Task task) {
-        return taskRepository.save(task);
+    public TaskDTO updateTask(TaskDTO taskDTO) {
+        // Pobieramy istniejące zadanie, aby zachować wartości które nie zostały zmienione
+        Optional<Task> existingTaskOpt = taskRepository.findById(taskDTO.getId());
+
+        if (existingTaskOpt.isPresent()) {
+            Task existingTask = existingTaskOpt.get();
+
+            // Zachowujemy relację do zespołu, jeśli nie jest ustawiona w DTO
+            if (taskDTO.getTeamId() == null && existingTask.getTeam() != null) {
+                taskDTO.setTeamId(existingTask.getTeam().getId());
+            }
+
+            // Zachowujemy relację do priorytetu, jeśli nie jest ustawiona w DTO
+            if (taskDTO.getPriorityId() == null && existingTask.getPriority() != null) {
+                taskDTO.setPriorityId(existingTask.getPriority().getId());
+            }
+
+            // Zachowujemy relację do statusu, jeśli nie jest ustawiona w DTO
+            if (taskDTO.getStatusId() == null && existingTask.getStatus() != null) {
+                taskDTO.setStatusId(existingTask.getStatus().getId());
+            }
+
+            // Zachowujemy relację do twórcy, jeśli nie jest ustawiona w DTO
+            if (taskDTO.getCreatedById() == null && existingTask.getCreatedBy() != null) {
+                taskDTO.setCreatedById(existingTask.getCreatedBy().getId());
+            }
+
+            // Zachowujemy oryginalną datę utworzenia
+            if (taskDTO.getCreatedAt() == null && existingTask.getCreatedAt() != null) {
+                taskDTO.setCreatedAt(existingTask.getCreatedAt());
+            }
+
+            // Użyj istniejącej encji jako bazy przy mapowaniu
+            Task task = mapToEntity(taskDTO, existingTask);
+
+            // Aktualizujemy updatedAt
+            task.setUpdatedAt(LocalDateTime.now());
+
+            Task updatedTask = taskRepository.save(task);
+            return mapToDTO(updatedTask);
+        } else {
+            // Jeśli zadanie nie istnieje, traktujemy to jako utworzenie nowego
+            return saveTask(taskDTO);
+        }
     }
 
     /**
-     * Usuwa zadanie na podstawie jego identyfikatora.
-     *
-     * @param id Identyfikator zadania do usunięcia
+     * Usuwa zadanie po ID.
      */
     public void deleteTask(Integer id) {
         taskRepository.deleteById(id);
     }
 
     /**
-     * Pobiera zadania dla konkretnego zespołu.
-     *
-     * @param team Zespół, dla którego pobierane są zadania
-     * @return Lista zadań przypisanych do zespołu
+     * Pobiera zadania dla zespołu jako DTO.
      */
-    public List<Task> getTasksByTeam(Team team) {
-        return taskRepository.findByTeam(team);
+    public List<TaskDTO> getTasksByTeam(Team team) {
+        return taskRepository.findByTeam(team).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Pobiera zadania o określonym statusie.
-     *
-     * @param status Status zadań
-     * @return Lista zadań o określonym statusie
+     * Pobiera zadania o określonym statusie jako DTO.
      */
-    public List<Task> getTasksByStatus(TaskStatus status) {
-        return taskRepository.findByStatus(status);
+    public List<TaskDTO> getTasksByStatus(TaskStatus status) {
+        return taskRepository.findByStatus(status).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Pobiera zadania stworzone przez konkretnego użytkownika.
-     *
-     * @param user Użytkownik, który stworzył zadania
-     * @return Lista zadań stworzonych przez użytkownika
+     * Pobiera zadania stworzone przez użytkownika jako DTO.
      */
-    public List<Task> getTasksCreatedBy(User user) {
-        return taskRepository.findByCreatedBy(user);
+    public List<TaskDTO> getTasksCreatedBy(User user) {
+        return taskRepository.findByCreatedBy(user).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Pobiera zadania, których termin wykonania jest przed podaną datą.
-     *
-     * @param date Data graniczna
-     * @return Lista zadań z terminem przed podaną datą
+     * Pobiera zadania z terminem przed podaną datą jako DTO.
      */
-    public List<Task> getTasksWithDeadlineBefore(LocalDate date) {
-        return taskRepository.findByDeadlineBefore(date);
+    public List<TaskDTO> getTasksWithDeadlineBefore(LocalDate date) {
+        return taskRepository.findByDeadlineBefore(date).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Znajduje zadanie o określonym tytule.
-     *
-     * @param title Tytuł zadania
-     * @return Opcjonalne zadanie o podanym tytule
+     * Pobiera zadanie po tytule jako DTO.
      */
-    public Optional<Task> getTaskByTitle(String title) {
-        return taskRepository.findByTitle(title);
+    public Optional<TaskDTO> getTaskByTitle(String title) {
+        return taskRepository.findByTitle(title)
+                .map(this::mapToDTO);
     }
 
     /**
-     * Pobiera zadania dla konkretnego zespołu na podstawie ID zespołu.
-     *
-     * @param teamId ID zespołu
-     * @return Lista zadań przypisanych do zespołu
+     * Pobiera zadania dla zespołu po ID jako DTO.
      */
-    public List<Task> getTasksByTeamId(Integer teamId) {
-        return taskRepository.findByTeamId(teamId);
+    public List<TaskDTO> getTasksByTeamId(Integer teamId) {
+        return taskRepository.findByTeamId(teamId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Pobiera zadania o określonym statusie na podstawie ID statusu.
-     *
-     * @param statusId ID statusu
-     * @return Lista zadań o określonym statusie
+     * Pobiera zadania o określonym statusie po ID jako DTO.
      */
-    public List<Task> getTasksByStatusId(Integer statusId) {
-        return taskRepository.findByStatusId(statusId);
+    public List<TaskDTO> getTasksByStatusId(Integer statusId) {
+        return taskRepository.findByStatusId(statusId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Pobiera zadania o określonym priorytecie na podstawie ID priorytetu.
-     *
-     * @param priorityId ID priorytetu
-     * @return Lista zadań o określonym priorytecie
+     * Pobiera zadania o określonym priorytecie po ID jako DTO.
      */
-    public List<Task> getTasksByPriorityId(Integer priorityId) {
-        return taskRepository.findByPriorityId(priorityId);
-    }
-
-    public static class TaskStatusService {
+    public List<TaskDTO> getTasksByPriorityId(Integer priorityId) {
+        return taskRepository.findByPriorityId(priorityId).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 }

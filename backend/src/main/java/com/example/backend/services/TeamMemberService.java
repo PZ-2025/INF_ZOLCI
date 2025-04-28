@@ -1,115 +1,168 @@
-package  com.example.backend.services;
+package com.example.backend.services;
 
+import com.example.backend.dto.TeamMemberDTO;
 import com.example.backend.models.Team;
 import com.example.backend.models.TeamMember;
 import com.example.backend.models.User;
 import com.example.backend.repository.TeamMemberRepository;
+import com.example.backend.repository.TeamRepository;
+import com.example.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Serwis obsługujący operacje na encji {@link TeamMember}.
- *
- * Klasa zawiera logikę biznesową związaną z zarządzaniem członkami zespołu,
- * wykorzystując {@link TeamMemberRepository} do komunikacji z bazą danych.
- *
- * @author Karol
- * @version 1.0.0
- * @since 1.0.0
  */
 @Service
 @Transactional
 public class TeamMemberService {
 
     private final TeamMemberRepository teamMemberRepository;
+    private final TeamRepository teamRepository;
+    private final UserRepository userRepository;
 
     @Autowired
-    public TeamMemberService(TeamMemberRepository teamMemberRepository) {
+    public TeamMemberService(TeamMemberRepository teamMemberRepository,
+                             TeamRepository teamRepository,
+                             UserRepository userRepository) {
         this.teamMemberRepository = teamMemberRepository;
+        this.teamRepository = teamRepository;
+        this.userRepository = userRepository;
     }
 
     /**
-     * Pobiera wszystkich członków zespołu dla danego użytkownika.
-     *
-     * @param user Użytkownik
-     * @return Lista członków zespołu
+     * Mapuje encję TeamMember na obiekt DTO.
      */
-    public List<TeamMember> getTeamMembersByUser(User user) {
-        return teamMemberRepository.findByUser(user);
+    public TeamMemberDTO mapToDTO(TeamMember teamMember) {
+        if (teamMember == null) return null;
+
+        TeamMemberDTO dto = new TeamMemberDTO();
+        dto.setId(teamMember.getId());
+        dto.setTeamId(teamMember.getTeam().getId());
+        dto.setUserId(teamMember.getUser().getId());
+        dto.setJoinedAt(teamMember.getJoinedAt());
+        dto.setIsActive(teamMember.getIsActive());
+
+        // Dodatkowe pola dla prezentacji w UI
+        dto.setTeamName(teamMember.getTeam().getName());
+        dto.setUsername(teamMember.getUser().getUsername());
+        dto.setUserFullName(teamMember.getUser().getFirstName() + " " + teamMember.getUser().getLastName());
+
+        return dto;
     }
 
     /**
-     * Pobiera wszystkich członków danego zespołu.
-     *
-     * @param team Zespół
-     * @return Lista członków zespołu
+     * Mapuje obiekt DTO na encję TeamMember.
      */
-    public List<TeamMember> getTeamMembersByTeam(Team team) {
-        return teamMemberRepository.findByTeam(team);
+    public TeamMember mapToEntity(TeamMemberDTO dto) {
+        if (dto == null) return null;
+
+        TeamMember teamMember = new TeamMember();
+        teamMember.setId(dto.getId());
+
+        // Pobieramy powiązane encje z bazy danych
+        Team team = teamRepository.findById(dto.getTeamId())
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono zespołu o ID: " + dto.getTeamId()));
+        teamMember.setTeam(team);
+
+        User user = userRepository.findById(dto.getUserId())
+                .orElseThrow(() -> new RuntimeException("Nie znaleziono użytkownika o ID: " + dto.getUserId()));
+        teamMember.setUser(user);
+
+        teamMember.setJoinedAt(dto.getJoinedAt());
+        teamMember.setIsActive(dto.getIsActive());
+
+        return teamMember;
     }
 
     /**
-     * Pobiera wszystkich aktywnych lub nieaktywnych członków zespołu.
-     *
-     * @param team Zespół
-     * @param isActive Status aktywności
-     * @return Lista członków zespołu o określonym statusie aktywności
+     * Pobiera członków zespołu dla danego użytkownika jako DTO.
      */
-    public List<TeamMember> getTeamMembersByTeamAndActiveStatus(Team team, boolean isActive) {
-        return teamMemberRepository.findByTeamAndIsActive(team, isActive);
+    public List<TeamMemberDTO> getTeamMembersByUser(User user) {
+        return teamMemberRepository.findByUser(user).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Pobiera członka zespołu dla konkretnego użytkownika i zespołu.
-     *
-     * @param user Użytkownik
-     * @param team Zespół
-     * @return Optional zawierający członka zespołu, jeśli istnieje
+     * Pobiera członków zespołu dla danego zespołu jako DTO.
      */
-    public Optional<TeamMember> getTeamMemberByUserAndTeam(User user, Team team) {
-        return teamMemberRepository.findByUserAndTeam(user, team);
+    public List<TeamMemberDTO> getTeamMembersByTeam(Team team) {
+        return teamMemberRepository.findByTeam(team).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Pobiera wszystkich członków danego zespołu.
-     *
-     * @param team Zespół
-     * @return Lista wszystkich członków zespołu
+     * Pobiera aktywnych członków zespołu dla danego zespołu jako DTO.
      */
-    public List<TeamMember> getAllTeamMembersByTeam(Team team) {
-        return teamMemberRepository.findAllByTeam(team);
+    public List<TeamMemberDTO> getTeamMembersByTeamAndActiveStatus(Team team, boolean isActive) {
+        return teamMemberRepository.findByTeamAndIsActive(team, isActive).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Zapisuje członka zespołu.
-     *
-     * @param teamMember Członek zespołu do zapisania
-     * @return Zapisany członek zespołu
+     * Pobiera członka zespołu dla danego użytkownika i zespołu jako DTO.
      */
-    public TeamMember saveTeamMember(TeamMember teamMember) {
-        return teamMemberRepository.save(teamMember);
+    public Optional<TeamMemberDTO> getTeamMemberByUserAndTeam(User user, Team team) {
+        return teamMemberRepository.findByUserAndTeam(user, team)
+                .map(this::mapToDTO);
+    }
+
+
+    /**
+     * Pobiera wszystkich członków danego zespołu jako DTO.
+     */
+    public List<TeamMemberDTO> getAllTeamMembersByTeam(Team team) {
+        return teamMemberRepository.findAllByTeam(team).stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
-     * Usuwa członka zespołu.
-     *
-     * @param teamMember Członek zespołu do usunięcia
+     * Zapisuje członka zespołu i zwraca jako DTO.
      */
-    public void deleteTeamMember(TeamMember teamMember) {
-        teamMemberRepository.delete(teamMember);
+    public TeamMemberDTO saveTeamMember(TeamMemberDTO teamMemberDTO) {
+        TeamMember teamMember = mapToEntity(teamMemberDTO);
+
+        // Jeśli to nowy członek, ustaw datę dołączenia
+        if (teamMember.getJoinedAt() == null) {
+            teamMember.setJoinedAt(LocalDateTime.now());
+        }
+
+        // Jeśli isActive nie jest ustawione, domyślnie true
+        if (teamMember.getIsActive() == null) {
+            teamMember.setIsActive(true);
+        }
+
+        TeamMember savedMember = teamMemberRepository.save(teamMember);
+        return mapToDTO(savedMember);
     }
 
     /**
-     * Pobiera członka zespołu po identyfikatorze.
-     *
-     * @param id Identyfikator członka zespołu
-     * @return Optional zawierający członka zespołu, jeśli istnieje
+     * Usuwa członka zespołu używając jego ID.
      */
-    public Optional<TeamMember> getTeamMemberById(Long id) {
-        return teamMemberRepository.findById(id);
+    public boolean deleteTeamMemberById(Long id) {
+        return teamMemberRepository.findById(id)
+                .map(teamMember -> {
+                    teamMemberRepository.delete(teamMember);
+                    return true;
+                })
+                .orElse(false);
+    }
+
+    /**
+     * Pobiera członka zespołu po ID jako DTO.
+     */
+    public Optional<TeamMemberDTO> getTeamMemberById(Long id) {
+        return teamMemberRepository.findById(id)
+                .map(this::mapToDTO);
     }
 }

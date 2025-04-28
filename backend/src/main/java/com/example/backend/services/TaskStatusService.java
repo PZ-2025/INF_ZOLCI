@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.TaskStatusDTO;
 import com.example.backend.models.TaskStatus;
 import com.example.backend.repository.TaskStatusRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Serwis obsługujący operacje dla encji {@link TaskStatus}.
@@ -37,71 +39,118 @@ public class TaskStatusService {
     }
 
     /**
-     * Pobiera wszystkie statusy zadań.
+     * Mapuje encję TaskStatus na obiekt DTO.
      *
-     * @return Lista wszystkich statusów zadań
+     * @param taskStatus Encja do mapowania
+     * @return Obiekt DTO reprezentujący status zadania
      */
-    public List<TaskStatus> getAllTaskStatuses() {
-        return taskStatusRepository.findAll();
+    private TaskStatusDTO mapToDTO(TaskStatus taskStatus) {
+        if (taskStatus == null) return null;
+
+        TaskStatusDTO dto = new TaskStatusDTO();
+        dto.setId(taskStatus.getId());
+        dto.setName(taskStatus.getName());
+        dto.setProgressMin(taskStatus.getProgressMin());
+        dto.setProgressMax(taskStatus.getProgressMax());
+        dto.setDisplayOrder(taskStatus.getDisplayOrder());
+
+        return dto;
     }
 
     /**
-     * Pobiera wszystkie statusy zadań posortowane według kolejności wyświetlania.
+     * Mapuje obiekt DTO na encję TaskStatus.
      *
-     * @return Lista statusów zadań posortowanych według kolejności wyświetlania
+     * @param dto Obiekt DTO do mapowania
+     * @return Encja reprezentująca status zadania
      */
-    public List<TaskStatus> getAllTaskStatusesSorted() {
-        return taskStatusRepository.findAllByOrderByDisplayOrderAsc();
+    private TaskStatus mapToEntity(TaskStatusDTO dto) {
+        if (dto == null) return null;
+
+        TaskStatus taskStatus = new TaskStatus();
+        taskStatus.setId(dto.getId());
+        taskStatus.setName(dto.getName());
+        taskStatus.setProgressMin(dto.getProgressMin());
+        taskStatus.setProgressMax(dto.getProgressMax());
+        taskStatus.setDisplayOrder(dto.getDisplayOrder());
+
+        return taskStatus;
     }
 
     /**
-     * Pobiera status zadania na podstawie jego identyfikatora.
+     * Pobiera wszystkie statusy zadań jako obiekty DTO.
+     *
+     * @return Lista wszystkich statusów zadań jako DTO
+     */
+    public List<TaskStatusDTO> getAllTaskStatuses() {
+        return taskStatusRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Pobiera wszystkie statusy zadań posortowane według kolejności wyświetlania jako obiekty DTO.
+     *
+     * @return Lista statusów zadań posortowanych według kolejności wyświetlania jako DTO
+     */
+    public List<TaskStatusDTO> getAllTaskStatusesSorted() {
+        return taskStatusRepository.findAllByOrderByDisplayOrderAsc().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Pobiera status zadania na podstawie jego identyfikatora jako obiekt DTO.
      *
      * @param id Identyfikator statusu zadania
-     * @return Opcjonalny status zadania, jeśli istnieje
+     * @return Opcjonalny status zadania jako DTO, jeśli istnieje
      */
-    public Optional<TaskStatus> getTaskStatusById(Integer id) {
-        return taskStatusRepository.findById(id);
+    public Optional<TaskStatusDTO> getTaskStatusById(Integer id) {
+        return taskStatusRepository.findById(id)
+                .map(this::mapToDTO);
     }
 
     /**
-     * Pobiera status zadania na podstawie jego nazwy.
+     * Pobiera status zadania na podstawie jego nazwy jako obiekt DTO.
      *
      * @param name Nazwa statusu zadania
-     * @return Opcjonalny status zadania, jeśli istnieje
+     * @return Opcjonalny status zadania jako DTO, jeśli istnieje
      */
-    public Optional<TaskStatus> getTaskStatusByName(String name) {
-        return taskStatusRepository.findByName(name);
+    public Optional<TaskStatusDTO> getTaskStatusByName(String name) {
+        return taskStatusRepository.findByName(name)
+                .map(this::mapToDTO);
     }
 
     /**
-     * Zapisuje nowy status zadania lub aktualizuje istniejący.
+     * Zapisuje nowy status zadania lub aktualizuje istniejący na podstawie DTO.
      *
-     * @param taskStatus Status zadania do zapisania
-     * @return Zapisany status zadania
+     * @param taskStatusDTO DTO statusu zadania do zapisania
+     * @return Zapisany status zadania jako DTO
      */
-    public TaskStatus saveTaskStatus(TaskStatus taskStatus) {
-        return taskStatusRepository.save(taskStatus);
+    public TaskStatusDTO saveTaskStatus(TaskStatusDTO taskStatusDTO) {
+        TaskStatus taskStatus = mapToEntity(taskStatusDTO);
+        TaskStatus savedTaskStatus = taskStatusRepository.save(taskStatus);
+        return mapToDTO(savedTaskStatus);
     }
 
     /**
-     * Tworzy nowy status zadania z podanymi parametrami.
+     * Tworzy nowy status zadania z podanymi parametrami i zwraca go jako DTO.
      *
      * @param name          Nazwa statusu zadania
      * @param progressMin   Minimalny procent postępu dla tego statusu
      * @param progressMax   Maksymalny procent postępu dla tego statusu
      * @param displayOrder  Kolejność wyświetlania statusu
-     * @return Utworzony status zadania
+     * @return Utworzony status zadania jako DTO
      */
-    public TaskStatus createTaskStatus(String name, Integer progressMin,
-                                       Integer progressMax, Integer displayOrder) {
+    public TaskStatusDTO createTaskStatus(String name, Integer progressMin,
+                                             Integer progressMax, Integer displayOrder) {
         TaskStatus taskStatus = new TaskStatus();
         taskStatus.setName(name);
         taskStatus.setProgressMin(progressMin);
         taskStatus.setProgressMax(progressMax);
         taskStatus.setDisplayOrder(displayOrder);
 
-        return taskStatusRepository.save(taskStatus);
+        TaskStatus savedTaskStatus = taskStatusRepository.save(taskStatus);
+        return mapToDTO(savedTaskStatus);
     }
 
     /**
@@ -135,17 +184,18 @@ public class TaskStatusService {
     }
 
     /**
-     * Aktualizuje kolejność wyświetlania statusu zadania.
+     * Aktualizuje kolejność wyświetlania statusu zadania i zwraca zaktualizowany status jako DTO.
      *
      * @param id           Identyfikator statusu zadania
      * @param displayOrder Nowa kolejność wyświetlania
-     * @return Zaktualizowany status zadania lub Optional.empty() jeśli status nie istnieje
+     * @return Zaktualizowany status zadania jako DTO lub Optional.empty() jeśli status nie istnieje
      */
-    public Optional<TaskStatus> updateDisplayOrder(Integer id, Integer displayOrder) {
+    public Optional<TaskStatusDTO> updateDisplayOrder(Integer id, Integer displayOrder) {
         return taskStatusRepository.findById(id)
                 .map(status -> {
                     status.setDisplayOrder(displayOrder);
-                    return taskStatusRepository.save(status);
+                    TaskStatus updatedStatus = taskStatusRepository.save(status);
+                    return mapToDTO(updatedStatus);
                 });
     }
 }

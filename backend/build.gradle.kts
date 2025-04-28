@@ -38,6 +38,7 @@ dependencies {
 
     implementation("jakarta.validation:jakarta.validation-api:3.1.1")
     implementation("javax.validation:validation-api:2.0.1.Final")
+    implementation("org.hibernate.validator:hibernate-validator:8.0.1.Final")
 }
 
 tasks.withType<Test> {

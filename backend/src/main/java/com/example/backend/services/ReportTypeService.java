@@ -1,5 +1,6 @@
 package com.example.backend.services;
 
+import com.example.backend.dto.ReportTypeDTO;
 import com.example.backend.models.ReportType;
 import com.example.backend.repository.ReportTypeRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Serwis obsługujący operacje dla encji {@link ReportType}.
@@ -26,7 +28,7 @@ public class ReportTypeService {
     private final ReportTypeRepository reportTypeRepository;
 
     /**
-     * Konstruktor wstrzykujący zależność do repozytorium typów raportów.
+     * Konstruktor wstrzykujący zależności do repozytorium typów raportów.
      *
      * @param reportTypeRepository Repozytorium typów raportów
      */
@@ -36,22 +38,63 @@ public class ReportTypeService {
     }
 
     /**
+     * Konwertuje encję ReportType na obiekt DTO.
+     *
+     * @param entity Encja ReportType do konwersji
+     * @return Obiekt DTO reprezentujący typ raportu
+     */
+    public ReportTypeDTO mapToDTO(ReportType entity) {
+        if (entity == null) {
+            return null;
+        }
+        
+        ReportTypeDTO dto = new ReportTypeDTO();
+        dto.setId(entity.getId());
+        dto.setName(entity.getName());
+        dto.setDescription(entity.getDescription());
+        dto.setTemplatePath(entity.getTemplatePath());
+        return dto;
+    }
+    
+    /**
+     * Konwertuje obiekt DTO na encję ReportType.
+     *
+     * @param dto Obiekt DTO do konwersji
+     * @return Encja ReportType
+     */
+    public ReportType mapToEntity(ReportTypeDTO dto) {
+        if (dto == null) {
+            return null;
+        }
+        
+        ReportType entity = new ReportType();
+        entity.setId(dto.getId());
+        entity.setName(dto.getName());
+        entity.setDescription(dto.getDescription());
+        entity.setTemplatePath(dto.getTemplatePath());
+        return entity;
+    }
+
+    /**
      * Pobiera wszystkie typy raportów.
      *
-     * @return Lista wszystkich typów raportów
+     * @return Lista wszystkich typów raportów jako DTO
      */
-    public List<ReportType> getAllReportTypes() {
-        return reportTypeRepository.findAll();
+    public List<ReportTypeDTO> getAllReportTypes() {
+        return reportTypeRepository.findAll().stream()
+                .map(this::mapToDTO)
+                .collect(Collectors.toList());
     }
 
     /**
      * Pobiera typ raportu na podstawie jego identyfikatora.
      *
      * @param id Identyfikator typu raportu
-     * @return Opcjonalny typ raportu, jeśli istnieje
+     * @return Opcjonalny typ raportu jako DTO, jeśli istnieje
      */
-    public Optional<ReportType> getReportTypeById(Integer id) {
-        return reportTypeRepository.findById(id);
+    public Optional<ReportTypeDTO> getReportTypeById(Integer id) {
+        return reportTypeRepository.findById(id)
+                .map(this::mapToDTO);
     }
 
     /**
@@ -60,18 +103,20 @@ public class ReportTypeService {
      * @param name Nazwa typu raportu
      * @return Opcjonalny typ raportu, jeśli istnieje
      */
-    public Optional<ReportType> getReportTypeByName(String name) {
-        return reportTypeRepository.findByName(name);
+    public Optional<ReportTypeDTO> getReportTypeByName(String name) {
+        return reportTypeRepository.findByName(name)
+                .map(this::mapToDTO);
     }
 
     /**
      * Zapisuje nowy typ raportu lub aktualizuje istniejący.
      *
-     * @param reportType Typ raportu do zapisania
-     * @return Zapisany typ raportu
+     * @param dto Typ raportu jako DTO do zapisania
+     * @return Zapisany typ raportu jako DTO
      */
-    public ReportType saveReportType(ReportType reportType) {
-        return reportTypeRepository.save(reportType);
+    public ReportType saveReportType(ReportTypeDTO dto) {
+        ReportType entity = mapToEntity(dto);
+        return reportTypeRepository.save(entity);
     }
 
     /**
@@ -99,14 +144,11 @@ public class ReportTypeService {
      */
     public void deleteReportType(Integer id) {
         Optional<ReportType> typeOpt = reportTypeRepository.findById(id);
-
         if (typeOpt.isPresent()) {
             ReportType type = typeOpt.get();
-
             if (type.getReports() != null && !type.getReports().isEmpty()) {
                 throw new IllegalStateException("Nie można usunąć typu raportu, do którego przypisane są raporty");
             }
-
             reportTypeRepository.deleteById(id);
         }
     }
@@ -119,20 +161,5 @@ public class ReportTypeService {
      */
     public boolean existsByName(String name) {
         return reportTypeRepository.findByName(name).isPresent();
-    }
-
-    /**
-     * Aktualizuje ścieżkę szablonu dla typu raportu.
-     *
-     * @param id           Identyfikator typu raportu
-     * @param templatePath Nowa ścieżka szablonu
-     * @return Zaktualizowany typ raportu lub Optional.empty() jeśli typ nie istnieje
-     */
-    public Optional<ReportType> updateTemplatePath(Integer id, String templatePath) {
-        return reportTypeRepository.findById(id)
-                .map(type -> {
-                    type.setTemplatePath(templatePath);
-                    return reportTypeRepository.save(type);
-                });
     }
 }

@@ -1,14 +1,18 @@
-package  com.example.backend.controllers;
+package com.example.backend.controllers;
 
-import com.example.backend.models.Task;
+import com.example.backend.dto.TaskDTO;
 import com.example.backend.services.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Kontroler REST dla operacji na zadaniach.
@@ -18,7 +22,7 @@ import java.util.List;
  * wyszukiwanie zadań według różnych kryteriów.
  *
  * @author Karol
- * @version 1.0.0
+ * @version 1.0.2
  * @since 1.0.0
  */
 @RestController
@@ -42,9 +46,9 @@ public class TaskController {
      *
      * @return Lista wszystkich zadań
      */
-    @GetMapping
-    public ResponseEntity<List<Task>> getAllTasks() {
-        List<Task> tasks = taskService.getAllTasks();
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TaskDTO>> getAllTasks() {
+        List<TaskDTO> tasks = taskService.getAllTasks();
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
@@ -54,8 +58,8 @@ public class TaskController {
      * @param id Identyfikator zadania
      * @return Zadanie lub status 404, jeśli nie istnieje
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskById(@PathVariable Integer id) {
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskDTO> getTaskById(@PathVariable Integer id) {
         return taskService.getTaskById(id)
                 .map(task -> new ResponseEntity<>(task, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -64,31 +68,66 @@ public class TaskController {
     /**
      * Tworzy nowe zadanie.
      *
-     * @param task Dane nowego zadania
+     * @param taskDTO Dane nowego zadania
      * @return Utworzone zadanie
      */
-    @PostMapping
-    public ResponseEntity<Task> createTask(@RequestBody Task task) {
-        Task savedTask = taskService.saveTask(task);
-        return new ResponseEntity<>(savedTask, HttpStatus.CREATED);
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskDTO> createTask(@Valid @RequestBody TaskDTO taskDTO) {
+        try {
+            TaskDTO savedTask = taskService.saveTask(taskDTO);
+            return new ResponseEntity<>(savedTask, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
      * Aktualizuje istniejące zadanie.
      *
-     * @param id   Identyfikator zadania
-     * @param task Zaktualizowane dane zadania
+     * @param id     Identyfikator zadania
+     * @param taskDTO Zaktualizowane dane zadania
      * @return Zaktualizowane zadanie lub status 404, jeśli nie istnieje
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<Task> updateTask(@PathVariable Integer id, @RequestBody Task task) {
-        return taskService.getTaskById(id)
-                .map(existingTask -> {
-                    task.setId(id);
-                    Task updatedTask = taskService.updateTask(task);
-                    return new ResponseEntity<>(updatedTask, HttpStatus.OK);
-                })
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updateTask(@PathVariable Integer id, @Valid @RequestBody TaskDTO taskDTO) {
+        try {
+            return taskService.getTaskById(id)
+                    .map(existingTask -> {
+                        // Upewniamy się, że ID w DTO jest prawidłowe
+                        taskDTO.setId(id);
+
+                        // Zachowujemy ważne pola z istniejącego zadania, jeśli nie zostały podane w żądaniu
+                        if (taskDTO.getTeamId() == null && existingTask.getTeamId() != null) {
+                            taskDTO.setTeamId(existingTask.getTeamId());
+                        }
+
+                        if (taskDTO.getPriorityId() == null && existingTask.getPriorityId() != null) {
+                            taskDTO.setPriorityId(existingTask.getPriorityId());
+                        }
+
+                        if (taskDTO.getStatusId() == null && existingTask.getStatusId() != null) {
+                            taskDTO.setStatusId(existingTask.getStatusId());
+                        }
+
+                        if (taskDTO.getCreatedById() == null && existingTask.getCreatedById() != null) {
+                            taskDTO.setCreatedById(existingTask.getCreatedById());
+                        }
+
+                        // Zachowujemy datę utworzenia z istniejącego zadania
+                        if (existingTask.getCreatedAt() != null) {
+                            taskDTO.setCreatedAt(existingTask.getCreatedAt());
+                        }
+
+                        TaskDTO updatedTask = taskService.updateTask(taskDTO);
+                        return new ResponseEntity<>(updatedTask, HttpStatus.OK);
+                    })
+                    .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Wystąpił błąd podczas aktualizacji zadania");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -113,9 +152,9 @@ public class TaskController {
      * @param teamId ID zespołu
      * @return Lista zadań przypisanych do zespołu
      */
-    @GetMapping("/team/{teamId}")
-    public ResponseEntity<List<Task>> getTasksByTeamId(@PathVariable Integer teamId) {
-        List<Task> tasks = taskService.getTasksByTeamId(teamId);
+    @GetMapping(value = "/team/{teamId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TaskDTO>> getTasksByTeamId(@PathVariable Integer teamId) {
+        List<TaskDTO> tasks = taskService.getTasksByTeamId(teamId);
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
@@ -125,9 +164,9 @@ public class TaskController {
      * @param statusId ID statusu
      * @return Lista zadań o określonym statusie
      */
-    @GetMapping("/status/{statusId}")
-    public ResponseEntity<List<Task>> getTasksByStatusId(@PathVariable Integer statusId) {
-        List<Task> tasks = taskService.getTasksByStatusId(statusId);
+    @GetMapping(value = "/status/{statusId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TaskDTO>> getTasksByStatusId(@PathVariable Integer statusId) {
+        List<TaskDTO> tasks = taskService.getTasksByStatusId(statusId);
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
@@ -137,9 +176,9 @@ public class TaskController {
      * @param priorityId ID priorytetu
      * @return Lista zadań o określonym priorytecie
      */
-    @GetMapping("/priority/{priorityId}")
-    public ResponseEntity<List<Task>> getTasksByPriorityId(@PathVariable Integer priorityId) {
-        List<Task> tasks = taskService.getTasksByPriorityId(priorityId);
+    @GetMapping(value = "/priority/{priorityId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TaskDTO>> getTasksByPriorityId(@PathVariable Integer priorityId) {
+        List<TaskDTO> tasks = taskService.getTasksByPriorityId(priorityId);
         return new ResponseEntity<>(tasks, HttpStatus.OK);
     }
 
@@ -149,8 +188,8 @@ public class TaskController {
      * @param title Tytuł zadania
      * @return Zadanie lub status 404, jeśli nie istnieje
      */
-    @GetMapping("/title/{title}")
-    public ResponseEntity<Task> getTaskByTitle(@PathVariable String title) {
+    @GetMapping(value = "/title/{title}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskDTO> getTaskByTitle(@PathVariable String title) {
         return taskService.getTaskByTitle(title)
                 .map(task -> new ResponseEntity<>(task, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -162,10 +201,14 @@ public class TaskController {
      * @param date Data graniczna w formacie "yyyy-MM-dd"
      * @return Lista zadań z terminem przed podaną datą
      */
-    @GetMapping("/deadline-before/{date}")
-    public ResponseEntity<List<Task>> getTasksWithDeadlineBefore(@PathVariable String date) {
-        LocalDate localDate = LocalDate.parse(date);
-        List<Task> tasks = taskService.getTasksWithDeadlineBefore(localDate);
-        return new ResponseEntity<>(tasks, HttpStatus.OK);
+    @GetMapping(value = "/deadline-before/{date}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<TaskDTO>> getTasksWithDeadlineBefore(@PathVariable String date) {
+        try {
+            LocalDate localDate = LocalDate.parse(date);
+            List<TaskDTO> tasks = taskService.getTasksWithDeadlineBefore(localDate);
+            return new ResponseEntity<>(tasks, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
     }
 }

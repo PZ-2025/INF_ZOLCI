@@ -1,14 +1,17 @@
 package com.example.backend.controllers;
 
-import com.example.backend.models.SystemSetting;
+import com.example.backend.dto.SystemSettingDTO;
+import com.example.backend.dto.UserDTO;
 import com.example.backend.models.User;
 import com.example.backend.services.SystemSettingService;
 import com.example.backend.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,7 +23,7 @@ import java.util.Optional;
  * w tym tworzenie, odczyt, aktualizację i usuwanie ustawień.
  *
  * @author Jakub
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 @RestController
@@ -44,13 +47,33 @@ public class SystemSettingController {
     }
 
     /**
+     * Mapuje UserDTO na encję User.
+     *
+     * @param userDTO DTO użytkownika
+     * @return encja User
+     */
+    private User mapUserDtoToEntity(UserDTO userDTO) {
+        User user = new User();
+        user.setId(userDTO.getId());
+        user.setUsername(userDTO.getUsername());
+        user.setEmail(userDTO.getEmail());
+        user.setFirstName(userDTO.getFirstName());
+        user.setLastName(userDTO.getLastName());
+        user.setRole(userDTO.getRole());
+        user.setIsActive(userDTO.getIsActive());
+        // Pomijamy hasło i inne wrażliwe dane
+        // user.setCreatedAt() i user.setLastLogin() również pomijamy
+        return user;
+    }
+
+    /**
      * Pobiera wszystkie ustawienia systemowe.
      *
      * @return Lista wszystkich ustawień systemowych
      */
-    @GetMapping
-    public ResponseEntity<List<SystemSetting>> getAllSystemSettings() {
-        List<SystemSetting> settings = systemSettingService.getAllSystemSettings();
+    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<List<SystemSettingDTO>> getAllSystemSettings() {
+        List<SystemSettingDTO> settings = systemSettingService.getAllSystemSettings();
         return new ResponseEntity<>(settings, HttpStatus.OK);
     }
 
@@ -60,8 +83,8 @@ public class SystemSettingController {
      * @param id Identyfikator ustawienia systemowego
      * @return Ustawienie systemowe lub status 404, jeśli nie istnieje
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<SystemSetting> getSystemSettingById(@PathVariable Integer id) {
+    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<SystemSettingDTO> getSystemSettingById(@PathVariable Integer id) {
         return systemSettingService.getSystemSettingById(id)
                 .map(setting -> new ResponseEntity<>(setting, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -73,8 +96,8 @@ public class SystemSettingController {
      * @param key Klucz ustawienia systemowego
      * @return Ustawienie systemowe lub status 404, jeśli nie istnieje
      */
-    @GetMapping("/key/{key}")
-    public ResponseEntity<SystemSetting> getSystemSettingByKey(@PathVariable String key) {
+    @GetMapping(value = "/key/{key}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<SystemSettingDTO> getSystemSettingByKey(@PathVariable String key) {
         return systemSettingService.getSystemSettingByKey(key)
                 .map(setting -> new ResponseEntity<>(setting, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
@@ -87,7 +110,7 @@ public class SystemSettingController {
      * @param defaultValue Domyślna wartość, jeśli ustawienie nie istnieje
      * @return Wartość ustawienia lub domyślna wartość
      */
-    @GetMapping("/value/{key}")
+    @GetMapping(value = "/value/{key}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<String> getSettingValue(
             @PathVariable String key,
             @RequestParam(required = false, defaultValue = "") String defaultValue) {
@@ -99,17 +122,30 @@ public class SystemSettingController {
     /**
      * Tworzy nowe ustawienie systemowe.
      *
-     * @param systemSetting Dane nowego ustawienia systemowego
+     * @param systemSettingDTO Dane nowego ustawienia systemowego
      * @return Utworzone ustawienie systemowe
      */
-    @PostMapping
-    public ResponseEntity<SystemSetting> createSystemSetting(@RequestBody SystemSetting systemSetting) {
-        if (systemSettingService.existsByKey(systemSetting.getKey())) {
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<SystemSettingDTO> createSystemSetting(@Valid @RequestBody SystemSettingDTO systemSettingDTO) {
+        // Sprawdzanie, czy klucz już istnieje
+        if (systemSettingService.existsByKey(systemSettingDTO.getKey())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        SystemSetting savedSetting = systemSettingService.saveSystemSetting(systemSetting);
-        return new ResponseEntity<>(savedSetting, HttpStatus.CREATED);
+        // Sprawdzanie, czy podany użytkownik istnieje
+        if (systemSettingDTO.getUpdatedById() != null) {
+            Optional<UserDTO> userDtoOpt = userService.getUserById(systemSettingDTO.getUpdatedById());
+            if (userDtoOpt.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        try {
+            SystemSettingDTO savedSetting = systemSettingService.saveSystemSetting(systemSettingDTO);
+            return new ResponseEntity<>(savedSetting, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -118,8 +154,8 @@ public class SystemSettingController {
      * @param payload Mapa zawierająca key, value, description, updatedById
      * @return Utworzone ustawienie systemowe lub status błędu
      */
-    @PostMapping("/create")
-    public ResponseEntity<SystemSetting> createSystemSettingFromParams(@RequestBody Map<String, Object> payload) {
+    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<SystemSettingDTO> createSystemSettingFromParams(@RequestBody Map<String, Object> payload) {
         String key = (String) payload.get("key");
         String value = (String) payload.get("value");
         String description = (String) payload.get("description");
@@ -133,34 +169,51 @@ public class SystemSettingController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        Optional<User> userOpt = userService.getUserById(updatedById);
-        if (userOpt.isEmpty()) {
+        Optional<UserDTO> userDtoOpt = userService.getUserById(updatedById);
+        if (userDtoOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        SystemSetting newSetting = systemSettingService.createSystemSetting(
-                key, value, description, userOpt.get());
+        User user = mapUserDtoToEntity(userDtoOpt.get());
 
-        return new ResponseEntity<>(newSetting, HttpStatus.CREATED);
+        try {
+            SystemSettingDTO newSetting = systemSettingService.createSystemSetting(
+                    key, value, description, user);
+            return new ResponseEntity<>(newSetting, HttpStatus.CREATED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
      * Aktualizuje istniejące ustawienie systemowe.
      *
      * @param id            Identyfikator ustawienia systemowego
-     * @param systemSetting Zaktualizowane dane ustawienia systemowego
+     * @param systemSettingDTO Zaktualizowane dane ustawienia systemowego
      * @return Zaktualizowane ustawienie systemowe lub status 404, jeśli nie istnieje
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<SystemSetting> updateSystemSetting(@PathVariable Integer id,
-                                                             @RequestBody SystemSetting systemSetting) {
-        if (!systemSettingService.getSystemSettingById(id).isPresent()) {
+    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<SystemSettingDTO> updateSystemSetting(@PathVariable Integer id,
+                                                                @Valid @RequestBody SystemSettingDTO systemSettingDTO) {
+        if (systemSettingService.getSystemSettingById(id).isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        systemSetting.setId(id);
-        SystemSetting updatedSetting = systemSettingService.saveSystemSetting(systemSetting);
-        return new ResponseEntity<>(updatedSetting, HttpStatus.OK);
+        // Sprawdzanie, czy podany użytkownik istnieje
+        if (systemSettingDTO.getUpdatedById() != null) {
+            Optional<UserDTO> userDtoOpt = userService.getUserById(systemSettingDTO.getUpdatedById());
+            if (userDtoOpt.isEmpty()) {
+                return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+            }
+        }
+
+        systemSettingDTO.setId(id);
+        try {
+            SystemSettingDTO updatedSetting = systemSettingService.saveSystemSetting(systemSettingDTO);
+            return new ResponseEntity<>(updatedSetting, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -170,8 +223,8 @@ public class SystemSettingController {
      * @param payload  Mapa zawierająca value, updatedById
      * @return Zaktualizowane ustawienie systemowe lub status 404, jeśli nie istnieje
      */
-    @PatchMapping("/key/{key}")
-    public ResponseEntity<SystemSetting> updateSettingValue(
+    @PatchMapping(value = "/key/{key}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<SystemSettingDTO> updateSettingValue(
             @PathVariable String key,
             @RequestBody Map<String, Object> payload) {
 
@@ -182,14 +235,20 @@ public class SystemSettingController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        Optional<User> userOpt = userService.getUserById(updatedById);
-        if (userOpt.isEmpty()) {
+        Optional<UserDTO> userDtoOpt = userService.getUserById(updatedById);
+        if (userDtoOpt.isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        return systemSettingService.updateValue(key, value, userOpt.get())
-                .map(setting -> new ResponseEntity<>(setting, HttpStatus.OK))
-                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        User user = mapUserDtoToEntity(userDtoOpt.get());
+
+        try {
+            return systemSettingService.updateValue(key, value, user)
+                    .map(setting -> new ResponseEntity<>(setting, HttpStatus.OK))
+                    .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     /**
@@ -200,11 +259,15 @@ public class SystemSettingController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteSystemSetting(@PathVariable Integer id) {
-        if (!systemSettingService.getSystemSettingById(id).isPresent()) {
+        if (systemSettingService.getSystemSettingById(id).isEmpty()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        systemSettingService.deleteSystemSetting(id);
-        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        try {
+            systemSettingService.deleteSystemSetting(id);
+            return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+        } catch (Exception e) {
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
