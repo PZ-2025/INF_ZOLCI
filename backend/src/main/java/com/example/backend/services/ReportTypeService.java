@@ -98,42 +98,14 @@ public class ReportTypeService {
     }
 
     /**
-     * Pobiera typ raportu na podstawie jego nazwy.
-     *
-     * @param name Nazwa typu raportu
-     * @return Opcjonalny typ raportu, jeśli istnieje
-     */
-    public Optional<ReportTypeDTO> getReportTypeByName(String name) {
-        return reportTypeRepository.findByName(name)
-                .map(this::mapToDTO);
-    }
-
-    /**
      * Zapisuje nowy typ raportu lub aktualizuje istniejący.
      *
      * @param dto Typ raportu jako DTO do zapisania
      * @return Zapisany typ raportu jako DTO
      */
-    public ReportType saveReportType(ReportTypeDTO dto) {
+    public ReportTypeDTO saveReportType(ReportTypeDTO dto) {
         ReportType entity = mapToEntity(dto);
-        return reportTypeRepository.save(entity);
-    }
-
-    /**
-     * Tworzy nowy typ raportu z podanymi parametrami.
-     *
-     * @param name         Nazwa typu raportu
-     * @param description  Opis typu raportu
-     * @param templatePath Ścieżka do szablonu raportu
-     * @return Utworzony typ raportu
-     */
-    public ReportType createReportType(String name, String description, String templatePath) {
-        ReportType reportType = new ReportType();
-        reportType.setName(name);
-        reportType.setDescription(description);
-        reportType.setTemplatePath(templatePath);
-
-        return reportTypeRepository.save(reportType);
+        return mapToDTO(reportTypeRepository.save(entity));
     }
 
     /**
