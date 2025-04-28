@@ -1,10 +1,12 @@
-package com.example.backend.models;
+package  com.example.backend.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -47,7 +49,7 @@ public class User {
      * Hasło użytkownika, wykorzystywane do logowania.
      */
     @Column(name = "password", nullable = false)
-    @JsonIgnore // Zachowujemy tę adnotację dla bezpieczeństwa
+    @JsonIgnore
     private String password;
 
     /**
@@ -103,25 +105,28 @@ public class User {
      * Zespoły, które są zarządzane przez tego użytkownika. Powiązane z encją {@code Team}.
      */
     @OneToMany(mappedBy = "manager")
+    @JsonManagedReference(value = "user-managed-teams")
     private List<Team> managedTeams;
 
     /**
      * Członkostwa użytkownika w zespołach. Powiązane z encją {@link TeamMember}.
      */
     @OneToMany(mappedBy = "user")
+    @JsonBackReference(value = "user-team-memberships")
     private Set<TeamMember> teamMemberships = new HashSet<>();
 
     /**
      * Zadania utworzone przez użytkownika. Powiązane z encją {@link Task}.
      */
     @OneToMany(mappedBy = "createdBy")
+    @JsonBackReference(value = "user-created-tasks")
     private Set<Task> createdTasks = new HashSet<>();
 
     /**
      * Komentarze użytkownika w zadaniach. Powiązane z encją {@link TaskComment}.
      */
     @OneToMany(mappedBy = "user")
-    @JsonIgnore // Zachowujemy, bo to relacja lazy-loaded
+    @JsonIgnore
     private Set<TaskComment> comments = new HashSet<>();
 
     /**
@@ -134,12 +139,14 @@ public class User {
      * Raporty utworzone przez użytkownika. Powiązane z encją {@link Report}.
      */
     @OneToMany(mappedBy = "createdBy")
+    @JsonBackReference(value = "user-created-reports")
     private Set<Report> reports = new HashSet<>();
 
     /**
      * Ustawienia systemowe zaktualizowane przez użytkownika. Powiązane z encją {@code SystemSetting}.
      */
     @OneToMany(mappedBy = "updatedBy")
+    @JsonBackReference(value = "user-updated-settings")
     private Set<SystemSetting> updatedSettings = new HashSet<>();
 
     /**
@@ -147,6 +154,6 @@ public class User {
      * Konstruktor bezparametrowy wymagany przez JPA.
      */
     public User() {
-        // Domyślny konstruktor, wymagany przez JPA.
+        // Domyślny konstruktor, wymagany przez JPA do tworzenia nowych instancji encji.
     }
 }
