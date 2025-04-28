@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class DatabaseHealthChecker {
 
-
+    private static final Logger logger = LoggerFactory.getLogger(DatabaseHealthChecker.class);
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -29,7 +29,29 @@ public class DatabaseHealthChecker {
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    /**
+     * Sprawdza, czy połączenie z bazą danych jest dostępne.
+     *
+     * @return true jeśli połączenie jest dostępne, false w przeciwnym razie
+     */
+    public boolean isDatabaseConnected() {
+        try {
+            jdbcTemplate.queryForObject("SELECT 1", Integer.class);
+            return true;
+        } catch (DataAccessException e) {
+            logger.error("Błąd podczas sprawdzania połączenia z bazą danych", e);
+            return false;
+        }
+    }
 
-
-
+    /**
+     * Sprawdza połączenie z bazą danych i rzuca wyjątek, jeśli jest niedostępne.
+     *
+     * @throws DatabaseConnectionException jeśli połączenie jest niedostępne
+     */
+    public void checkDatabaseConnection() {
+        if (!isDatabaseConnected()) {
+            throw new DatabaseConnectionException("Baza danych jest obecnie niedostępna");
+        }
+    }
 }

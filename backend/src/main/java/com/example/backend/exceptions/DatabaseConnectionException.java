@@ -12,6 +12,14 @@ package com.example.backend.exceptions;
  */
 public class DatabaseConnectionException extends RuntimeException {
 
+    /**
+     * Konstruktor z komunikatem błędu.
+     *
+     * @param message komunikat opisujący błąd
+     */
+    public DatabaseConnectionException(String message) {
+        super(message);
+    }
 
     /**
      * Konstruktor z komunikatem błędu i przyczyną.
