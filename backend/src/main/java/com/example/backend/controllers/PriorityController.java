@@ -45,7 +45,7 @@ public class PriorityController {
      */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<PriorityDTO>> getAllPriorities() {
-        List<PriorityDTO> priorities = priorityService.getAllPriorities();
+        List<PriorityDTO> priorities = priorityService.getAllPrioritiesDTO();
         return new ResponseEntity<>(priorities, HttpStatus.OK);
     }
 
@@ -56,7 +56,7 @@ public class PriorityController {
      */
     @GetMapping(value = "/sorted", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<PriorityDTO>> getAllPrioritiesSorted() {
-        List<PriorityDTO> priorities = priorityService.getAllPrioritiesSortedByValue();
+        List<PriorityDTO> priorities = priorityService.getAllPrioritiesSortedByValueDTO();
         return new ResponseEntity<>(priorities, HttpStatus.OK);
     }
 
@@ -68,7 +68,7 @@ public class PriorityController {
      */
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PriorityDTO> getPriorityById(@PathVariable Integer id) {
-        return priorityService.getPriorityById(id)
+        return priorityService.getPriorityDTOById(id)
                 .map(priority -> new ResponseEntity<>(priority, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -81,7 +81,7 @@ public class PriorityController {
      */
     @GetMapping(value = "/name/{name}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PriorityDTO> getPriorityByName(@PathVariable String name) {
-        return priorityService.getPriorityByName(name)
+        return priorityService.getPriorityDTOByName(name)
                 .map(priority -> new ResponseEntity<>(priority, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -98,7 +98,7 @@ public class PriorityController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        PriorityDTO savedPriority = priorityService.savePriority(priorityDTO);
+        PriorityDTO savedPriority = priorityService.savePriorityDTO(priorityDTO);
         return new ResponseEntity<>(savedPriority, HttpStatus.CREATED);
     }
 
@@ -122,7 +122,7 @@ public class PriorityController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        PriorityDTO newPriority = priorityService.createPriority(name, value, colorCode);
+        PriorityDTO newPriority = priorityService.createPriorityDTO(name, value, colorCode);
         return new ResponseEntity<>(newPriority, HttpStatus.CREATED);
     }
 
@@ -136,12 +136,12 @@ public class PriorityController {
     @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PriorityDTO> updatePriority(@PathVariable Integer id,
                                                       @Valid @RequestBody PriorityDTO priorityDTO) {
-        if (!priorityService.getPriorityById(id).isPresent()) {
+        if (!priorityService.getPriorityDTOById(id).isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
         priorityDTO.setId(id);
-        PriorityDTO updatedPriority = priorityService.savePriority(priorityDTO);
+        PriorityDTO updatedPriority = priorityService.savePriorityDTO(priorityDTO);
         return new ResponseEntity<>(updatedPriority, HttpStatus.OK);
     }
 
@@ -161,7 +161,7 @@ public class PriorityController {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        return priorityService.updateColor(id, colorCode)
+        return priorityService.updateColorDTO(id, colorCode)
                 .map(priority -> new ResponseEntity<>(priority, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -174,7 +174,7 @@ public class PriorityController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePriority(@PathVariable Integer id) {
-        if (!priorityService.getPriorityById(id).isPresent()) {
+        if (!priorityService.getPriorityDTOById(id).isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
