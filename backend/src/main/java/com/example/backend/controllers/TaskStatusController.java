@@ -1,5 +1,6 @@
 package com.example.backend.controllers;
 
+import com.example.backend.models.TaskStatus;
 import com.example.backend.dto.TaskStatusDTO;
 import com.example.backend.services.TaskStatusService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -8,7 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
+import javax.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
@@ -45,7 +46,7 @@ public class TaskStatusController {
      */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaskStatusDTO>> getAllTaskStatuses() {
-        List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatusesDTO();
+        List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatuses();
         return new ResponseEntity<>(statuses, HttpStatus.OK);
     }
 
@@ -56,7 +57,7 @@ public class TaskStatusController {
      */
     @GetMapping(value = "/sorted", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TaskStatusDTO>> getAllTaskStatusesSorted() {
-        List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatusesSortedDTO();
+        List<TaskStatusDTO> statuses = taskStatusService.getAllTaskStatusesSorted();
         return new ResponseEntity<>(statuses, HttpStatus.OK);
     }
 
@@ -66,22 +67,19 @@ public class TaskStatusController {
      * @param id Identyfikator statusu zadania
      * @return Status zadania lub status 404, jeśli nie istnieje
      */
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping("/{id}")
     public ResponseEntity<TaskStatusDTO> getTaskStatusById(@PathVariable Integer id) {
-        return taskStatusService.getTaskStatusDTOById(id)
+        return taskStatusService.getTaskStatusById(id)
                 .map(status -> new ResponseEntity<>(status, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 
     /**
      * Pobiera status zadania na podstawie jego nazwy.
-     *
-     * @param name Nazwa statusu zadania
-     * @return Status zadania lub status 404, jeśli nie istnieje
      */
-    @GetMapping(value = "/name/{name}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @GetMapping("/name/{name}")
     public ResponseEntity<TaskStatusDTO> getTaskStatusByName(@PathVariable String name) {
-        return taskStatusService.getTaskStatusDTOByName(name)
+        return taskStatusService.getTaskStatusByName(name)
                 .map(status -> new ResponseEntity<>(status, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -89,26 +87,24 @@ public class TaskStatusController {
     /**
      * Tworzy nowy status zadania.
      *
-     * @param taskStatusDTO Dane nowego statusu zadania
+     * @param taskStatus Dane nowego statusu zadania
      * @return Utworzony status zadania
      */
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TaskStatusDTO> createTaskStatus(@Valid @RequestBody TaskStatusDTO taskStatusDTO) {
-        if (taskStatusService.existsByName(taskStatusDTO.getName())) {
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, 
+                produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TaskStatusDTO> createTaskStatus(@Valid @RequestBody TaskStatusDTO taskStatus) {
+        if (taskStatusService.existsByName(taskStatus.getName())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        TaskStatusDTO savedStatus = taskStatusService.saveTaskStatusDTO(taskStatusDTO);
+        TaskStatusDTO savedStatus = taskStatusService.saveTaskStatus(taskStatus);
         return new ResponseEntity<>(savedStatus, HttpStatus.CREATED);
     }
 
     /**
      * Tworzy nowy status zadania na podstawie podanych parametrów.
-     *
-     * @param payload Mapa zawierająca name, progressMin, progressMax, displayOrder
-     * @return Utworzony status zadania lub status błędu
      */
-    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping("/create")
     public ResponseEntity<TaskStatusDTO> createTaskStatusFromParams(@RequestBody Map<String, Object> payload) {
         String name = (String) payload.get("name");
         Integer progressMin = (Integer) payload.get("progressMin");
@@ -123,7 +119,7 @@ public class TaskStatusController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        TaskStatusDTO newStatus = taskStatusService.createTaskStatusDTO(
+        TaskStatusDTO newStatus = taskStatusService.createTaskStatus(
                 name, progressMin, progressMax, displayOrder);
 
         return new ResponseEntity<>(newStatus, HttpStatus.CREATED);
@@ -132,39 +128,37 @@ public class TaskStatusController {
     /**
      * Aktualizuje istniejący status zadania.
      *
-     * @param id          Identyfikator statusu zadania
-     * @param taskStatusDTO Zaktualizowane dane statusu zadania
+     * @param id         Identyfikator statusu zadania
+     * @param taskStatus Zaktualizowane dane statusu zadania
      * @return Zaktualizowany status zadania lub status 404, jeśli nie istnieje
      */
-    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping("/{id}")
     public ResponseEntity<TaskStatusDTO> updateTaskStatus(@PathVariable Integer id,
-                                                          @Valid @RequestBody TaskStatusDTO taskStatusDTO) {
-        if (taskStatusService.getTaskStatusDTOById(id).isEmpty()) {
+                                                       @Valid @RequestBody TaskStatusDTO taskStatus) {
+        if (!taskStatusService.getTaskStatusById(id).isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        taskStatusDTO.setId(id);
-        TaskStatusDTO updatedStatus = taskStatusService.saveTaskStatusDTO(taskStatusDTO);
+        taskStatus.setId(id);
+        TaskStatusDTO updatedStatus = taskStatusService.saveTaskStatus(taskStatus);
         return new ResponseEntity<>(updatedStatus, HttpStatus.OK);
     }
 
     /**
      * Aktualizuje kolejność wyświetlania statusu zadania.
-     *
-     * @param id        Identyfikator statusu zadania
-     * @param payload   Mapa zawierająca displayOrder
-     * @return Zaktualizowany status zadania lub status 404, jeśli nie istnieje
      */
-    @PatchMapping(value = "/{id}/display-order", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<TaskStatusDTO> updateDisplayOrder(@PathVariable Integer id,
-                                                            @RequestBody Map<String, Integer> payload) {
+    @PatchMapping("/{id}/display-order")
+    public ResponseEntity<TaskStatusDTO> updateDisplayOrder(
+            @PathVariable Integer id,
+            @RequestBody Map<String, Integer> payload) {
+        
         Integer displayOrder = payload.get("displayOrder");
 
         if (displayOrder == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        return taskStatusService.updateDisplayOrderDTO(id, displayOrder)
+        return taskStatusService.updateDisplayOrder(id, displayOrder)
                 .map(status -> new ResponseEntity<>(status, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -177,7 +171,7 @@ public class TaskStatusController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteTaskStatus(@PathVariable Integer id) {
-        if (taskStatusService.getTaskStatusDTOById(id).isEmpty()) {
+        if (!taskStatusService.getTaskStatusById(id).isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
