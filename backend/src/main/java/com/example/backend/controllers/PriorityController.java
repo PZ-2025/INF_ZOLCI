@@ -1,14 +1,12 @@
 package com.example.backend.controllers;
 
-import com.example.backend.dto.PriorityDTO;
+import com.example.backend.models.Priority;
 import com.example.backend.services.PriorityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 
@@ -43,9 +41,9 @@ public class PriorityController {
      *
      * @return Lista wszystkich priorytetów
      */
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<PriorityDTO>> getAllPriorities() {
-        List<PriorityDTO> priorities = priorityService.getAllPrioritiesDTO();
+    @GetMapping
+    public ResponseEntity<List<Priority>> getAllPriorities() {
+        List<Priority> priorities = priorityService.getAllPriorities();
         return new ResponseEntity<>(priorities, HttpStatus.OK);
     }
 
@@ -54,9 +52,9 @@ public class PriorityController {
      *
      * @return Lista priorytetów posortowanych według wartości
      */
-    @GetMapping(value = "/sorted", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<PriorityDTO>> getAllPrioritiesSorted() {
-        List<PriorityDTO> priorities = priorityService.getAllPrioritiesSortedByValueDTO();
+    @GetMapping("/sorted")
+    public ResponseEntity<List<Priority>> getAllPrioritiesSorted() {
+        List<Priority> priorities = priorityService.getAllPrioritiesSortedByValue();
         return new ResponseEntity<>(priorities, HttpStatus.OK);
     }
 
@@ -66,9 +64,9 @@ public class PriorityController {
      * @param id Identyfikator priorytetu
      * @return Priorytet lub status 404, jeśli nie istnieje
      */
-    @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PriorityDTO> getPriorityById(@PathVariable Integer id) {
-        return priorityService.getPriorityDTOById(id)
+    @GetMapping("/{id}")
+    public ResponseEntity<Priority> getPriorityById(@PathVariable Integer id) {
+        return priorityService.getPriorityById(id)
                 .map(priority -> new ResponseEntity<>(priority, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -79,9 +77,9 @@ public class PriorityController {
      * @param name Nazwa priorytetu
      * @return Priorytet lub status 404, jeśli nie istnieje
      */
-    @GetMapping(value = "/name/{name}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PriorityDTO> getPriorityByName(@PathVariable String name) {
-        return priorityService.getPriorityDTOByName(name)
+    @GetMapping("/name/{name}")
+    public ResponseEntity<Priority> getPriorityByName(@PathVariable String name) {
+        return priorityService.getPriorityByName(name)
                 .map(priority -> new ResponseEntity<>(priority, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -89,16 +87,16 @@ public class PriorityController {
     /**
      * Tworzy nowy priorytet.
      *
-     * @param priorityDTO Dane nowego priorytetu
+     * @param priority Dane nowego priorytetu
      * @return Utworzony priorytet
      */
-    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PriorityDTO> createPriority(@Valid @RequestBody PriorityDTO priorityDTO) {
-        if (priorityService.existsByName(priorityDTO.getName())) {
+    @PostMapping
+    public ResponseEntity<Priority> createPriority(@RequestBody Priority priority) {
+        if (priorityService.existsByName(priority.getName())) {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        PriorityDTO savedPriority = priorityService.savePriorityDTO(priorityDTO);
+        Priority savedPriority = priorityService.savePriority(priority);
         return new ResponseEntity<>(savedPriority, HttpStatus.CREATED);
     }
 
@@ -108,8 +106,8 @@ public class PriorityController {
      * @param payload Mapa zawierająca name, value, colorCode
      * @return Utworzony priorytet lub status błędu
      */
-    @PostMapping(value = "/create", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PriorityDTO> createPriorityFromParams(@RequestBody Map<String, Object> payload) {
+    @PostMapping("/create")
+    public ResponseEntity<Priority> createPriorityFromParams(@RequestBody Map<String, Object> payload) {
         String name = (String) payload.get("name");
         Integer value = (Integer) payload.get("value");
         String colorCode = (String) payload.get("colorCode");
@@ -122,26 +120,26 @@ public class PriorityController {
             return new ResponseEntity<>(HttpStatus.CONFLICT);
         }
 
-        PriorityDTO newPriority = priorityService.createPriorityDTO(name, value, colorCode);
+        Priority newPriority = priorityService.createPriority(name, value, colorCode);
         return new ResponseEntity<>(newPriority, HttpStatus.CREATED);
     }
 
     /**
      * Aktualizuje istniejący priorytet.
      *
-     * @param id         Identyfikator priorytetu
-     * @param priorityDTO Zaktualizowane dane priorytetu
+     * @param id       Identyfikator priorytetu
+     * @param priority Zaktualizowane dane priorytetu
      * @return Zaktualizowany priorytet lub status 404, jeśli nie istnieje
      */
-    @PutMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PriorityDTO> updatePriority(@PathVariable Integer id,
-                                                      @Valid @RequestBody PriorityDTO priorityDTO) {
-        if (!priorityService.getPriorityDTOById(id).isPresent()) {
+    @PutMapping("/{id}")
+    public ResponseEntity<Priority> updatePriority(@PathVariable Integer id,
+                                                   @RequestBody Priority priority) {
+        if (!priorityService.getPriorityById(id).isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
-        priorityDTO.setId(id);
-        PriorityDTO updatedPriority = priorityService.savePriorityDTO(priorityDTO);
+        priority.setId(id);
+        Priority updatedPriority = priorityService.savePriority(priority);
         return new ResponseEntity<>(updatedPriority, HttpStatus.OK);
     }
 
@@ -152,16 +150,16 @@ public class PriorityController {
      * @param payload   Mapa zawierająca colorCode
      * @return Zaktualizowany priorytet lub status 404, jeśli nie istnieje
      */
-    @PatchMapping(value = "/{id}/color", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PriorityDTO> updatePriorityColor(@PathVariable Integer id,
-                                                           @RequestBody Map<String, String> payload) {
+    @PatchMapping("/{id}/color")
+    public ResponseEntity<Priority> updatePriorityColor(@PathVariable Integer id,
+                                                        @RequestBody Map<String, String> payload) {
         String colorCode = payload.get("colorCode");
 
         if (colorCode == null) {
             return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
         }
 
-        return priorityService.updateColorDTO(id, colorCode)
+        return priorityService.updateColor(id, colorCode)
                 .map(priority -> new ResponseEntity<>(priority, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
@@ -174,7 +172,7 @@ public class PriorityController {
      */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletePriority(@PathVariable Integer id) {
-        if (!priorityService.getPriorityDTOById(id).isPresent()) {
+        if (!priorityService.getPriorityById(id).isPresent()) {
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
         }
 
