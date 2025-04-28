@@ -147,15 +147,10 @@ public class TeamMemberService {
     }
 
     /**
-     * Usuwa członka zespołu używając jego ID.
+     * Usuwa członka zespołu.
      */
-    public boolean deleteTeamMemberById(Long id) {
-        return teamMemberRepository.findById(id)
-                .map(teamMember -> {
-                    teamMemberRepository.delete(teamMember);
-                    return true;
-                })
-                .orElse(false);
+    public void deleteTeamMember(TeamMember teamMember) {
+        teamMemberRepository.delete(teamMember);
     }
 
     /**
