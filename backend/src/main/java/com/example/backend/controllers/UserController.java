@@ -9,7 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
+
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Kontroler REST obsługujący operacje związane z użytkownikami w systemie BuildTask.
@@ -130,5 +133,23 @@ public class UserController {
         return userService.updateLastLogin(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Endpoint do częściowej aktualizacji użytkownika.
+     * Pozwala na aktualizację wybranych pól użytkownika bez konieczności wysyłania całego obiektu.
+     */
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<UserDTO> partialUpdateUser(@PathVariable("id") Integer id, @RequestBody Map<String, Object> updates) {
+        try {
+            return userService.partialUpdateUser(id, updates)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("message", "Wystąpił błąd podczas aktualizacji użytkownika");
+            errorResponse.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
     }
 }
