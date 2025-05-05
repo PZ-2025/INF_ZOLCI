@@ -32,9 +32,10 @@
 </template>
 
 <script>
+// src/components/Teams.vue (script section)
 import { ref, onMounted } from 'vue';
-import apiService from '../services/api.js';
 import { useRouter } from 'vue-router';
+import teamService from '../services/teamService';
 
 export default {
   name: 'TeamSelection',
@@ -44,20 +45,19 @@ export default {
     const loading = ref(true);
     const error = ref(null);
 
-    // Funkcja pobierająca zespoły z API
+    // Fetch teams from API
     const fetchTeams = async () => {
       loading.value = true;
       error.value = null;
 
       try {
-        // Pobierz zespoły z API
-        const response = await apiService.get('/database/teams');
-        teams.value = response;
+        // Get teams from API
+        teams.value = await teamService.getAllTeams();
       } catch (err) {
         console.error('Error fetching teams:', err);
         error.value = err.message;
 
-        // Dane awaryjne na wypadek błędu API
+        // Fallback data if API fails
         teams.value = [
           {id: 1, name: 'Zespół A', manager: {firstName: 'Jan', lastName: 'Kowalski'}},
           {id: 2, name: 'Zespół B', manager: {firstName: 'Anna', lastName: 'Nowak'}},
@@ -68,26 +68,20 @@ export default {
       }
     };
 
-    // NAJWAŻNIEJSZA ZMIANA - niezawodna metoda nawigacji
+    // Select a team and navigate to details
     const selectTeam = (team) => {
       if (!team || !team.id) {
-        console.error('Nieprawidłowy obiekt zespołu lub brak ID', team);
+        console.error('Invalid team object or missing ID', team);
         return;
       }
 
-      // Zapewniamy, że ID jest stringiem
       const teamId = team.id.toString();
-      console.log('Wybrano zespół, ID:', teamId);
+      console.log('Selected team, ID:', teamId);
 
-
-      // Metoda 2: Używamy URL z query
       router.push({ name: 'teamDetails', params: { id: teamId } });
-
-      // Log potwierdzający
-      console.log('Rozpoczęto nawigację do:', `/teamdetails/${teamId}`);
     };
 
-    // Funkcje pomocnicze pozostają bez zmian
+    // Helper functions for UI
     const getTeamShortName = (team) => {
       if (!team.name) return '??';
       const words = team.name.split(' ');
@@ -122,5 +116,5 @@ export default {
       getTeamMembersCount
     };
   }
-}
+};
 </script>
