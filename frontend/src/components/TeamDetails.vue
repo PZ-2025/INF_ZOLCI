@@ -24,23 +24,32 @@
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Członkowie Zespołu -->
-        <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
-          <h2 class="text-xl font-bold text-primary mb-4">Członkowie Zespołu</h2>
+        <div class="bg-surface rounded-xl p-6 shadow border border-gray-200 col-span-1 md:col-span-2 lg:col-span-1">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-primary">Członkowie Zespołu</h2>
+            <span class="bg-primary text-white px-2 py-1 rounded-md text-sm">
+              {{ teamMembers.length }}
+            </span>
+          </div>
+
           <div v-if="teamMembers.length === 0" class="text-muted text-center">
             Brak członków zespołu
           </div>
-          <div v-else class="space-y-4">
+          <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
             <div
                 v-for="member in teamMembers"
                 :key="member.id"
-                class="flex items-center bg-gray-50 p-3 rounded-lg"
+                class="flex items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition"
             >
               <div class="w-10 h-10 rounded-xl mr-3 flex items-center justify-center text-white font-bold" :style="{ backgroundColor: getMemberColor(member) }">
                 {{ getMemberInitials(member) }}
               </div>
-              <div>
-                <h3 class="font-semibold text-text">{{ getMemberName(member) }}</h3>
-                <p class="text-sm text-muted">{{ getMemberRole(member) }}</p>
+              <div class="flex-grow">
+                <h3 class="font-semibold text-text">{{ member.userFullName || member.username }}</h3>
+                <p class="text-sm text-muted">{{ member.username }}</p>
+              </div>
+              <div v-if="member.isActive === false" class="ml-2 px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
+                Nieaktywny
               </div>
             </div>
           </div>
@@ -52,7 +61,7 @@
           <div v-if="teamActivities.length === 0" class="text-muted text-center">
             Brak aktywności
           </div>
-          <div v-else class="space-y-4">
+          <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
             <div
                 v-for="activity in teamActivities"
                 :key="activity.id"
@@ -71,7 +80,7 @@
           <div v-if="teamTasks.length === 0" class="text-muted text-center">
             Brak nadchodzących zadań
           </div>
-          <div v-else class="space-y-4">
+          <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
             <div
                 v-for="task in teamTasks"
                 :key="task.id"
@@ -122,16 +131,10 @@ export default {
     const loading = ref(true);
     const error = ref(null);
 
-// NAJWAŻNIEJSZA ZMIANA - Niezawodna metoda pozyskiwania ID
+    // Metoda pozyskiwania ID zespołu
     const getTeamId = () => {
-      console.log("OGOLNIE TUTAJ JEST KONGO");
-      // Sprawdź route.query.id (z URL ?id=1)
       let teamId = route.params.id;
-
-      // Log do debugowania
-      console.log("TeamDetails - route.query.id:", teamId);
-
-      // Konwersja ID do stringa
+      console.log("TeamDetails - route.params.id:", teamId);
       return teamId ? teamId.toString() : null;
     };
 
@@ -157,9 +160,17 @@ export default {
 
         // Pobierz członków zespołu
         try {
+          // Bezpośrednie pobieranie członków zespołu z API
           const members = await apiService.get(`/database/team-members/team/${teamId}`);
-          teamMembers.value = members;
-          console.log("Pobrano członków zespołu:", teamMembers.value);
+
+          // Sprawdź czy odpowiedź jest tablicą
+          if (Array.isArray(members)) {
+            console.log("Pobrano członków zespołu:", members);
+            teamMembers.value = members;
+          } else {
+            console.warn("Odpowiedź API nie zawiera poprawnych danych członków zespołu:", members);
+            teamMembers.value = generateDemoMembers(teamId);
+          }
         } catch (err) {
           console.error('Error fetching team members:', err);
           teamMembers.value = generateDemoMembers(teamId); // Dane demonstracyjne
@@ -218,33 +229,28 @@ export default {
       }
     };
 
-    // Pozostałe funkcje pozostają bez zmian
     // Dane demonstracyjne - członkowie zespołu
     const generateDemoMembers = (teamId) => {
       return [
         {
           id: teamId * 10 + 1,
-          user: {
-            firstName: 'Jan',
-            lastName: 'Kowalski',
-            role: 'Kierownik projektu'
-          }
+          teamId: teamId,
+          userId: 3,
+          joinedAt: "2025-04-03T18:02:37",
+          isActive: true,
+          teamName: "Zespół demonstracyjny",
+          username: "user1",
+          userFullName: "Jan Kowalski"
         },
         {
           id: teamId * 10 + 2,
-          user: {
-            firstName: 'Anna',
-            lastName: 'Nowak',
-            role: 'Starszy pracownik'
-          }
-        },
-        {
-          id: teamId * 10 + 3,
-          user: {
-            firstName: 'Piotr',
-            lastName: 'Zieliński',
-            role: 'Specjalista'
-          }
+          teamId: teamId,
+          userId: 4,
+          joinedAt: "2025-04-03T18:02:37",
+          isActive: true,
+          teamName: "Zespół demonstracyjny",
+          username: "user2",
+          userFullName: "Anna Nowak"
         }
       ];
     };
@@ -311,24 +317,14 @@ export default {
     };
 
     const getMemberInitials = (member) => {
-      if (member.user) {
-        return `${member.user.firstName ? member.user.firstName[0] : '?'}${member.user.lastName ? member.user.lastName[0] : '?'}`;
+      if (member.userFullName) {
+        const nameParts = member.userFullName.split(' ');
+        if (nameParts.length >= 2) {
+          return `${nameParts[0][0]}${nameParts[1][0]}`;
+        }
+        return member.userFullName.substring(0, 2).toUpperCase();
       }
-      return '??';
-    };
-
-    const getMemberName = (member) => {
-      if (member.user) {
-        return `${member.user.firstName || ''} ${member.user.lastName || ''}`.trim() || 'Nieznany użytkownik';
-      }
-      return 'Nieznany użytkownik';
-    };
-
-    const getMemberRole = (member) => {
-      if (member.user && member.user.role) {
-        return member.user.role;
-      }
-      return 'Członek zespołu';
+      return member.username ? member.username.substring(0, 2).toUpperCase() : '??';
     };
 
     const getMemberColor = (member) => {
@@ -363,7 +359,7 @@ export default {
       }
     };
 
-    // NAJWAŻNIEJSZE ZMIANY - Monitorowanie parametru ID
+    // Monitorowanie parametru ID
     onMounted(() => {
       console.log("TeamDetails component mounted, pobieranie danych...");
       fetchTeamDetails();
@@ -389,8 +385,6 @@ export default {
       getTeamColor,
       getTeamMembersCount,
       getMemberInitials,
-      getMemberName,
-      getMemberRole,
       getMemberColor
     };
   }
