@@ -25,7 +25,7 @@
           {{ getTeamShortName(team) }}
         </div>
         <h3 class="font-semibold text-secondary">{{ team.name }}</h3>
-        <p class="text-muted text-sm">{{ getTeamMembersCount(team) }} członków</p>
+        <p class="text-muted text-sm">{{ teamMemberCounts[team.id] || 0 }} członków</p>
       </div>
     </div>
   </div>
@@ -33,15 +33,17 @@
 
 <script>
 // src/components/Teams.vue (script section)
-import { ref, onMounted } from 'vue';
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import teamService from '../services/teamService';
+import apiService from '../services/api';
 
 export default {
   name: 'TeamSelection',
   setup() {
     const router = useRouter();
     const teams = ref([]);
+    const teamMemberCounts = reactive({});
     const loading = ref(true);
     const error = ref(null);
 
@@ -53,6 +55,9 @@ export default {
       try {
         // Get teams from API
         teams.value = await teamService.getAllTeams();
+
+        // Fetch member counts for each team
+        await fetchTeamMemberCounts();
       } catch (err) {
         console.error('Error fetching teams:', err);
         error.value = err.message;
@@ -63,8 +68,33 @@ export default {
           {id: 2, name: 'Zespół B', manager: {firstName: 'Anna', lastName: 'Nowak'}},
           {id: 3, name: 'Zespół C', manager: {firstName: 'Piotr', lastName: 'Zieliński'}}
         ];
+
+        // Set some default member counts for fallback data
+        teamMemberCounts[1] = 3;
+        teamMemberCounts[2] = 4;
+        teamMemberCounts[3] = 2;
       } finally {
         loading.value = false;
+      }
+    };
+
+    // Fetch member counts for all teams
+    const fetchTeamMemberCounts = async () => {
+      for (const team of teams.value) {
+        try {
+          // Fetch team members
+          const members = await apiService.get(`/database/team-members/team/${team.id}`);
+
+          // Store the count
+          if (Array.isArray(members)) {
+            teamMemberCounts[team.id] = members.length;
+          } else {
+            teamMemberCounts[team.id] = 0;
+          }
+        } catch (err) {
+          console.error(`Error fetching members for team ${team.id}:`, err);
+          teamMemberCounts[team.id] = 0; // Default to 0 on error
+        }
       }
     };
 
@@ -96,24 +126,17 @@ export default {
       return colors[team.id % colors.length];
     };
 
-    const getTeamMembersCount = (team) => {
-      if (team.members && Array.isArray(team.members)) {
-        return team.members.length;
-      }
-      return team.id ? (team.id % 5) + 1 : 0;
-    };
-
     onMounted(fetchTeams);
 
     return {
       teams,
+      teamMemberCounts,
       loading,
       error,
       fetchTeams,
       selectTeam,
       getTeamShortName,
-      getTeamColor,
-      getTeamMembersCount
+      getTeamColor
     };
   }
 };
