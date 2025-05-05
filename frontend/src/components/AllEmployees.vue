@@ -22,12 +22,12 @@
     </div>
     
     <div class="flex justify-between">
-      <button 
-        @click="addEmployee" 
-        class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition"
+      <router-link
+        to="/addemployee"
+        class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition text-center"
       >
         Dodaj Pracownika
-      </button>
+      </router-link>
       <button 
         @click="removeAllEmployees" 
         class="bg-danger hover:bg-red-600 text-white px-4 py-2 rounded-md transition"

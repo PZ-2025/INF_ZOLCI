@@ -1,258 +1,137 @@
 <template>
-  <div class="bg-background min-h-screen p-8 text-text">
-    <h1 class="text-3xl font-bold text-primary mb-6">Konfiguracja Systemu</h1>
+  <div class="min-h-screen flex items-center justify-center bg-background text-text px-4">
+    <form @submit.prevent="generateReport" class="bg-surface p-6 rounded-lg shadow-md border border-gray-200 space-y-6 w-full max-w-xl">
+      <h1 class="text-2xl font-bold text-primary mb-2">Generowanie Raportów</h1>
 
-    <div v-if="loading" class="flex justify-center items-center h-64">
-      <p class="text-primary text-xl">Ładowanie ustawień...</p>
-    </div>
-
-    <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
-      <p>{{ error }}</p>
-      <button @click="loadSettings" class="mt-2 bg-primary text-white px-4 py-1 rounded-md">
-        Spróbuj ponownie
-      </button>
-    </div>
-
-    <div v-else>
-      <div class="bg-surface p-6 rounded-lg shadow-md mb-6 border border-gray-200">
-        <h2 class="text-xl font-semibold mb-4">Kryteria Statusów (1–100)</h2>
+      <div class="flex flex-col">
+        <label for="reportName" class="text-lg font-medium mb-2">Nazwa raportu:</label>
         <input
-            type="range"
-            min="1"
-            max="100"
-            v-model="statusValue"
-            class="w-full"
+          id="reportName"
+          v-model="reportName"
+          type="text"
+          placeholder="np. Raport marzec 2025"
+          class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
         />
-        <p class="mt-2 text-muted">Wybrany poziom: <span class="font-bold">{{ statusValue }}</span></p>
       </div>
 
-      <div class="bg-surface p-6 rounded-lg shadow-md mb-6 border border-gray-200">
-        <h2 class="text-xl font-semibold mb-4">Globalne Kryteria Priorytetów</h2>
+      <div class="flex flex-col">
+        <label for="reportType" class="text-lg font-medium mb-2">Wybierz typ raportu:</label>
         <select
-            v-model="selectedPriority"
-            class="w-full p-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+          id="reportType"
+          v-model="reportType"
+          @change="handleReportTypeChange"
+          class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
         >
-          <option v-for="priority in priorities" :key="priority.id" :value="priority.id">
-            {{ priority.name }}
+          <option value="workload">Raport obciążenia pracownika</option>
+          <option value="progress">Raport postępu prac na budowie</option>
+          <option value="teamEffectiveness">Raport efektywności zespołu</option>
+        </select>
+      </div>
+
+      <div class="flex flex-col md:flex-row gap-4">
+        <div class="flex flex-col flex-1">
+          <label for="startDate" class="text-lg font-medium mb-2">Data początkowa:</label>
+          <input
+            id="startDate"
+            type="date"
+            v-model="startDate"
+            class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <div class="flex flex-col flex-1">
+          <label for="endDate" class="text-lg font-medium mb-2">Data końcowa:</label>
+          <input
+            id="endDate"
+            type="date"
+            v-model="endDate"
+            class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+      </div>
+
+      <div v-if="reportType === 'teamEffectiveness'" class="flex flex-col">
+        <label for="team" class="text-lg font-medium mb-2">Zespół:</label>
+        <select
+          id="team"
+          v-model="selectedTeam"
+          class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option disabled selected value="">Wybierz zespół</option>
+          <option v-for="team in teams" :key="team.id" :value="team.id">
+            {{ team.name }}
           </option>
         </select>
       </div>
 
-      <div class="bg-surface p-6 rounded-lg shadow-md border border-gray-200">
-        <h2 class="text-xl font-semibold mb-4">Inne Ustawienia</h2>
-
-        <div class="mb-4 flex items-center">
-          <input type="checkbox" v-model="autoArchive" class="mr-2" id="archive">
-          <label for="archive">Automatyczna archiwizacja zadań</label>
-        </div>
-
-        <div class="mb-4">
-          <label class="block font-medium mb-1">Minimalna długość hasła</label>
-          <input
-              type="number"
-              v-model="minPasswordLength"
-              min="4"
-              max="32"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          />
-        </div>
-
-        <div class="mb-4">
-          <label class="block font-medium mb-1">Automatyczne wylogowanie (minuty)</label>
-          <input
-              type="number"
-              v-model="autoLogout"
-              min="1"
-              max="120"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          />
-        </div>
-
-        <div class="mb-4">
-          <label class="block font-medium mb-1">Domyślny język systemu</label>
-          <select
-              v-model="language"
-              class="w-full p-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="pl">Polski</option>
-            <option value="en">English</option>
-          </select>
-        </div>
-
-        <div class="mt-6">
-          <button
-              @click="saveSettings"
-              :disabled="isSaving"
-              class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition w-full disabled:bg-gray-400"
-          >
-            <span v-if="isSaving">Zapisywanie...</span>
-            <span v-else>Zapisz Ustawienia</span>
-          </button>
-        </div>
+      <div v-if="reportType === 'workload'" class="flex flex-col">
+        <label for="user" class="text-lg font-medium mb-2">Użytkownik:</label>
+        <select
+          id="user"
+          v-model="selectedUser"
+          class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          <option disabled selected value="">Wybierz użytkownika</option>
+          <option v-for="user in users" :key="user.id" :value="user.id">
+            {{ user.first_name }} {{ user.last_name }}
+          </option>
+        </select>
       </div>
-    </div>
+
+      <div class="pt-2">
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition w-full">
+          Generuj Raport
+        </button>
+      </div>
+    </form>
   </div>
 </template>
 
-<script>
-import { ref, onMounted } from 'vue';
-import systemSettingService from '../services/systemSettingService';
-import priorityService from '../services/priorityService';
-import { authState } from '../../router/router.js';
+<script setup>
+import { ref, onMounted } from 'vue'
 
-export default {
-  setup() {
-    // State variables
-    const statusValue = ref(50);
-    const selectedPriority = ref(null);
-    const priorities = ref([]);
-    const autoArchive = ref(true);
-    const minPasswordLength = ref(8);
-    const autoLogout = ref(15);
-    const language = ref('pl');
-    const loading = ref(true);
-    const error = ref(null);
-    const isSaving = ref(false);
+const reportName = ref('')
+const reportType = ref('workload')
+const startDate = ref('')
+const endDate = ref('')
+const selectedTeam = ref('')
+const selectedUser = ref('')
 
-    // Settings keys in the database
-    const SETTING_KEYS = {
-      STATUS_VALUE: 'status_threshold',
-      DEFAULT_PRIORITY: 'default_priority',
-      AUTO_ARCHIVE: 'auto_archive_tasks',
-      MIN_PASSWORD_LENGTH: 'min_password_length',
-      AUTO_LOGOUT: 'auto_logout_minutes',
-      DEFAULT_LANGUAGE: 'default_language'
-    };
+const teams = ref([])
+const users = ref([])
 
-    // Load system settings from backend
-    const loadSettings = async () => {
-      loading.value = true;
-      error.value = null;
+const handleReportTypeChange = () => {
+  // reset selected values when report type changes 
+  selectedTeam.value = ''
+  selectedUser.value = ''
+}
 
-      try {
-        // Load priorities for selection
-        const prioritiesData = await priorityService.getAllPrioritiesSorted();
-        priorities.value = prioritiesData;
+onMounted(() => {
+  // sample data for teams and users
+  teams.value = [
+    { id: 1, name: 'Zespół A' },
+    { id: 2, name: 'Zespół B' }
+  ]
+  users.value = [
+    { id: 3, first_name: 'Jan', last_name: 'Kowalski' },
+    { id: 4, first_name: 'Anna', last_name: 'Nowak' }
+  ]
+})
 
-        // Load all settings
-        const settingsData = await systemSettingService.getAllSystemSettings();
-
-        // Process settings
-        for (const setting of settingsData) {
-          switch (setting.key) {
-            case SETTING_KEYS.STATUS_VALUE:
-              statusValue.value = parseInt(setting.value) || 50;
-              break;
-            case SETTING_KEYS.DEFAULT_PRIORITY:
-              selectedPriority.value = parseInt(setting.value) ||
-                  (priorities.value.length > 0 ? priorities.value[0].id : null);
-              break;
-            case SETTING_KEYS.AUTO_ARCHIVE:
-              autoArchive.value = setting.value === 'true';
-              break;
-            case SETTING_KEYS.MIN_PASSWORD_LENGTH:
-              minPasswordLength.value = parseInt(setting.value) || 8;
-              break;
-            case SETTING_KEYS.AUTO_LOGOUT:
-              autoLogout.value = parseInt(setting.value) || 15;
-              break;
-            case SETTING_KEYS.DEFAULT_LANGUAGE:
-              language.value = setting.value || 'pl';
-              break;
-          }
-        }
-
-        // If no priority is selected but we have priorities, select the first one
-        if (!selectedPriority.value && priorities.value.length > 0) {
-          selectedPriority.value = priorities.value[0].id;
-        }
-
-      } catch (err) {
-        console.error('Error loading settings:', err);
-        error.value = `Błąd ładowania ustawień: ${err.message}`;
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    // Save system settings to backend
-    const saveSettings = async () => {
-      if (isSaving.value) return;
-
-      isSaving.value = true;
-      error.value = null;
-
-      try {
-        if (!authState.user || !authState.user.id) {
-          throw new Error('Nie jesteś zalogowany');
-        }
-
-        const userId = authState.user.id;
-
-        // Prepare and save each setting
-        const settingsToUpdate = [
-          { key: SETTING_KEYS.STATUS_VALUE, value: statusValue.value.toString() },
-          { key: SETTING_KEYS.DEFAULT_PRIORITY, value: selectedPriority.value.toString() },
-          { key: SETTING_KEYS.AUTO_ARCHIVE, value: autoArchive.value.toString() },
-          { key: SETTING_KEYS.MIN_PASSWORD_LENGTH, value: minPasswordLength.value.toString() },
-          { key: SETTING_KEYS.AUTO_LOGOUT, value: autoLogout.value.toString() },
-          { key: SETTING_KEYS.DEFAULT_LANGUAGE, value: language.value }
-        ];
-
-        // Update each setting
-        for (const setting of settingsToUpdate) {
-          try {
-            // Check if setting exists
-            const existingSetting = await systemSettingService.getSystemSettingByKey(setting.key);
-
-            if (existingSetting) {
-              // Update existing setting
-              await systemSettingService.updateSettingValue(
-                  setting.key,
-                  setting.value,
-                  userId
-              );
-            } else {
-              // Create new setting
-              await systemSettingService.createSystemSettingFromParams({
-                key: setting.key,
-                value: setting.value,
-                description: `System setting for ${setting.key}`,
-                updatedById: userId
-              });
-            }
-          } catch (settingError) {
-            console.error(`Error updating setting ${setting.key}:`, settingError);
-          }
-        }
-
-        alert('Ustawienia zostały zapisane pomyślnie!');
-      } catch (err) {
-        console.error('Error saving settings:', err);
-        error.value = `Błąd zapisywania ustawień: ${err.message}`;
-        alert(`Błąd: ${err.message}`);
-      } finally {
-        isSaving.value = false;
-      }
-    };
-
-    // Initialize component
-    onMounted(loadSettings);
-
-    return {
-      statusValue,
-      selectedPriority,
-      priorities,
-      autoArchive,
-      minPasswordLength,
-      autoLogout,
-      language,
-      loading,
-      error,
-      isSaving,
-      loadSettings,
-      saveSettings
-    };
+const generateReport = () => {
+  const parameters = {
+    startDate: startDate.value,
+    endDate: endDate.value,
+    ...(reportType.value === 'teamEffectiveness' && { teamId: selectedTeam.value }),
+    ...(reportType.value === 'workload' && { userId: selectedUser.value })
   }
-};
+
+  const payload = {
+    name: reportName.value || 'Raport bez nazwy',
+    type: reportType.value,
+    parameters: JSON.stringify(parameters)
+  }
+
+  console.log('➡️ Generowanie raportu:', payload)
+  // send payload to API
+}
 </script>
