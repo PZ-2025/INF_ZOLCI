@@ -40,6 +40,23 @@ const teamService = {
     // Deactivate team
     async deactivateTeam(teamId) {
         return await apiService.patch(`/database/teams/${teamId}/deactivate`);
+    },
+    // Dodaj członka do zespołu
+    async addTeamMember(teamId, userId) {
+        return await apiService.post(`/database/team-members`, {
+            teamId: teamId,
+            userId: userId
+        });
+    },
+
+    // Usuń członka z zespołu
+    async removeTeamMember(teamMemberId) {
+        return await apiService.delete(`/database/team-members/${teamMemberId}`);
+    },
+
+    // Pobierz wszystkich niewykorzystanych pracowników (nienależących do żadnego zespołu)
+    async getAvailableEmployees() {
+        return await apiService.get(`/database/users/not-in-team`);
     }
 };
 
