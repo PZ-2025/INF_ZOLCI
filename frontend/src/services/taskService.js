@@ -1,45 +1,56 @@
+// src/services/taskService.js
 import apiService from './apiService';
 
-const userService = {
-    // Get all users
-    async getAllUsers() {
-        return await apiService.get('/database/users');
+const taskService = {
+    // Pobieranie wszystkich zadań
+    async getAllTasks() {
+        return await apiService.get('/database/tasks');
     },
 
-    // Get active users
-    async getActiveUsers() {
-        return await apiService.get('/database/users/active');
+    // Pobieranie zadania po ID
+    async getTaskById(taskId) {
+        return await apiService.get(`/database/tasks/${taskId}`);
     },
 
-    // Get user by ID
-    async getUserById(userId) {
-        return await apiService.get(`/database/users/${userId}`);
+    // Tworzenie zadania
+    async createTask(taskData) {
+        return await apiService.post('/database/tasks', taskData);
     },
 
-    // Create user
-    async createUser(userData) {
-        return await apiService.post('/database/users', userData);
+    // Aktualizacja zadania
+    async updateTask(taskId, taskData) {
+        return await apiService.put(`/database/tasks/${taskId}`, taskData);
     },
 
-    // Update user
-    async updateUser(userId, userData) {
-        return await apiService.put(`/database/users/${userId}`, userData);
+    // Usuwanie zadania
+    async deleteTask(taskId) {
+        return await apiService.delete(`/database/tasks/${taskId}`);
     },
 
-    // Delete user
-    async deleteUser(userId) {
-        return await apiService.delete(`/database/users/${userId}`);
+    // Pobieranie zadań dla zespołu
+    async getTasksByTeamId(teamId) {
+        return await apiService.get(`/database/tasks/team/${teamId}`);
     },
 
-    // Deactivate user
-    async deactivateUser(userId) {
-        return await apiService.put(`/database/users/${userId}/deactivate`);
+    // Pobieranie zadań o określonym statusie
+    async getTasksByStatusId(statusId) {
+        return await apiService.get(`/database/tasks/status/${statusId}`);
     },
 
-    // Update last login
-    async updateLastLogin(userId) {
-        return await apiService.put(`/database/users/${userId}/login`);
+    // Pobieranie zadań o określonym priorytecie
+    async getTasksByPriorityId(priorityId) {
+        return await apiService.get(`/database/tasks/priority/${priorityId}`);
+    },
+
+    // Pobieranie zadania po tytule
+    async getTaskByTitle(title) {
+        return await apiService.get(`/database/tasks/title/${title}`);
+    },
+
+    // Pobieranie zadań z terminem przed określoną datą
+    async getTasksWithDeadlineBefore(date) {
+        return await apiService.get(`/database/tasks/deadline-before/${date}`);
     }
 };
 
-export default userService;
+export default taskService;
