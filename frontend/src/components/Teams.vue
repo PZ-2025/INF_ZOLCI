@@ -1,6 +1,16 @@
 <template>
   <div class="p-4 bg-background min-h-screen text-text">
-    <h2 class="text-2xl font-bold text-primary mb-6">Zespoły</h2>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-primary">Zespoły</h2>
+
+      <!-- Przycisk do przejścia na stronę dodawania zespołu -->
+      <router-link
+          to="/addteam"
+          class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition flex items-center"
+      >
+        <span class="mr-1">+</span> Dodaj Zespół
+      </router-link>
+    </div>
 
     <div v-if="loading" class="flex justify-center items-center h-64">
       <p class="text-white text-xl">Ładowanie zespołów...</p>
@@ -36,7 +46,6 @@
 import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import teamService from '../services/teamService';
-import apiService from '../services/api';
 
 export default {
   name: 'TeamSelection',
@@ -82,8 +91,8 @@ export default {
     const fetchTeamMemberCounts = async () => {
       for (const team of teams.value) {
         try {
-          // Fetch team members
-          const members = await apiService.get(`/database/team-members/team/${team.id}`);
+          // Fetch team members using teamService
+          const members = await teamService.getTeamMembers(team.id);
 
           // Store the count
           if (Array.isArray(members)) {
