@@ -3,6 +3,7 @@ package com.example.backend.services;
 import com.example.backend.dto.UserDTO;
 import com.example.backend.models.User;
 import com.example.backend.repository.UserRepository;
+import io.micrometer.observation.ObservationFilter;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -235,6 +237,78 @@ public class UserService {
                 .map(user -> {
                     user.setLastLogin(LocalDateTime.now());
                     return mapToDTO(userRepository.save(user));
+                });
+    }
+
+    /**
+     * Metoda aktualizująca częściowo dane użytkownika (PATCH).
+     * Zmienia tylko te pola, które zostały przekazane w żądaniu.
+     *
+     * @param id      Identyfikator użytkownika do aktualizacji
+     * @param updates Mapa zawierająca pola do aktualizacji i ich nowe wartości
+     * @return Optional zawierający zaktualizowany obiekt UserDTO lub pusty Optional, jeśli użytkownik nie istnieje
+     */
+    public Optional<UserDTO> partialUpdateUser(Integer id, Map<String, Object> updates) {
+        return userRepository.findById(id)
+                .map(user -> {
+                    // Aktualizacja imienia
+                    if (updates.containsKey("firstName")) {
+                        user.setFirstName((String) updates.get("firstName"));
+                    }
+
+                    // Aktualizacja nazwiska
+                    if (updates.containsKey("lastName")) {
+                        user.setLastName((String) updates.get("lastName"));
+                    }
+
+                    // Aktualizacja e-maila
+                    if (updates.containsKey("email")) {
+                        String newEmail = (String) updates.get("email");
+                        // Sprawdź czy e-mail nie jest już używany przez innego użytkownika
+                        if (!newEmail.equals(user.getEmail()) && userRepository.existsByEmail(newEmail)) {
+                            throw new RuntimeException("Email jest już używany przez innego użytkownika");
+                        }
+                        user.setEmail(newEmail);
+                    }
+
+                    // Aktualizacja numeru telefonu
+                    if (updates.containsKey("phone")) {
+                        user.setPhone((String) updates.get("phone"));
+                    }
+
+                    // Aktualizacja hasła - wymaga weryfikacji aktualnego hasła
+                    if (updates.containsKey("password") && updates.containsKey("currentPassword")) {
+                        String currentPassword = (String) updates.get("currentPassword");
+                        String newPassword = (String) updates.get("password");
+
+                        // Weryfikacja aktualnego hasła
+                        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                            throw new RuntimeException("Aktualne hasło jest nieprawidłowe");
+                        }
+
+                        // Walidacja nowego hasła
+                        if (newPassword.length() < 6) {
+                            throw new RuntimeException("Hasło musi mieć co najmniej 6 znaków");
+                        }
+
+                        // Zakodowanie i ustawienie nowego hasła
+                        user.setPassword(passwordEncoder.encode(newPassword));
+                    }
+
+                    // Aktualizacja roli (jeśli dozwolona)
+                    if (updates.containsKey("role")) {
+                        // Tu można dodać dodatkową logikę weryfikującą uprawnienia
+                        user.setRole((String) updates.get("role"));
+                    }
+
+                    // Aktualizacja statusu aktywności
+                    if (updates.containsKey("isActive")) {
+                        user.setIsActive((Boolean) updates.get("isActive"));
+                    }
+
+                    // Zapisz zaktualizowanego użytkownika
+                    User savedUser = userRepository.save(user);
+                    return mapToDTO(savedUser);
                 });
     }
 }

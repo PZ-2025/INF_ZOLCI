@@ -1,6 +1,16 @@
 <template>
   <div class="p-4 bg-background min-h-screen text-text">
-    <h2 class="text-2xl font-bold text-primary mb-6">Zespoły</h2>
+    <div class="flex justify-between items-center mb-6">
+      <h2 class="text-2xl font-bold text-primary">Zespoły</h2>
+
+      <!-- Przycisk do przejścia na stronę dodawania zespołu -->
+      <router-link
+          to="/addteam"
+          class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition flex items-center"
+      >
+        <span class="mr-1">+</span> Dodaj Zespół
+      </router-link>
+    </div>
 
     <div v-if="loading" class="flex justify-center items-center h-64">
       <p class="text-white text-xl">Ładowanie zespołów...</p>
@@ -25,69 +35,92 @@
           {{ getTeamShortName(team) }}
         </div>
         <h3 class="font-semibold text-secondary">{{ team.name }}</h3>
-        <p class="text-muted text-sm">{{ getTeamMembersCount(team) }} członków</p>
+        <p class="text-muted text-sm">{{ teamMemberCounts[team.id] || 0 }} członków</p>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
-import apiService from '../services/api.js';
+// src/components/Teams.vue (script section)
+import { ref, reactive, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import teamService from '../services/teamService';
 
 export default {
   name: 'TeamSelection',
   setup() {
     const router = useRouter();
     const teams = ref([]);
+    const teamMemberCounts = reactive({});
     const loading = ref(true);
     const error = ref(null);
 
-    // Funkcja pobierająca zespoły z API
+    // Fetch teams from API
     const fetchTeams = async () => {
       loading.value = true;
       error.value = null;
 
       try {
-        // Pobierz zespoły z API
-        const response = await apiService.get('/database/teams');
-        teams.value = response;
+        // Get teams from API
+        teams.value = await teamService.getAllTeams();
+
+        // Fetch member counts for each team
+        await fetchTeamMemberCounts();
       } catch (err) {
         console.error('Error fetching teams:', err);
         error.value = err.message;
 
-        // Dane awaryjne na wypadek błędu API
+        // Fallback data if API fails
         teams.value = [
           {id: 1, name: 'Zespół A', manager: {firstName: 'Jan', lastName: 'Kowalski'}},
           {id: 2, name: 'Zespół B', manager: {firstName: 'Anna', lastName: 'Nowak'}},
           {id: 3, name: 'Zespół C', manager: {firstName: 'Piotr', lastName: 'Zieliński'}}
         ];
+
+        // Set some default member counts for fallback data
+        teamMemberCounts[1] = 3;
+        teamMemberCounts[2] = 4;
+        teamMemberCounts[3] = 2;
       } finally {
         loading.value = false;
       }
     };
 
-    // NAJWAŻNIEJSZA ZMIANA - niezawodna metoda nawigacji
+    // Fetch member counts for all teams
+    const fetchTeamMemberCounts = async () => {
+      for (const team of teams.value) {
+        try {
+          // Fetch team members using teamService
+          const members = await teamService.getTeamMembers(team.id);
+
+          // Store the count
+          if (Array.isArray(members)) {
+            teamMemberCounts[team.id] = members.length;
+          } else {
+            teamMemberCounts[team.id] = 0;
+          }
+        } catch (err) {
+          console.error(`Error fetching members for team ${team.id}:`, err);
+          teamMemberCounts[team.id] = 0; // Default to 0 on error
+        }
+      }
+    };
+
+    // Select a team and navigate to details
     const selectTeam = (team) => {
       if (!team || !team.id) {
-        console.error('Nieprawidłowy obiekt zespołu lub brak ID', team);
+        console.error('Invalid team object or missing ID', team);
         return;
       }
 
-      // Zapewniamy, że ID jest stringiem
       const teamId = team.id.toString();
-      console.log('Wybrano zespół, ID:', teamId);
+      console.log('Selected team, ID:', teamId);
 
-
-      // Metoda 2: Używamy URL z query
       router.push({ name: 'teamDetails', params: { id: teamId } });
-
-      // Log potwierdzający
-      console.log('Rozpoczęto nawigację do:', `/teamdetails/${teamId}`);
     };
 
-    // Funkcje pomocnicze pozostają bez zmian
+    // Helper functions for UI
     const getTeamShortName = (team) => {
       if (!team.name) return '??';
       const words = team.name.split(' ');
@@ -102,25 +135,18 @@ export default {
       return colors[team.id % colors.length];
     };
 
-    const getTeamMembersCount = (team) => {
-      if (team.members && Array.isArray(team.members)) {
-        return team.members.length;
-      }
-      return team.id ? (team.id % 5) + 1 : 0;
-    };
-
     onMounted(fetchTeams);
 
     return {
       teams,
+      teamMemberCounts,
       loading,
       error,
       fetchTeams,
       selectTeam,
       getTeamShortName,
-      getTeamColor,
-      getTeamMembersCount
+      getTeamColor
     };
   }
-}
+};
 </script>
