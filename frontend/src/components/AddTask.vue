@@ -12,6 +12,13 @@
         {{ error }}
       </div>
 
+      <!-- Diagnostyka - możesz usunąć po rozwiązaniu problemu -->
+      <div v-if="showDebug" class="bg-gray-100 p-4 rounded-md mb-4">
+        <h3 class="font-bold mb-2">Dane formularza:</h3>
+        <pre class="text-xs overflow-auto">{{ JSON.stringify(task, null, 2) }}</pre>
+        <button @click="showDebug = false" class="text-primary text-sm mt-2">Ukryj debugowanie</button>
+      </div>
+
       <form @submit.prevent="addTask" class="space-y-4">
         <div class="flex flex-col">
           <label for="title" class="block text-lg font-medium mb-2">Tytuł zadania</label>
@@ -39,12 +46,12 @@
         <div class="flex flex-col">
           <label for="teamId" class="block text-lg font-medium mb-2">Zespół</label>
           <select
-              v-model="task.teamId"
+              v-model.number="task.teamId"
               id="teamId"
               required
               class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option disabled selected value="">Wybierz zespół</option>
+            <option disabled value="">Wybierz zespół</option>
             <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
           </select>
         </div>
@@ -52,12 +59,12 @@
         <div class="flex flex-col">
           <label for="priorityId" class="block text-lg font-medium mb-2">Priorytet</label>
           <select
-              v-model="task.priorityId"
+              v-model.number="task.priorityId"
               id="priorityId"
               required
               class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option disabled selected value="">Wybierz priorytet</option>
+            <option disabled value="">Wybierz priorytet</option>
             <option v-for="priority in priorities" :key="priority.id" :value="priority.id">{{ priority.name }}</option>
           </select>
         </div>
@@ -65,12 +72,12 @@
         <div class="flex flex-col">
           <label for="statusId" class="block text-lg font-medium mb-2">Status</label>
           <select
-              v-model="task.statusId"
+              v-model.number="task.statusId"
               id="statusId"
               required
               class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option disabled selected value="">Wybierz status</option>
+            <option disabled value="">Wybierz status</option>
             <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
           </select>
         </div>
@@ -100,19 +107,29 @@
         <div class="flex justify-between mt-6">
           <button
               type="button"
-              @click="goBack"
-              class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition"
+              @click="showDebug = !showDebug"
+              class="text-sm text-gray-500 underline"
           >
-            Anuluj
+            {{ showDebug ? 'Ukryj dane' : 'Pokaż dane' }}
           </button>
-          <button
-              type="submit"
-              class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
-              :disabled="loading"
-          >
-            <span v-if="loading">Dodawanie...</span>
-            <span v-else>Dodaj Zadanie</span>
-          </button>
+
+          <div class="flex gap-4">
+            <button
+                type="button"
+                @click="goBack"
+                class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition"
+            >
+              Anuluj
+            </button>
+            <button
+                type="submit"
+                class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
+                :disabled="loading"
+            >
+              <span v-if="loading">Dodawanie...</span>
+              <span v-else>Dodaj Zadanie</span>
+            </button>
+          </div>
         </div>
       </form>
     </div>
@@ -136,11 +153,13 @@ export default {
       description: '',
       teamId: '',
       priorityId: '',
-      statusId: 1, // Domyślny status - "rozpoczęte"
+      statusId: '',
       startDate: '',
       deadline: ''
-      // Pola id, createdById i createdAt będą dodane przez backend
     });
+
+    // Panel debugowania
+    const showDebug = ref(false);
 
     // Dane do formularza
     const teams = ref([]);
@@ -194,6 +213,13 @@ export default {
       successMessage.value = '';
       loading.value = true;
 
+      // Sprawdzenie czy wszystkie wymagane pola są wypełnione
+      if (!task.value.title || !task.value.teamId || !task.value.priorityId || !task.value.statusId) {
+        error.value = 'Wszystkie pola wymagane (tytuł, zespół, priorytet, status) muszą być wypełnione.';
+        loading.value = false;
+        return;
+      }
+
       // Walidacja dat
       if (task.value.startDate && task.value.deadline) {
         const startDate = new Date(task.value.startDate);
@@ -210,18 +236,27 @@ export default {
         // Pobierz ID zalogowanego użytkownika
         const userId = authState.user?.id || 1; // Domyślnie 1, jeśli brak zalogowanego użytkownika
 
+        // Logowanie do konsoli dla celów debugowania
+        console.log('Wartości przed konwersją:', {
+          teamId: task.value.teamId,
+          priorityId: task.value.priorityId,
+          statusId: task.value.statusId
+        });
+
         // Przekształcenie danych do formatu API zgodnego z oczekiwanym JSON
         const taskData = {
           title: task.value.title,
-          description: task.value.description,
-          teamId: parseInt(task.value.teamId), // Zapewnienie, że wartość jest liczbą
-          priorityId: parseInt(task.value.priorityId),
-          statusId: parseInt(task.value.statusId),
+          description: task.value.description || '', // Upewnienie się, że opis nie jest undefined
+          teamId: task.value.teamId, // Nie używamy parseInt - v-model.number już konwertuje do liczby
+          priorityId: task.value.priorityId,
+          statusId: task.value.statusId,
           startDate: task.value.startDate,
           deadline: task.value.deadline,
-          createdById: userId // Dodanie ID twórcy zadania
-          // createdAt zostanie dodane automatycznie przez backend
+          createdById: userId
         };
+
+        // Logowanie do konsoli dla celów debugowania
+        console.log('Dane zadania wysyłane do API:', taskData);
 
         // Zapis przez API
         const createdTask = await taskService.createTask(taskData);
@@ -236,7 +271,7 @@ export default {
           description: '',
           teamId: '',
           priorityId: '',
-          statusId: 1,
+          statusId: '',
           startDate: task.value.startDate, // Pozostaw bieżącą datę
           deadline: task.value.deadline // Pozostaw domyślny deadline
         };
@@ -267,6 +302,7 @@ export default {
       loading,
       error,
       successMessage,
+      showDebug,
       addTask,
       goBack
     };
