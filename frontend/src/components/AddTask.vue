@@ -1,117 +1,131 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-background text-text px-4">
-    <div class="bg-surface p-6 rounded-lg shadow-md border border-gray-200 space-y-4 w-full max-w-2xl">
-      <h1 class="text-2xl font-bold text-primary mb-4">Dodaj Zadanie</h1>
+  <div class="min-h-screen bg-background flex items-center justify-center px-4 py-10">
+    <div class="w-full max-w-2xl bg-surface border border-gray-200 rounded-2xl shadow-xl p-8 space-y-6">
+      <h1 class="text-3xl font-bold text-primary">Dodaj zadanie</h1>
 
       <!-- Komunikaty -->
-      <div v-if="successMessage" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+      <div v-if="successMessage" class="p-4 bg-green-100 border border-green-300 text-green-800 rounded-lg">
         {{ successMessage }}
       </div>
 
-      <div v-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
+      <div v-if="error" class="p-4 bg-red-100 border border-red-300 text-red-800 rounded-lg">
         {{ error }}
       </div>
 
-      <form @submit.prevent="addTask" class="space-y-4">
-        <div class="flex flex-col">
-          <label for="title" class="block text-lg font-medium mb-2">Tytuł zadania</label>
+      <form @submit.prevent="addTask" class="space-y-5">
+        <div>
+          <label for="title" class="block text-lg text-black font-medium mb-2">Tytuł zadania</label>
           <input
-              v-model="task.title"
-              id="title"
-              type="text"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="np. Remont mieszkania ul. Załęska 76"
+            v-model="task.title"
+            id="title"
+            type="text"
+            required
+            class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+            placeholder="np. Remont mieszkania ul. Załęska 76"
           />
         </div>
 
-        <div class="flex flex-col">
-          <label for="description" class="block text-lg font-medium mb-2">Opis zadania</label>
+        <div>
+          <label for="description" class="block text-lg text-black font-medium mb-2">Opis zadania</label>
           <textarea
-              v-model="task.description"
-              id="description"
-              rows="3"
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="np. Klient ma problemy z wilgocią, najprawdopodobniej po ostatniej powodzi"
+            v-model="task.description"
+            id="description"
+            rows="4"
+            class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+            placeholder="np. Klient ma problemy z wilgocią..."
           ></textarea>
         </div>
 
-        <div class="flex flex-col">
-          <label for="teamId" class="block text-lg font-medium mb-2">Zespół</label>
+        <div>
+          <label for="teamId" class="block text-lg text-black font-medium mb-2">Zespół</label>
           <select
-              v-model="task.teamId"
-              id="teamId"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            v-model="task.teamId"
+            id="teamId"
+            required
+            class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
           >
-            <option disabled selected value="">Wybierz zespół</option>
+            <option disabled value="" class="text-gray-400">Wybierz zespół</option>
             <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
           </select>
         </div>
 
-        <div class="flex flex-col">
-          <label for="priorityId" class="block text-lg font-medium mb-2">Priorytet</label>
-          <select
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="priorityId" class="block text-lg text-black font-medium mb-2">Priorytet</label>
+            <select
               v-model="task.priorityId"
               id="priorityId"
               required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option disabled selected value="">Wybierz priorytet</option>
-            <option v-for="priority in priorities" :key="priority.id" :value="priority.id">{{ priority.name }}</option>
-          </select>
-        </div>
+              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+            >
+              <option disabled value="" class="text-gray-400">Wybierz priorytet</option>
+              <option v-for="priority in priorities" :key="priority.id" :value="priority.id">{{ priority.name }}</option>
+            </select>
+          </div>
 
-        <div class="flex flex-col">
-          <label for="statusId" class="block text-lg font-medium mb-2">Status</label>
-          <select
+          <div>
+            <label for="statusId" class="block text-lg text-black font-medium mb-2">Status</label>
+            <select
               v-model="task.statusId"
               id="statusId"
               required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option disabled selected value="">Wybierz status</option>
-            <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
-          </select>
+              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+            >
+              <option disabled value="" class="text-gray-400">Wybierz status</option>
+              <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
+            </select>
+          </div>
         </div>
 
-        <div class="flex flex-col">
-          <label for="startDate" class="block text-lg font-medium mb-2">Data rozpoczęcia</label>
-          <input
-              v-model="task.startDate"
-              id="startDate"
-              type="date"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-          />
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label for="startDate" class="block text-lg text-black font-medium mb-2">Data rozpoczęcia</label>
+            <div class="relative">
+              <input
+                v-model="task.startDate"
+                id="startDate"
+                type="date"
+                required
+                class="w-full p-2.5 pl-10 cursor-pointer border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+              <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
+                <i class="fas fa-calendar-alt"></i> <!-- Ikona Font Awesome -->
+              </span>
+            </div>
+          </div>
+
+          <div>
+            <label for="deadline" class="block text-lg text-black font-medium mb-2">Deadline</label>
+            <div class="relative">
+              <input
+                v-model="task.deadline"
+                id="deadline"
+                type="date"
+                required
+                class="w-full p-2.5 pl-10 cursor-pointer border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+              />
+              <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
+                <i class="fas fa-calendar-alt"></i> <!-- Ikona Font Awesome -->
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div class="flex flex-col">
-          <label for="deadline" class="block text-lg font-medium mb-2">Deadline</label>
-          <input
-              v-model="task.deadline"
-              id="deadline"
-              type="date"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-          />
-        </div>
-
-        <div class="flex justify-between mt-6">
+        <div class="flex justify-between pt-4">
           <button
-              type="button"
-              @click="goBack"
-              class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition"
+            type="button"
+            @click="goBack"
+            class="px-5 py-2 rounded-md bg-gray-500 text-white text-sm hover:bg-gray-600 transition"
           >
             Anuluj
           </button>
           <button
-              type="submit"
-              class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
-              :disabled="loading"
+            type="submit"
+            class="px-6 py-2 rounded-md bg-primary hover:bg-secondary text-white text-sm font-semibold transition"
+            :disabled="loading"
           >
             <span v-if="loading">Dodawanie...</span>
-            <span v-else>Dodaj Zadanie</span>
+            <span v-else>Dodaj zadanie</span>
           </button>
         </div>
       </form>
@@ -136,7 +150,7 @@ export default {
       description: '',
       teamId: '',
       priorityId: '',
-      statusId: 1, // Domyślny status - "rozpoczęte"
+      statusId: '', 
       startDate: '',
       deadline: ''
       // Pola id, createdById i createdAt będą dodane przez backend
