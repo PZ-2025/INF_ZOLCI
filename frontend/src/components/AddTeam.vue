@@ -15,8 +15,9 @@
       <form @submit.prevent="addTeam" class="space-y-4">
         <!-- Nazwa zespołu -->
         <div>
-          <label class="block text-lg font-medium mb-2">Nazwa zespołu</label>
+          <label for="teamName" class="block text-lg font-medium mb-2">Nazwa zespołu</label>
           <input
+            id="teamName"
             v-model="team.name"
             type="text"
             required
@@ -27,8 +28,9 @@
 
         <!-- Opis zespołu -->
         <div>
-          <label class="block text-lg font-medium mb-2">Opis</label>
+          <label for="teamDescription" class="block text-lg font-medium mb-2">Opis</label>
           <textarea
+            id="teamDescription"
             v-model="team.description"
             class="p-2 border border-gray-300 rounded-md w-full bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           ></textarea>
@@ -36,13 +38,14 @@
 
         <!-- Kierownik zespołu -->
         <div>
-          <label class="block text-lg font-medium mb-2">Kierownik zespołu</label>
+          <label for="teamManager" class="block text-lg font-medium mb-2">Kierownik zespołu</label>
           <select
+            id="teamManager"
             v-model="team.managerId"
             required
             class="p-2 border border-gray-300 rounded-md w-full bg-white text-black focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option disabled value="">Wybierz kierownika</option>
+            <option disabled selected value="">Wybierz kierownika</option>
             <option v-for="manager in managers" :key="manager.id" :value="manager.id">
               {{ manager.firstName }} {{ manager.lastName }}
             </option>
@@ -51,16 +54,17 @@
 
         <!-- Członkowie zespołu -->
         <div>
-          <label class="block text-lg font-medium mb-2">Członkowie</label>
-          <div class="space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white">
+          <label for="teamMembers" class="block text-lg font-medium mb-2">Członkowie</label>
+          <div id="teamMembers" class="space-y-2 max-h-40 overflow-y-auto border border-gray-300 rounded-md p-2 bg-white">
             <div v-for="employee in employees" :key="employee.id" class="flex items-center space-x-2">
               <input
                 type="checkbox"
                 v-model="selectedMembers"
                 :value="employee.id"
+                :id="`employee-${employee.id}`"
                 class="form-checkbox h-5 w-5 text-primary focus:ring-primary"
               />
-              <span class="text-text">{{ employee.firstName }} {{ employee.lastName }} ({{ employee.email }})</span>
+              <label :for="`employee-${employee.id}`" class="text-text">{{ employee.firstName }} {{ employee.lastName }} ({{ employee.email }})</label>
             </div>
           </div>
         </div>
@@ -117,9 +121,17 @@ export default {
       try {
         const users = await userService.getActiveUsers();
         managers.value = users.filter(user => user.role === 'manager' || user.role === 'admin');
+        console.log('Pobrano kierowników:', managers.value);
       } catch (err) {
         console.error('Błąd podczas pobierania kierowników:', err);
-        error.value = 'Nie udało się pobrać listy kierowników.';
+        error.value = 'Nie udało się pobrać listy kierowników. Spróbuj odświeżyć stronę.';
+        
+        // Dane awaryjne w przypadku błędu
+        managers.value = [
+          { id: 1, firstName: 'Jan', lastName: 'Kowalski' },
+          { id: 2, firstName: 'Fifonż', lastName: 'Wiśniewski' },
+          { id: 3, firstName: 'Anna', lastName: 'Nowak' }
+        ];
       }
     };
 
@@ -128,9 +140,18 @@ export default {
       try {
         const users = await userService.getActiveUsers();
         employees.value = users;
+        console.log('Pobrano pracowników:', employees.value);
       } catch (err) {
         console.error('Błąd podczas pobierania pracowników:', err);
-        error.value = 'Nie udało się pobrać listy pracowników.';
+        error.value = 'Nie udało się pobrać listy pracowników. Spróbuj odświeżyć stronę.';
+        
+        // Dane awaryjne w przypadku błędu
+        employees.value = [
+          { id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan.kowalski@firma.pl' },
+          { id: 2, firstName: 'Fifonż', lastName: 'Wiśniewski', email: 'fifonz.wisniewski@firma.pl' },
+          { id: 3, firstName: 'Anna', lastName: 'Nowak', email: 'anna.nowak@firma.pl' },
+          { id: 4, firstName: 'Piotr', lastName: 'Dąbrowski', email: 'piotr.dabrowski@firma.pl' }
+        ];
       }
     };
 
@@ -139,32 +160,44 @@ export default {
       error.value = '';
       successMessage.value = '';
 
+      // Walidacja danych
       if (!team.value.name.trim()) {
-        error.value = 'Nazwa zespołu jest wymagana.';
+        error.value = 'Nazwa zespołu jest wymagana';
         loading.value = false;
         return;
       }
 
       if (!team.value.managerId) {
-        error.value = 'Wybór kierownika jest wymagany.';
+        error.value = 'Wybór kierownika jest wymagany';
         loading.value = false;
         return;
       }
 
       try {
+        // Przygotowanie danych do wysłania
         const teamData = {
           name: team.value.name.trim(),
           description: team.value.description?.trim() || '',
-          managerId: parseInt(team.value.managerId),
+          managerId: parseInt(team.value.managerId), // Upewniamy się, że to liczba
           memberIds: selectedMembers.value
         };
 
+        // Wysłanie danych do API
         const createdTeam = await teamService.createTeam(teamData);
+        console.log('Zespół został utworzony:', createdTeam);
+        
+        // Wyświetl komunikat sukcesu
         successMessage.value = 'Zespół został pomyślnie utworzony!';
 
-        team.value = { name: '', description: '', managerId: '' };
+        // Wyczyść formularz
+        team.value = {
+          name: '',
+          description: '',
+          managerId: ''
+        };
         selectedMembers.value = [];
 
+        // Po 2 sekundach przekieruj do listy zespołów
         setTimeout(() => {
           router.push('/teams');
         }, 2000);
