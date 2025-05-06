@@ -1,8 +1,7 @@
 <template>
   <div class="flex items-center justify-center h-full w-full bg-background">
     <div class="bg-surface p-8 rounded-2xl shadow-xl w-96 border border-gray-200">
-      <h2 class="text-2xl font-bold text-center text-primary mb-6">BuildTask</h2>
-
+      <img src="/src/assets/buildtask_logo_full.png" alt="BuildTask" />
       <form @submit.prevent="handleLogin">
         <div class="mb-4">
           <label for="login" class="block text-text font-semibold mb-2">Login</label>
@@ -28,6 +27,8 @@
           >
         </div>
 
+        <p v-if="errorMessage" class="text-red-500 text-sm mb-4">{{ errorMessage }}</p>
+
         <button
           type="submit"
           class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
@@ -49,10 +50,10 @@ export default {
     return {
       login: '',
       password: '',
+      errorMessage: '', // Add a reactive property for error messages
     };
   },
   methods: {
-    // przykładowi użytkownicy
     handleLogin() {
       const users = [
         { name: 'Jan Kowalski', login: 'jan', password: '1234', role: 'employee' },
@@ -64,8 +65,9 @@ export default {
         authState.isAuthenticated = true;
         authState.user = user;
         this.$router.push('/teams');
+        this.errorMessage = ''; // Clear error message on successful login
       } else {
-        alert('Invalid login or password');
+        this.errorMessage = 'Invalid login or password'; // Set error message
       }
     },
   },
