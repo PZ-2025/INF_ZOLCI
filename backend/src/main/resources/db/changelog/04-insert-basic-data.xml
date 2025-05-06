@@ -60,26 +60,28 @@
         </insert>
     </changeSet>
 
-    <!-- Podstawowe typy raportów -->
-    <changeSet id="15-insert-report-types" author="your-name">
-        <insert tableName="report_types">
-            <column name="name" value="Raport zespołu"/>
-            <column name="description" value="Podsumowanie zadań zespołu"/>
-            <column name="template_path" value="/templates/reports/team_report.html"/>
-        </insert>
-        <insert tableName="report_types">
-            <column name="name" value="Raport użytkownika"/>
-            <column name="description" value="Podsumowanie zadań użytkownika"/>
-            <column name="template_path" value="/templates/reports/user_report.html"/>
-        </insert>
-    </changeSet>
-
     <!-- Podstawowe ustawienia systemowe -->
     <changeSet id="16-insert-system-settings" author="your-name">
         <insert tableName="system_settings">
             <column name="key" value="app.name"/>
             <column name="value" value="BuildTask"/>
             <column name="description" value="Nazwa aplikacji"/>
+        </insert>
+    </changeSet>
+
+    <!-- Add PDF report types -->
+    <changeSet id="add-pdf-report-types" author="your-name">
+        <insert tableName="report_types">
+            <column name="name" value="Raport postępu budowy"/>
+            <column name="description" value="Raport pokazujący postęp prac budowlanych"/>
+        </insert>
+        <insert tableName="report_types">
+            <column name="name" value="Raport obciążenia pracownika"/>
+            <column name="description" value="Raport pokazujący statystyki obciążenia pracą pracowników"/>
+        </insert>
+        <insert tableName="report_types">
+            <column name="name" value="Raport efektywności zespołu"/>
+            <column name="description" value="Raport pokazujący wskaźniki efektywności dla zespołów"/>
         </insert>
     </changeSet>
 </databaseChangeLog>

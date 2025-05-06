@@ -17,3 +17,4 @@ frontend/assets/styles.css
 # Exclude docs folder completely
 docs/
 docs/**
+/backend/reports/
