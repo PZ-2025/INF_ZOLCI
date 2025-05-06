@@ -22,8 +22,13 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Kontroler REST odpowiedzialny za generowanie i pobieranie raportów PDF.
+ * Obsługuje żądania dotyczące generowania raportów o postępie budowy,
+ * obciążeniu pracowników oraz efektywności zespołów.
+ */
 @RestController
-@RequestMapping("/api/reports")
+@RequestMapping("/api/generate-report")
 public class PdfReportController {
 
     private final PdfReportService pdfReportService;
@@ -43,7 +48,16 @@ public class PdfReportController {
         this.reportService = reportService;
     }
 
-    @PostMapping("/generate/construction-progress")
+    /**
+     * Generuje raport postępu budowy na podstawie podanych parametrów.
+     *
+     * @param teamId   Identyfikator zespołu
+     * @param dateFrom Data początkowa zakresu raportu
+     * @param dateTo   Data końcowa zakresu raportu
+     * @param userId   Identyfikator użytkownika generującego raport
+     * @return ResponseEntity zawierający informacje o wygenerowanym raporcie lub błędzie
+     */
+    @PostMapping("/construction-progress")
     public ResponseEntity<?> generateConstructionProgressReport(
             @RequestParam Integer teamId,
             @RequestParam String dateFrom,
@@ -73,7 +87,16 @@ public class PdfReportController {
         }
     }
 
-    @PostMapping("/generate/employee-load")
+    /**
+     * Generuje raport obciążenia pracownika na podstawie podanych parametrów.
+     *
+     * @param targetUserId Identyfikator pracownika (opcjonalny)
+     * @param dateFrom     Data początkowa zakresu raportu
+     * @param dateTo       Data końcowa zakresu raportu
+     * @param userId       Identyfikator użytkownika generującego raport
+     * @return ResponseEntity zawierający informacje o wygenerowanym raporcie lub błędzie
+     */
+    @PostMapping("/employee-load")
     public ResponseEntity<?> generateEmployeeLoadReport(
             @RequestParam(required = false) Integer targetUserId,
             @RequestParam String dateFrom,
@@ -103,7 +126,15 @@ public class PdfReportController {
         }
     }
 
-    @PostMapping("/generate/team-efficiency")
+    /**
+     * Generuje raport efektywności zespołu na podstawie podanych parametrów.
+     *
+     * @param dateFrom Data początkowa zakresu raportu
+     * @param dateTo   Data końcowa zakresu raportu
+     * @param userId   Identyfikator użytkownika generującego raport
+     * @return ResponseEntity zawierający informacje o wygenerowanym raporcie lub błędzie
+     */
+    @PostMapping("/team-efficiency")
     public ResponseEntity<?> generateTeamEfficiencyReport(
             @RequestParam String dateFrom,
             @RequestParam String dateTo,
@@ -132,6 +163,12 @@ public class PdfReportController {
         }
     }
 
+    /**
+     * Pobiera wygenerowany raport PDF.
+     *
+     * @param reportId Identyfikator raportu do pobrania
+     * @return ResponseEntity zawierający plik raportu lub informację o błędzie
+     */
     @GetMapping("/download/{reportId}")
     public ResponseEntity<Resource> downloadReport(@PathVariable Long reportId) {
         try {
