@@ -14,6 +14,9 @@ import AllUsers from '@/components/AllUsers.vue';
 import AddEmployee from '@/components/AddEmployee.vue';
 import AddTeam from '@/components/AddTeam.vue';
 import AddTask from '@/components/AddTask.vue';
+import EditTask from '@/components/TaskEdit.vue';
+import TaskDetails from '@/components/TaskDetails.vue';
+import TeamMembersManager from '@/components/TeamMembersManage.vue';
 
 export const authState = reactive({
   isAuthenticated: false,
@@ -34,6 +37,9 @@ const routes = [
   { path: '/addtask', name: "addTask", component: AddTask, meta: { requiresAuth: true, roles: ['manager'] } },
   { path: '/settings', name: "userSettings", component: UserSettings, meta: { requiresAuth: true } },
   { path: '/allusers', name: "allUsers", component: AllUsers, meta: { requiresAuth: true, roles: ['manager'] } },
+  { path: '/edittask', name: "editTask", component: EditTask, meta: { requiresAuth: true, roles: ['manager'] } },
+  { path: '/taskdetails/:id', name: "taskDetails", component: TaskDetails, meta: { requiresAuth: true } },
+  { path: '/teammembersmanage:/id', name: "teamMemebersManage", component: TeamMembersManager, meta: { requiresAuth: true, roles: ['manager'] } },
 ];
 
 const router = createRouter({
