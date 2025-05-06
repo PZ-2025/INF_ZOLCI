@@ -23,6 +23,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Serwis odpowiedzialny za generowanie raportów PDF.
+ * Obsługuje konwersję danych, generowanie plików PDF oraz zapisywanie informacji o raportach w bazie danych.
+ */
 @Service
 @Transactional
 public class PdfReportService {
@@ -43,8 +47,16 @@ public class PdfReportService {
         this.objectMapper = objectMapper;
     }
 
+    /**
+     * Generuje raport postępu budowy w formacie PDF.
+     *
+     * @param reportDTO Obiekt zawierający dane do raportu
+     * @param createdBy Użytkownik generujący raport
+     * @return Obiekt Report zawierający informacje o wygenerowanym raporcie
+     * @throws Exception w przypadku błędu podczas generowania raportu
+     */
     public Report generateConstructionProgressReport(ConstructionProgressReportDTO reportDTO, User createdBy) throws Exception {
-        // 1. Convert DTO to library model
+        // 1. Konwersja DTO na model biblioteczny
         List<ConstructionProgress> dataItems = reportDTO.getItems().stream()
                 .map(item -> {
                     ConstructionProgress progress = new ConstructionProgress();
@@ -56,24 +68,24 @@ public class PdfReportService {
                 })
                 .collect(Collectors.toList());
 
-        // 2. Prepare parameters for the report generator
+        // 2. Przygotowanie parametrów dla generatora raportów
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("dateFrom", reportDTO.getDateFrom());
         parameters.put("dateTo", reportDTO.getDateTo());
         parameters.put("completedPercentage", reportDTO.getCompletedPercentage());
         parameters.put("delayedCount", reportDTO.getDelayedCount());
 
-        // 3. Create report generator
+        // 3. Utworzenie generatora raportów
         ConstructionProgressReportGenerator generator = new ConstructionProgressReportGenerator();
 
-        // 4. Generate the PDF and save it
+        // 4. Generowanie PDF i zapisanie go
         String reportType = "construction-progress";
         String fileName = FileStorageUtils.createUniqueFileName(reportType, "pdf");
         Path filePath = FileStorageUtils.resolveReportPath(reportStoragePath, reportType, fileName);
 
         generator.saveReport(dataItems, parameters, filePath);
 
-        // 5. Create and save report entity in the database
+        // 5. Utworzenie i zapisanie encji raportu w bazie danych
         Report report = new Report();
         report.setName("Raport postępu budowy");
 
@@ -90,8 +102,16 @@ public class PdfReportService {
         return reportRepository.save(report);
     }
 
+    /**
+     * Generuje raport obciążenia pracownika w formacie PDF.
+     *
+     * @param reportDTO Obiekt zawierający dane do raportu
+     * @param createdBy Użytkownik generujący raport
+     * @return Obiekt Report zawierający informacje o wygenerowanym raporcie
+     * @throws Exception w przypadku błędu podczas generowania raportu
+     */
     public Report generateEmployeeLoadReport(EmployeeLoadReportDTO reportDTO, User createdBy) throws Exception {
-        // 1. Convert DTO to library model
+        // 1. Konwersja DTO na model biblioteczny
         List<EmployeeLoad> dataItems = reportDTO.getItems().stream()
                 .map(item -> {
                     EmployeeLoad load = new EmployeeLoad();
@@ -103,22 +123,22 @@ public class PdfReportService {
                 })
                 .collect(Collectors.toList());
 
-        // 2. Prepare parameters for the report generator
+        // 2. Przygotowanie parametrów dla generatora raportów
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("dateFrom", reportDTO.getDateFrom());
         parameters.put("dateTo", reportDTO.getDateTo());
 
-        // 3. Create report generator
+        // 3. Utworzenie generatora raportów
         EmployeeLoadReportGenerator generator = new EmployeeLoadReportGenerator();
 
-        // 4. Generate the PDF and save it
+        // 4. Generowanie PDF i zapisanie go
         String reportType = "employee-load";
         String fileName = FileStorageUtils.createUniqueFileName(reportType, "pdf");
         Path filePath = FileStorageUtils.resolveReportPath(reportStoragePath, reportType, fileName);
 
         generator.saveReport(dataItems, parameters, filePath);
 
-        // 5. Create and save report entity in the database
+        // 5. Utworzenie i zapisanie encji raportu w bazie danych
         Report report = new Report();
         report.setName("Raport obciążenia pracownika");
 
@@ -135,8 +155,16 @@ public class PdfReportService {
         return reportRepository.save(report);
     }
 
+    /**
+     * Generuje raport efektywności zespołu w formacie PDF.
+     *
+     * @param reportDTO Obiekt zawierający dane do raportu
+     * @param createdBy Użytkownik generujący raport
+     * @return Obiekt Report zawierający informacje o wygenerowanym raporcie
+     * @throws Exception w przypadku błędu podczas generowania raportu
+     */
     public Report generateTeamEfficiencyReport(TeamEfficiencyReportDTO reportDTO, User createdBy) throws Exception {
-        // 1. Convert DTO to library model
+        // 1. Konwersja DTO na model biblioteczny
         List<TeamEfficiency> dataItems = reportDTO.getItems().stream()
                 .map(item -> {
                     TeamEfficiency efficiency = new TeamEfficiency();
@@ -148,22 +176,22 @@ public class PdfReportService {
                 })
                 .collect(Collectors.toList());
 
-        // 2. Prepare parameters for the report generator
+        // 2. Przygotowanie parametrów dla generatora raportów
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("dateFrom", reportDTO.getDateFrom());
         parameters.put("dateTo", reportDTO.getDateTo());
 
-        // 3. Create report generator
+        // 3. Utworzenie generatora raportów
         TeamEfficiencyReportGenerator generator = new TeamEfficiencyReportGenerator();
 
-        // 4. Generate the PDF and save it
+        // 4. Generowanie PDF i zapisanie go
         String reportType = "team-efficiency";
         String fileName = FileStorageUtils.createUniqueFileName(reportType, "pdf");
         Path filePath = FileStorageUtils.resolveReportPath(reportStoragePath, reportType, fileName);
 
         generator.saveReport(dataItems, parameters, filePath);
 
-        // 5. Create and save report entity in the database
+        // 5. Utworzenie i zapisanie encji raportu w bazie danych
         Report report = new Report();
         report.setName("Raport efektywności zespołu");
 
