@@ -28,8 +28,8 @@
         </div>
 
         <p v-if="errorMessage" class="text-red-500 text-sm mb-4">{{ errorMessage }}</p>
-        <p v-if="connectionError" class="text-amber-500 text-sm mb-4">{{ connectionError }}</p>
 
+        <p v-if="connectionError" class="text-amber-500 text-sm mb-4">{{ connectionError }}</p>
         <button
             type="submit"
             class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"

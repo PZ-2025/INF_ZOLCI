@@ -79,15 +79,14 @@
     <!-- Przyciski akcji -->
     <div class="flex justify-between">
       <router-link
-          to="/addemployee"
-          class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition text-center"
+        to="/addemployee"
+        class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition text-center"
       >
-        Dodaj Pracownika
+        Dodaj Użytkownika
       </router-link>
-      <button
-          @click="removeAllEmployees"
-          class="bg-danger hover:bg-red-600 text-white px-4 py-2 rounded-md transition"
-          :disabled="!employees.length"
+      <button 
+        @click="removeAllUsers" 
+        class="bg-danger hover:bg-red-600 text-white px-4 py-2 rounded-md transition"
       >
         Usuń Wszystkich
       </button>
