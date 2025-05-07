@@ -159,7 +159,7 @@ export default {
 
     // Edycja pracownika
     const editEmployee = (id) => {
-      router.push(`/employees/${id}/edit`);
+      router.push(`/users/${id}/edit`);
     };
 
     // Dezaktywacja pracownika

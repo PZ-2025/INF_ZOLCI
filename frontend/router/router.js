@@ -44,6 +44,13 @@ const routes = [
     meta: { requiresAuth: true, roles: ['manager'] },
     props: route => ({ id: parseInt(route.params.id) || null })
   },
+  { 
+    path: '/users/:id/edit', 
+    name: "editUser", 
+    component: UserSettings, 
+    meta: { requiresAuth: true, roles: ['manager'] },
+    props: route => ({ userId: parseInt(route.params.id) || null })
+  },
 ];
 
 const router = createRouter({
