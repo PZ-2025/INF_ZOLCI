@@ -44,22 +44,19 @@
 </template>
 
 <script>
-import { ref } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import authService from '../services/authService';
 
 export default {
   setup() {
     const router = useRouter();
-    const credentials = ref({
-      username: '',
-      password: ''
-    });
+    const credentials = ref({ username: '', password: '' });
     const errorMessage = ref('');
     const connectionError = ref('');
     const isLoggingIn = ref(false);
+    let intervalId = null;
 
-    // Sprawdzenie połączenia z backendem przy inicjalizacji komponentu
     const checkBackendConnection = async () => {
       try {
         const isConnected = await authService.checkConnection();
@@ -74,26 +71,26 @@ export default {
       }
     };
 
-    // Wywołanie sprawdzenia połączenia zaraz po zamontowaniu komponentu
-    checkBackendConnection();
+    onMounted(() => {
+      checkBackendConnection(); 
+      intervalId = setInterval(checkBackendConnection, 2000); 
+    });
 
-    // Obsługa logowania
+    onUnmounted(() => {
+      clearInterval(intervalId); 
+    });
+
     const handleLogin = async () => {
       errorMessage.value = '';
       isLoggingIn.value = true;
 
       try {
-        // Próba logowania przez serwis
         await authService.login(credentials.value);
-
-        // Jeśli dotarliśmy tutaj, logowanie się powiodło
         router.push('/teams');
       } catch (error) {
-        // Obsługa błędu logowania
         errorMessage.value = error.message || 'Nieprawidłowy login lub hasło';
         console.error('Błąd logowania:', error);
 
-        // W przypadku problemu z serwerem, sprawdź połączenie
         if (error.message.includes('Problem z połączeniem')) {
           await checkBackendConnection();
         }
@@ -111,4 +108,5 @@ export default {
     };
   }
 };
+
 </script>
