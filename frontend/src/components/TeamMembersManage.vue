@@ -79,12 +79,25 @@
       </div>
     </div>
   </div>
+  <StatusModal
+    :show="showModal"
+    :type="modalConfig.type"
+    :title="modalConfig.title"
+    :message="modalConfig.message"
+    :button-text="modalConfig.buttonText"
+    :auto-close="modalConfig.autoClose"
+    :auto-close-delay="modalConfig.autoCloseDelay"
+    @close="hideModal"
+  />
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import userService from '../services/userService';
 import teamService from '../services/teamService';
+import StatusModal from './StatusModal.vue';
+import { useStatusModal } from '../composables/useStatusModal';
 
 const props = defineProps({
   id: {
@@ -102,6 +115,8 @@ const selectedMembers = ref([]);
 const search = ref('');
 const loading = ref(true);
 const error = ref(null);
+
+const router = useRouter();
 
 // Convert ID to number with validation
 const teamId = computed(() => {
@@ -164,6 +179,8 @@ const toggleAll = (event) => {
   }
 };
 
+const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
+
 // Zapisz zmiany w składzie zespołu
 const updateTeamMembers = async () => {
   try {
@@ -190,10 +207,25 @@ const updateTeamMembers = async () => {
       }
     }
 
-    alert('Skład zespołu został zaktualizowany!');
+    showStatus({
+      type: 'success',
+      title: 'Zapisano zmiany',
+      message: 'Skład zespołu został pomyślnie zaktualizowany.',
+      buttonText: 'Zamknij',
+      autoClose: true,
+      autoCloseDelay: 1500,
+      onClose: () => router.back()
+    });
   } catch (err) {
     console.error('Error updating team members:', err);
-    error.value = 'Nie udało się zaktualizować składu zespołu: ' + (err.message || '');
+    showStatus({
+      type: 'error',
+      title: 'Błąd',
+      message: 'Nie udało się zaktualizować składu zespołu: ' + (err.message || ''),
+      buttonText: 'Zamknij',
+      autoClose: true,
+      autoCloseDelay: 3000
+    });
   } finally {
     loading.value = false;
   }
