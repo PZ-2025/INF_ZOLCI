@@ -16,7 +16,7 @@ import AddTeam from '@/components/AddTeam.vue';
 import AddTask from '@/components/AddTask.vue';
 import EditTask from '@/components/TaskEdit.vue';
 import TaskDetails from '@/components/TaskDetails.vue';
-import TeamMembersManager from '@/components/TeamMembersManage.vue';
+import TeamMembersManage from '@/components/TeamMembersManage.vue';
 
 export const authState = reactive({
   isAuthenticated: false,
@@ -39,7 +39,11 @@ const routes = [
   { path: '/allusers', name: "allUsers", component: AllUsers, meta: { requiresAuth: true, roles: ['manager'] } },
   { path: '/edittask', name: "editTask", component: EditTask, meta: { requiresAuth: true, roles: ['manager'] } },
   { path: '/taskdetails/:id', name: "taskDetails", component: TaskDetails, meta: { requiresAuth: true } },
-  { path: '/teammembersmanage:/id', name: "teamMemebersManage", component: TeamMembersManager, meta: { requiresAuth: true, roles: ['manager'] } },
+  { path: '/teammembers/:id', name: "teamMembers", 
+    component: TeamMembersManage, 
+    meta: { requiresAuth: true, roles: ['manager'] },
+    props: route => ({ id: parseInt(route.params.id) || null })
+  },
 ];
 
 const router = createRouter({
@@ -53,6 +57,10 @@ router.beforeEach((to, from, next) => {
 
   if (to.name === 'teamDetails' || to.path.startsWith('/teamdetails/')) {
     console.log("DEBUG - TeamDetails route - ID param:", to.params.id);
+  }
+
+  if (to.name === 'teamMembers') {
+    console.log("DEBUG - TeamMembers route - ID param:", to.params.id, "Parsed:", parseInt(to.params.id));
   }
 
   if (to.meta.requiresAuth) {

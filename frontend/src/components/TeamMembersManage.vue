@@ -1,9 +1,25 @@
 <template>
-    <div class="min-h-screen bg-background text-text p-6">
-      <div class="max-w-3xl mx-auto bg-white shadow rounded-2xl p-8">
-        <h1 class="text-3xl font-bold text-primary mb-6">Zarządzaj członkami zespołu</h1>
+  <div class="min-h-screen bg-background text-text p-6">
+    <div class="max-w-3xl mx-auto bg-white shadow rounded-2xl p-8">
+      <h1 class="text-3xl font-bold text-primary mb-6">Zarządzaj członkami zespołu</h1>
+      
+      <!-- Loading state -->
+      <div v-if="loading" class="text-center py-8">
+        <p class="text-primary">Ładowanie danych...</p>
+      </div>
+
+      <!-- Error state -->
+      <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+        <p>{{ error }}</p>
+        <button @click="fetchData" class="mt-2 bg-primary text-white px-4 py-1 rounded-md">
+          Spróbuj ponownie
+        </button>
+      </div>
+
+      <!-- Main content -->
+      <div v-else>
         <p class="text-gray-600 mb-4">Zaznacz pracowników, którzy mają należeć do tego zespołu.</p>
-  
+
         <form @submit.prevent="updateTeamMembers" class="space-y-6">
           <!-- Wyszukiwanie -->
           <div>
@@ -62,45 +78,129 @@
         </form>
       </div>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, computed } from 'vue'
-  
-  // Przykładowe dane pracowników
-  const employees = ref([
-    { id: 1, name: 'Jan Kowalski', email: 'jan@example.com' },
-    { id: 2, name: 'Anna Nowak', email: 'anna@example.com' },
-    { id: 3, name: 'Piotr Wiśniewski', email: 'piotr@example.com' },
-    { id: 4, name: 'Katarzyna Zielińska', email: 'kasia@example.com' },
-    { id: 5, name: 'Marek Maj', email: 'marek@example.com' }
-  ])
-  
-  const selectedMembers = ref([2, 4]) // przykładowe zaznaczone osoby
-  const search = ref('')
-  
-  // Filtrowanie według wyszukiwarki
-  const filteredEmployees = computed(() =>
-    employees.value.filter(e =>
-      e.name.toLowerCase().includes(search.value.toLowerCase()) ||
-      e.email.toLowerCase().includes(search.value.toLowerCase())
-    )
-  )
-  
-  // Zaznacz / Odznacz wszystkich
-  function toggleAll(event) {
-    if (event.target.checked) {
-      selectedMembers.value = filteredEmployees.value.map(e => e.id)
-    } else {
-      selectedMembers.value = selectedMembers.value.filter(
-        id => !filteredEmployees.value.some(e => e.id === id)
-      )
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import userService from '../services/userService';
+import teamService from '../services/teamService';
+
+const props = defineProps({
+  id: {
+    type: [String, Number],
+    required: true,
+    validator: (value) => {
+      const parsed = parseInt(value);
+      return !isNaN(parsed) && parsed > 0;
     }
   }
-  
-  // Funkcja zapisu (tymczasowo tylko alert)
-  function updateTeamMembers() {
-    alert('Zapisano członków zespołu: ' + JSON.stringify(selectedMembers.value))
+});
+
+const employees = ref([]);
+const selectedMembers = ref([]);
+const search = ref('');
+const loading = ref(true);
+const error = ref(null);
+
+// Convert ID to number with validation
+const teamId = computed(() => {
+  const parsed = parseInt(props.id);
+  if (isNaN(parsed) || parsed <= 0) {
+    console.error('Invalid team ID:', props.id);
+    error.value = 'Nieprawidłowe ID zespołu';
+    return null;
   }
-  </script>
-  
+  return parsed;
+});
+
+// Fetch all active users and current team members
+const fetchData = async () => {
+  try {
+    loading.value = true;
+    error.value = null;
+
+    // Early validation of team ID
+    if (!teamId.value) {
+      throw new Error(`Nieprawidłowe ID zespołu: ${props.id}`);
+    }
+    
+    // Fetch all active users
+    const users = await userService.getActiveUsers();
+    employees.value = users.map(user => ({
+      id: user.id,
+      name: `${user.firstName} ${user.lastName}`,
+      email: user.email
+    }));
+
+    // Fetch current team members using validated teamId
+    const teamMembers = await teamService.getTeamMembers(teamId.value);
+    selectedMembers.value = teamMembers.map(member => member.userId);
+
+  } catch (err) {
+    console.error('Error fetching data:', err);
+    error.value = 'Nie udało się pobrać danych. ' + (err.message || 'Spróbuj odświeżyć stronę.');
+  } finally {
+    loading.value = false;
+  }
+};
+
+// Filtrowanie według wyszukiwarki
+const filteredEmployees = computed(() =>
+  employees.value.filter(e =>
+    e.name.toLowerCase().includes(search.value.toLowerCase()) ||
+    e.email.toLowerCase().includes(search.value.toLowerCase())
+  )
+);
+
+// Zaznacz / Odznacz wszystkich
+const toggleAll = (event) => {
+  if (event.target.checked) {
+    selectedMembers.value = filteredEmployees.value.map(e => e.id);
+  } else {
+    selectedMembers.value = selectedMembers.value.filter(
+      id => !filteredEmployees.value.some(e => e.id === id)
+    );
+  }
+};
+
+// Zapisz zmiany w składzie zespołu
+const updateTeamMembers = async () => {
+  try {
+    loading.value = true;
+    
+    if (!teamId.value || isNaN(teamId.value)) {
+      throw new Error('Nieprawidłowe ID zespołu');
+    }
+    
+    // Get current team members
+    const currentMembers = await teamService.getTeamMembers(teamId.value);
+    
+    // Remove members that are no longer selected
+    for (const member of currentMembers) {
+      if (!selectedMembers.value.includes(member.userId)) {
+        await teamService.removeTeamMember(member.id);
+      }
+    }
+    
+    // Add new members
+    for (const userId of selectedMembers.value) {
+      if (!currentMembers.some(m => m.userId === userId)) {
+        await teamService.addTeamMember(teamId.value, userId);
+      }
+    }
+
+    alert('Skład zespołu został zaktualizowany!');
+  } catch (err) {
+    console.error('Error updating team members:', err);
+    error.value = 'Nie udało się zaktualizować składu zespołu: ' + (err.message || '');
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  console.log("TeamMembersManage mounted, team ID:", teamId.value);
+  fetchData();
+});
+</script>

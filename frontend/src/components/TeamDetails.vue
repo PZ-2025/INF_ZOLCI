@@ -141,9 +141,12 @@ export default {
 
     // Nawigacja do zarządzania członkami zespołu
     const navigateToManageMembers = () => {
-      const teamId = getTeamId();
+      const teamId = route.params.id;
+      console.log("Navigating to manage members for team ID:", teamId);
       if (teamId) {
-        router.push({ name: 'TeamMemberManage', params: { id: teamId } });
+        router.push({ name: 'teamMembers', params: { id: teamId } });
+      } else {
+        console.error('Nie można nawigować - brak ID zespołu');
       }
     };
 
@@ -402,7 +405,7 @@ export default {
       getTeamMembersCount,
       getMemberInitials,
       getMemberColor,
-      navigateToManageMembers  // potrzebne do nawigacji
+      navigateToManageMembers,  // potrzebne do nawigacji
     };
   }
 };
