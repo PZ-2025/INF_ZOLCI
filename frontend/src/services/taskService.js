@@ -44,12 +44,34 @@ const taskService = {
     
     // Tworzenie zadania
     async createTask(taskData) {
-        return await apiService.post('/database/tasks', taskData);
+        // Sprawdzamy, czy dane mają prawidłowy format przed wysłaniem
+        console.log('Dane otrzymane do utworzenia zadania:', taskData);
+
+        // Upewniamy się, że wartości liczbowe są liczbami
+        const cleanedData = {
+            ...taskData,
+            teamId: Number(taskData.teamId),
+            priorityId: Number(taskData.priorityId),
+            statusId: Number(taskData.statusId),
+            createdById: Number(taskData.createdById || 1)
+        };
+
+        console.log('Oczyszczone dane zadania do wysłania:', cleanedData);
+        return await apiService.post('/database/tasks', cleanedData);
     },
     
     // Aktualizacja zadania
     async updateTask(taskId, taskData) {
-        return await apiService.put(`/database/tasks/${taskId}`, taskData);
+        // Również tutaj zapewniamy poprawne typy danych
+        const cleanedData = {
+            ...taskData,
+            teamId: Number(taskData.teamId),
+            priorityId: Number(taskData.priorityId),
+            statusId: Number(taskData.statusId),
+            createdById: Number(taskData.createdById || 1)
+        };
+
+        return await apiService.put(`/database/tasks/${taskId}`, cleanedData);
     },
     
     // Usuwanie zadania

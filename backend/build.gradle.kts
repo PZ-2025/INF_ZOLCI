@@ -43,6 +43,10 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.springframework.boot:spring-boot-starter-logging")
+
+    // Własna biblioteka do raportowania w PDF + itext
+    implementation(files("libs/reporting-library-1.0-SNAPSHOT.jar"))
+    implementation("com.itextpdf:itextpdf:5.5.13") // zależność do jara lokalnego z libs/
 }
 
 tasks.withType<Test> {
