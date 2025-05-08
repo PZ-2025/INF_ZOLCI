@@ -64,9 +64,9 @@ SPRING_PROFILES_ACTIVE=test     # Active Spring profile
 
 ### Available Profiles
 
-- `dev` - Development profile with test data initialization
-- `build` - Production profile with minimal required data
-- `test` - Testing profile with H2 database
+- `development` - Development profile with test data initialization
+- `production` - Production profile with minimal required data
+- `deploy` - Testing profile with H2 database
 
 ## Running the Application
 

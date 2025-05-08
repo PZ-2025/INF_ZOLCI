@@ -14,7 +14,7 @@
             <column name="email" value="admin@example.com"/>
             <column name="first_name" value="System"/>
             <column name="last_name" value="Administrator"/>
-            <column name="role" value="ADMIN"/>
+            <column name="role" value="administrator"/>
             <column name="is_active" valueBoolean="true"/>
         </insert>
     </changeSet>

@@ -61,7 +61,7 @@ public class DataInitializerConfig {
      * @return CommandLineRunner uruchamiany podczas startu aplikacji
      */
     @Bean
-    @Profile("dev") // Ten bean będzie aktywny tylko w profilu 'dev'
+    @Profile("development") // Ten bean będzie aktywny tylko w profilu 'development'
     public CommandLineRunner initDevData() {
         return args -> {
             System.out.println("Sprawdzanie danych testowych...");
