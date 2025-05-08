@@ -1,8 +1,6 @@
 package com.example.backend.config;
 
-import com.example.backend.models.TaskComment;
-import com.example.backend.models.Team;
-import com.example.backend.models.TeamMember;
+import com.example.backend.models.*;
 import com.example.backend.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.CommandLineRunner;
@@ -12,128 +10,124 @@ import org.springframework.context.annotation.Profile;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 
 /**
- * Konfiguracja czyszczenia danych testowych w aplikacji BuildTask.
+ * Konfiguracja czyszczenia danych w aplikacji BuildTask.
  *
- * <p>Klasa odpowiedzialna za usuwanie danych wygenerowanych w środowisku deweloperskim.
- * Przeznaczona do użycia w profilu "build", umożliwia systematyczne usuwanie
- * tymczasowych danych testowych z bazy danych.</p>
- *
- * <p>Proces czyszczenia obejmuje:</p>
- * <ul>
- *   <li>Usuwanie komentarzy do zadań</li>
- *   <li>Usuwanie zadań testowych</li>
- *   <li>Usuwanie członków zespołów</li>
- *   <li>Usuwanie zespołów testowych</li>
- *   <li>Usuwanie użytkowników testowych</li>
- * </ul>
+ * <p>Klasa odpowiedzialna za usuwanie danych wprowadzonych przez użytkowników,
+ * zachowując tylko podstawowe dane zdefiniowane w db/changelog/04-insert-basic-data.xml.</p>
  *
  * @author Jakub
- * @version 1.0.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 @Configuration
 @RequiredArgsConstructor
-public class DataBuildConfig  {
+public class DataBuildConfig {
 
-    /** Repozytorium użytkowników do zarządzania danymi użytkowników. */
     private final UserRepository userRepository;
-
-    /** Repozytorium zespołów do zarządzania danymi zespołów. */
     private final TeamRepository teamRepository;
-
-    /** Repozytorium członków zespołów do zarządzania przypisaniami użytkowników. */
     private final TeamMemberRepository teamMemberRepository;
-
-    /** Repozytorium zadań do zarządzania danymi zadań. */
     private final TaskRepository taskRepository;
-
-    /** Repozytorium komentarzy do zadań do zarządzania komentarzami. */
     private final TaskCommentRepository taskCommentRepository;
+    private final TaskHistoryRepository taskHistoryRepository;
+    private final ReportRepository reportRepository;
+    private final ReportTypeRepository reportTypeRepository;
+    private final PriorityRepository priorityRepository;
+    private final TaskStatusRepository taskStatusRepository;
+    private final SystemSettingRepository systemSettingRepository;
 
-    /** Lista nazw użytkowników wygenerowanych w środowisku deweloperskim. */
-    private final List<String> devUsernames = Arrays.asList("manager1", "user1", "user2");
-
-    /** Lista nazw zespołów utworzonych w środowisku deweloperskim. */
-    private final List<String> devTeamNames = Arrays.asList(
-            "Zespół szybkiego reagowania A1",
-            "Zespół ekspertów budowlanych E1"
+    // Dane podstawowe z 04-insert-basic-data.xml
+    private final String ADMIN_USERNAME = "admin";
+    private final List<String> BASIC_PRIORITIES = Arrays.asList("Niski", "Średni", "Wysoki");
+    private final List<String> BASIC_STATUSES = Arrays.asList("Rozpoczęte", "W toku", "Zakończone");
+    private final List<String> BASIC_REPORT_TYPES = Arrays.asList(
+            "Raport postępu budowy",
+            "Raport obciążenia pracownika",
+            "Raport efektywności zespołu"
     );
-
-    /** Lista tytułów zadań wygenerowanych w środowisku deweloperskim. */
-    private final List<String> devTaskTitles = Arrays.asList(
-            "Remont mieszkania ul. Załęska 76",
-            "Budowa werandy dla domu jednorodzinnego"
-    );
+    private final String BASIC_SYSTEM_SETTING_KEY = "app.name";
 
     /**
-     * Tworzy {@link CommandLineRunner} do czyszczenia danych testowych.
+     * Tworzy {@link CommandLineRunner} do czyszczenia wszystkich danych oprócz podstawowych.
      *
-     * <p>Metoda realizuje sekwencyjne usuwanie danych testowych:</p>
-     * <ol>
-     *   <li>Usuwa komentarze do zadań</li>
-     *   <li>Usuwa zadania testowe</li>
-     *   <li>Usuwa członków zespołów</li>
-     *   <li>Usuwa zespoły testowe</li>
-     *   <li>Usuwa użytkowników testowych</li>
-     * </ol>
+     * <p>Metoda realizuje sekwencyjne usuwanie danych z zachowaniem danych podstawowych:</p>
      *
-     * <p>Aktywna tylko w profilu 'build'.</p>
+     * <p>Aktywna tylko w profilu 'production'.</p>
      *
      * @return {@link CommandLineRunner} do czyszczenia danych
      */
     @Bean
-    @Profile("build") // Ten bean będzie aktywny tylko w profilu 'build'
-    public CommandLineRunner cleanDevData() {
+    @Profile("production")
+    public CommandLineRunner cleanAllExceptBasicData() {
         return args -> {
-            System.out.println("Rozpoczynam czyszczenie danych testowych...");
+            System.out.println("Rozpoczynam proces czyszczenia danych - zachowując tylko dane podstawowe...");
 
-            // Najpierw usuwamy komentarze do zadań testowych
-            for (String taskTitle : devTaskTitles) {
-                taskRepository.findByTitle(taskTitle).ifPresent(task -> {
-                    List<TaskComment> comments = taskCommentRepository.findByTask(task);
-                    if (!comments.isEmpty()) {
-                        System.out.println("Usuwam " + comments.size() + " komentarzy dla zadania: " + taskTitle);
-                        taskCommentRepository.deleteAll(comments);
-                    }
-                });
-            }
+            // 1. Usuwanie wszystkich komentarzy do zadań
+            System.out.println("Usuwanie wszystkich komentarzy do zadań...");
+            taskCommentRepository.deleteAll();
 
-            // Usuwamy zadania testowe
-            for (String taskTitle : devTaskTitles) {
-                taskRepository.findByTitle(taskTitle).ifPresent(task -> {
-                    System.out.println("Usuwam zadanie: " + taskTitle);
-                    taskRepository.delete(task);
-                });
-            }
+            // 2. Usuwanie całej historii zadań
+            System.out.println("Usuwanie całej historii zadań...");
+            taskHistoryRepository.deleteAll();
 
-            // Usuwamy członkostwa w zespołach testowych
-            for (String teamName : devTeamNames) {
-                Optional<Team> teamOptional = teamRepository.findByName(teamName);
-                if (teamOptional.isPresent()) {
-                    Team team = teamOptional.get();
-                    List<TeamMember> members = teamMemberRepository.findAllByTeam(team);
-                    if (!members.isEmpty()) {
-                        System.out.println("Usuwam " + members.size() + " członków zespołu: " + teamName);
-                        teamMemberRepository.deleteAll(members);
-                    }
+            // 3. Usuwanie wszystkich zadań
+            System.out.println("Usuwanie wszystkich zadań...");
+            taskRepository.deleteAll();
 
-                    System.out.println("Usuwam zespół: " + teamName);
-                    teamRepository.delete(team);
-                }
-            }
+            // 4. Usuwanie wszystkich raportów (zachowujemy typy raportów)
+            System.out.println("Usuwanie wszystkich raportów...");
+            reportRepository.deleteAll();
 
-            // Usuwamy użytkowników testowych
-            for (String username : devUsernames) {
-                userRepository.findByUsername(username).ifPresent(user -> {
-                    System.out.println("Usuwam użytkownika: " + username);
+            // 5. Usuwanie wszystkich członków zespołów
+            System.out.println("Usuwanie wszystkich członków zespołów...");
+            teamMemberRepository.deleteAll();
+
+            // 6. Usuwanie wszystkich zespołów
+            System.out.println("Usuwanie wszystkich zespołów...");
+            teamRepository.deleteAll();
+
+            // 7. Usuwanie wszystkich użytkowników oprócz admina
+            System.out.println("Usuwanie użytkowników (zachowując 'admin')...");
+            userRepository.findAll().forEach(user -> {
+                if (!ADMIN_USERNAME.equals(user.getUsername())) {
                     userRepository.delete(user);
-                });
-            }
+                }
+            });
 
-            System.out.println("Czyszczenie danych testowych zakończone!");
+            // 8. Usuwanie wszystkich typów raportów oprócz podstawowych
+            System.out.println("Usuwanie niestandardowych typów raportów...");
+            reportTypeRepository.findAll().forEach(reportType -> {
+                if (!BASIC_REPORT_TYPES.contains(reportType.getName())) {
+                    reportTypeRepository.delete(reportType);
+                }
+            });
+
+            // 9. Usuwanie wszystkich priorytetów oprócz podstawowych
+            System.out.println("Usuwanie niestandardowych priorytetów...");
+            priorityRepository.findAll().forEach(priority -> {
+                if (!BASIC_PRIORITIES.contains(priority.getName())) {
+                    priorityRepository.delete(priority);
+                }
+            });
+
+            // 10. Usuwanie wszystkich statusów zadań oprócz podstawowych
+            System.out.println("Usuwanie niestandardowych statusów zadań...");
+            taskStatusRepository.findAll().forEach(status -> {
+                if (!BASIC_STATUSES.contains(status.getName())) {
+                    taskStatusRepository.delete(status);
+                }
+            });
+
+            // 11. Usuwanie wszystkich ustawień systemowych oprócz podstawowych
+            System.out.println("Usuwanie niestandardowych ustawień systemowych...");
+            systemSettingRepository.findAll().forEach(setting -> {
+                if (!BASIC_SYSTEM_SETTING_KEY.equals(setting.getKey())) {
+                    systemSettingRepository.delete(setting);
+                }
+            });
+
+            System.out.println("Czyszczenie danych zakończone. W bazie danych pozostały tylko podstawowe dane z 04-insert-basic-data.xml.");
         };
     }
 }
