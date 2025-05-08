@@ -31,7 +31,7 @@
       <router-link 
         to="/settings" 
         class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Ustawienia
+        Ustawienia użytkownika
       </router-link>
       <router-link 
         v-if="isAdmin" 
