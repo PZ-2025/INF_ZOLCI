@@ -36,20 +36,55 @@
         <p><span class="font-semibold text-black">Zespół: </span> <span class="text-black">{{ teamName }}</span></p>
       </div>
 
+      <!-- Debugowanie struktury zadania -->
+      <div v-if="debugMode" class="bg-gray-100 p-4 rounded-lg mb-4 text-xs overflow-auto max-h-40">
+        <pre>{{ JSON.stringify(task, null, 2) }}</pre>
+      </div>
+
       <!-- Lista komentarzy -->
       <div class="space-y-4">
-        <h3 class="text-xl font-semibold text-primary">Komentarze</h3>
-        <div v-if="!task.comments || task.comments.length === 0" class="text-center text-gray-500">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xl font-semibold text-primary">Komentarze</h3>
+          <span class="text-sm text-gray-500">{{ taskComments.length }} {{ commentCountText }}</span>
+        </div>
+        
+        <div v-if="!taskComments || taskComments.length === 0" class="text-center text-gray-500">
           Brak komentarzy
         </div>
-        <ul v-else class="space-y-4">
-          <li v-for="comment in task.comments" :key="comment.id" class="bg-gray-100 p-4 rounded-lg">
-            <div class="text-sm text-gray-600 mb-1">
-              {{ comment.userFullName || comment.username || 'Użytkownik' }} — {{ formatDate(comment.createdAt) }}
-            </div>
-            <p class="text-black">{{ comment.comment }}</p>
-          </li>
-        </ul>
+        
+        <div v-else 
+          class="space-y-4 overflow-y-auto transition-all" 
+          :class="{'max-h-60': taskComments.length > 3 && !showAllComments, 'scrollbar-custom': taskComments.length > 3}">
+          <ul class="space-y-4">
+            <li v-for="comment in taskComments" :key="comment.id" class="bg-gray-100 p-4 rounded-lg">
+              <div class="flex justify-between">
+                <div class="text-sm text-gray-600 mb-1">
+                  {{ comment.userFullName || comment.username || 'Użytkownik' }} — {{ formatDate(comment.createdAt) }}
+                </div>
+                <!-- Przycisk usuwania komentarza - widoczny tylko dla managera lub admina -->
+                <button 
+                  v-if="canDeleteComments" 
+                  @click="deleteComment(comment.id)" 
+                  class="bg-red-600 hover:bg-red-700 text-white p-2 transition-colors duration-200"
+                  :disabled="isDeletingComment"
+                  title="Usuń komentarz"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              </div>
+              <p class="text-black">{{ comment.content || comment.comment }}</p>
+            </li>
+          </ul>
+        </div>
+        
+        <!-- Przycisk "Pokaż więcej" gdy liczba komentarzy > 3 -->
+        <div v-if="taskComments.length > 3" class="text-center pt-2">
+          <button @click="toggleComments" class="text-primary hover:text-secondary text-sm">
+            {{ showAllComments ? 'Pokaż mniej' : 'Pokaż wszystkie' }}
+          </button>
+        </div>
       </div>
 
       <!-- Formularz dodawania komentarza -->
@@ -73,15 +108,22 @@
         </form>
       </div>
 
-      <div class="flex justify-end space-x-4">
-        <button @click="editTask"
-          class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm transition">
-          Edytuj
+      <div class="flex justify-between">
+        <button @click="toggleDebug" 
+          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition">
+          {{ debugMode ? 'Ukryj debug' : 'Debug' }}
         </button>
-        <button @click="deleteTask"
-          class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition">
-          Usuń zadanie
-        </button>
+        
+        <div class="space-x-4">
+          <button @click="editTask"
+            class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm transition">
+            Edytuj
+          </button>
+          <button @click="deleteTask"
+            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition">
+            Usuń zadanie
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -92,6 +134,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import taskService from '../services/taskService';
 import teamService from '../services/teamService';
+import authService from '../services/authService';
 import { authState } from '../../router/router';
 
 export default {
@@ -104,6 +147,34 @@ export default {
     const error = ref(null);
     const newComment = ref('');
     const isAddingComment = ref(false);
+    const isDeletingComment = ref(false);
+    const debugMode = ref(false);
+    const showAllComments = ref(false);
+
+    // Sprawdzenie czy użytkownik może usuwać komentarze (manager lub admin)
+    const canDeleteComments = computed(() => {
+      return authService.hasRoleAtLeast('manager');
+    });
+
+    // Computed property do obsługi komentarzy
+    const taskComments = computed(() => {
+      // Sprawdza różne możliwe struktury komentarzy
+      if (task.value?.comments && Array.isArray(task.value.comments)) {
+        return task.value.comments;
+      } 
+      if (task.value?.taskComments && Array.isArray(task.value.taskComments)) {
+        return task.value.taskComments;
+      }
+      // Sprawdza, czy komentarze są w innym formacie lub zagnieżdżeniu
+      if (task.value?.task_comments && Array.isArray(task.value.task_comments)) {
+        return task.value.task_comments;
+      }
+      return [];
+    });
+
+    const toggleDebug = () => {
+      debugMode.value = !debugMode.value;
+    };
 
     const fetchTaskDetails = async () => {
       loading.value = true;
@@ -112,7 +183,35 @@ export default {
       try {
         const taskId = parseInt(route.params.id);
         const response = await taskService.getTaskById(taskId);
+        console.log('Odpowiedź z backendu:', response);
+        
+        // Zapisz odpowiedź i pokaż w konsoli strukturę
         task.value = response;
+        console.log('Struktura task:', task.value);
+        
+        // Sprawdź, czy są komentarze i wyświetl ich strukturę
+        if (task.value.comments) {
+          console.log('Struktura komentarzy:', task.value.comments);
+        } else if (task.value.taskComments) {
+          console.log('Struktura taskComments:', task.value.taskComments);
+        } else if (task.value.task_comments) {
+          console.log('Struktura task_comments:', task.value.task_comments);
+        } else {
+          console.log('Brak komentarzy w odpowiedzi API');
+          
+          // Spróbuj pobrać komentarze osobno, jeśli nie ma ich w głównej odpowiedzi
+          try {
+            const commentsResponse = await taskService.getTaskComments(taskId);
+            console.log('Pobrane komentarze:', commentsResponse);
+            
+            // Dodaj komentarze do obiektu zadania
+            if (Array.isArray(commentsResponse)) {
+              task.value.comments = commentsResponse;
+            }
+          } catch (commentsErr) {
+            console.error('Błąd podczas pobierania komentarzy:', commentsErr);
+          }
+        }
       } catch (err) {
         console.error('Błąd podczas pobierania szczegółów zadania:', err);
         error.value = 'Nie udało się pobrać szczegółów zadania';
@@ -160,6 +259,34 @@ export default {
           alert(err.message || 'Nie udało się dodać komentarza. Spróbuj ponownie później.');
       } finally {
           isAddingComment.value = false;
+      }
+    };
+
+    // Funkcja do usuwania komentarza
+    const deleteComment = async (commentId) => {
+      if (!commentId) {
+        console.error('Brak ID komentarza');
+        return;
+      }
+
+      // Potwierdzenie usunięcia
+      if (!confirm('Czy na pewno chcesz usunąć ten komentarz?')) {
+        return;
+      }
+
+      isDeletingComment.value = true;
+      try {
+        // Wywołaj usługę usuwania komentarza
+        await taskService.deleteComment(commentId);
+        
+        // Odśwież zadanie, aby zaktualizować listę komentarzy
+        await fetchTaskDetails();
+        
+      } catch (err) {
+        console.error('Błąd podczas usuwania komentarza:', err);
+        alert(err.message || 'Nie udało się usunąć komentarza. Spróbuj ponownie później.');
+      } finally {
+        isDeletingComment.value = false;
       }
     };
 
@@ -253,7 +380,42 @@ export default {
       }
     };
 
-    onMounted(fetchTaskDetails);
+    // Przełącznik wyświetlania wszystkich komentarzy
+    const toggleComments = () => {
+      showAllComments.value = !showAllComments.value;
+    };
+    
+    // Oblicza tekst z liczbą komentarzy
+    const commentCountText = computed(() => {
+      const count = taskComments.value.length;
+      if (count === 1) return 'komentarz';
+      else if (count > 1 && count < 5) return 'komentarze';
+      else return 'komentarzy';
+    });
+
+    onMounted(() => {
+      fetchTaskDetails();
+      
+      // Dodanie stylów dla niestandardowego scrollbara
+      const style = document.createElement('style');
+      style.textContent = `
+        .scrollbar-custom::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-track {
+          background: #f1f1f1;
+          border-radius: 10px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+          background: #888;
+          border-radius: 10px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+          background: #555;
+        }
+      `;
+      document.head.appendChild(style);
+    });
 
     return {
       task,
@@ -261,10 +423,19 @@ export default {
       error,
       newComment,
       isAddingComment,
+      isDeletingComment,
       teamName,
       statusColor,
       priorityColor,
+      taskComments,
+      commentCountText,
+      showAllComments,
+      toggleComments,
+      debugMode,
+      toggleDebug,
+      canDeleteComments,
       addComment,
+      deleteComment,
       editTask,
       deleteTask,
       getStatusName,

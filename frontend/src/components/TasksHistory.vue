@@ -10,7 +10,7 @@
           Dodaj Zadanie
         </router-link>
       </div>
-      
+
       <!-- Filtry -->
       <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="flex flex-col">
@@ -53,14 +53,11 @@
                  class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
-      </div>
-
-      <div class="flex justify-end">
-        <button @click="applyFilters"
+        <!-- <button @click="applyFilters"
                 class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
         >
           Filtruj
-        </button>
+        </button> -->
       </div>
 
       <!-- Stan ładowania -->
