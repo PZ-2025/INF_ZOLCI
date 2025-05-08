@@ -1,6 +1,14 @@
 <template>
   <div class="h-full flex flex-col p-6 bg-background text-text">
-    <h1 class="text-3xl font-bold text-primary mb-6">Pracownicy</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold text-primary">Pracownicy</h1>
+      <router-link
+        to="/addemployee"
+        class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition text-center"
+      >
+        Dodaj Pracownika
+      </router-link>
+    </div>
 
     <!-- Stan ładowania -->
     <div v-if="loading" class="flex-grow flex justify-center items-center">
@@ -75,22 +83,16 @@
       </div>
       <p v-else class="text-muted text-center py-8">Brak pracowników. Dodaj pierwszego pracownika używając przycisku poniżej.</p>
     </div>
-
-    <!-- Przyciski akcji -->
-    <div class="flex justify-between">
-      <router-link
-        to="/addemployee"
-        class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition text-center"
-      >
-        Dodaj Użytkownika
-      </router-link>
+    
+    <!-- Przycisk usuwania wszystkich pracowników  -->
+    <!-- <div class="flex justify-end">
       <button 
         @click="removeAllUsers" 
         class="bg-danger hover:bg-red-600 text-white px-4 py-2 rounded-md transition"
       >
         Usuń Wszystkich
       </button>
-    </div>
+    </div> -->
 
     <!-- Modal potwierdzenia -->
     <div v-if="showConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
