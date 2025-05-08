@@ -311,4 +311,25 @@ public class UserService {
                     return mapToDTO(savedUser);
                 });
     }
+
+    public Optional<UserDTO> updatePassword(Integer userId, String currentPassword, String newPassword) {
+        return userRepository.findById(userId)
+                .map(user -> {
+                    // Verify current password
+                    if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                        throw new RuntimeException("Current password is incorrect");
+                    }
+
+                    // Validate new password
+                    if (newPassword == null || newPassword.length() < 6) {
+                        throw new RuntimeException("New password must be at least 6 characters long");
+                    }
+
+                    // Encode and set new password
+                    user.setPassword(passwordEncoder.encode(newPassword));
+
+                    // Save user and return DTO
+                    return mapToDTO(userRepository.save(user));
+                });
+    }
 }

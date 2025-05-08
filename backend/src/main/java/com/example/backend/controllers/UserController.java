@@ -152,4 +152,35 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    /**
+     * Endpoint do aktualizacji hasła użytkownika.
+     * Wymaga podania aktualnego hasła oraz nowego hasła.
+     */
+    @PatchMapping(value = "/{id}/password", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> updatePassword(
+            @PathVariable("id") Integer id,
+            @RequestBody Map<String, String> passwordData) {
+
+        // Validate required fields
+        if (!passwordData.containsKey("currentPassword") || !passwordData.containsKey("password")) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", "Both currentPassword and password fields are required");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+
+        try {
+            return userService.updatePassword(
+                            id,
+                            passwordData.get("currentPassword"),
+                            passwordData.get("password")
+                    )
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (RuntimeException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("message", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        }
+    }
 }
