@@ -1,6 +1,8 @@
 <template>
   <div class="bg-background min-h-screen p-8 text-text">
-    <h1 class="text-3xl font-bold text-primary mb-6">Ustawienia Użytkownika</h1>
+    <h1 class="text-3xl font-bold text-primary mb-6">
+      {{ userId ? 'Edycja Użytkownika' : 'Ustawienia Użytkownika' }}
+    </h1>
 
     <div v-if="loading" class="flex justify-center items-center h-64">
       <p class="text-primary text-xl">Ładowanie danych użytkownika...</p>
@@ -121,16 +123,42 @@
         <span v-else>Zapisz Zmiany</span>
       </button>
     </form>
+
+    <StatusModal
+      :show="showModal"
+      :type="modalConfig.type"
+      :title="modalConfig.title"
+      :message="modalConfig.message"
+      :button-text="modalConfig.buttonText"
+      :auto-close="modalConfig.autoClose"
+      :auto-close-delay="modalConfig.autoCloseDelay"
+      @close="hideModal"
+    />
   </div>
 </template>
 
 <script>
 import { ref, reactive, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import userService from '../services/userService';
 import { authState } from '../../router/router.js';
+import StatusModal from './StatusModal.vue';
+import { useStatusModal } from '../composables/useStatusModal';
 
 export default {
-  setup() {
+  components: {
+    StatusModal
+  },
+  props: {
+    userId: {
+      type: [String, Number],
+      default: null
+    }
+  },
+  setup(props) {
+    const router = useRouter();
+    const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
+
     // Oryginalne dane użytkownika (do wykrywania zmian)
     const originalUserData = ref({});
 
@@ -176,14 +204,18 @@ export default {
       successMessage.value = null;
 
       try {
-        // Sprawdź, czy użytkownik jest zalogowany
-        if (!authState.isAuthenticated || !authState.user || !authState.user.id) {
-          error.value = 'Nie jesteś zalogowany. Zaloguj się, aby zmienić ustawienia.';
-          return;
+        let userData;
+        if (props.userId) {
+          // Jeśli przekazano userId, pobierz dane tego użytkownika
+          userData = await userService.getUserById(props.userId);
+        } else {
+          // Jeśli nie, sprawdź czy użytkownik jest zalogowany
+          if (!authState.isAuthenticated || !authState.user || !authState.user.id) {
+            error.value = 'Nie jesteś zalogowany. Zaloguj się, aby zmienić ustawienia.';
+            return;
+          }
+          userData = await userService.getUserById(authState.user.id);
         }
-
-        // Pobierz dane użytkownika z API
-        const userData = await userService.getUserById(authState.user.id);
 
         // Zapisz oryginalne dane do porównania przy aktualizacji
         originalUserData.value = { ...userData };
@@ -203,7 +235,12 @@ export default {
         console.log('Dane użytkownika załadowane:', user);
       } catch (err) {
         console.error('Błąd ładowania danych użytkownika:', err);
-        error.value = `Nie udało się załadować danych użytkownika: ${err.message}`;
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: `Nie udało się załadować danych użytkownika: ${err.message}`,
+          buttonText: 'Zamknij'
+        });
 
         // Dane demonstracyjne w przypadku błędu
         user.id = 1;
@@ -286,18 +323,36 @@ export default {
         // Zaktualizuj oryginalne dane
         originalUserData.value = { ...user };
 
-        // Wyświetl komunikat sukcesu
-        successMessage.value = 'Ustawienia zostały zaktualizowane pomyślnie!';
+        showStatus({
+          type: 'success',
+          title: 'Sukces',
+          message: 'Ustawienia zostały zaktualizowane pomyślnie!',
+          buttonText: 'Zamknij',
+          autoClose: true,
+          autoCloseDelay: 1500,
+          onClose: () => {
+            hideModal();
+            // Jeśli edytujemy innego użytkownika, wróć do listy
+            if (props.userId) {
+              router.push('/allusers');
+            }
+          } 
+        });
 
-        // Zaktualizuj dane w stanie autoryzacji
-        if (authState.user) {
+        // Zaktualizuj dane w stanie autoryzacji tylko jeśli edytujemy własne dane
+        if (!props.userId && authState.user) {
           authState.user.firstName = user.firstName;
           authState.user.lastName = user.lastName;
           authState.user.email = user.email;
         }
       } catch (err) {
         console.error('Błąd aktualizacji ustawień:', err);
-        error.value = `Nie udało się zaktualizować ustawień: ${err.message}`;
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: `Nie udało się zaktualizować ustawień: ${err.message}`,
+          buttonText: 'Zamknij'
+        });
       } finally {
         isSaving.value = false;
       }
@@ -317,7 +372,10 @@ export default {
       successMessage,
       passwordError,
       loadUserData,
-      updateSettings
+      updateSettings,
+      showModal,
+      modalConfig,
+      hideModal
     };
   }
 };

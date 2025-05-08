@@ -105,6 +105,14 @@
         </div>
       </div>
     </div>
+    <div class="fixed bottom-4 right-4">
+      <button
+        @click="navigateToManageMembers"
+        class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
+      >
+        Zarządzaj członkami
+      </button>
+    </div>
   </div>
 </template>
 
@@ -130,6 +138,17 @@ export default {
     const teamTasks = ref([]);
     const loading = ref(true);
     const error = ref(null);
+
+    // Nawigacja do zarządzania członkami zespołu
+    const navigateToManageMembers = () => {
+      const teamId = route.params.id;
+      console.log("Navigating to manage members for team ID:", teamId);
+      if (teamId) {
+        router.push({ name: 'teamMembers', params: { id: teamId } });
+      } else {
+        console.error('Nie można nawigować - brak ID zespołu');
+      }
+    };
 
     // Metoda pozyskiwania ID zespołu
     const getTeamId = () => {
@@ -385,7 +404,8 @@ export default {
       getTeamColor,
       getTeamMembersCount,
       getMemberInitials,
-      getMemberColor
+      getMemberColor,
+      navigateToManageMembers,  // potrzebne do nawigacji
     };
   }
 };
