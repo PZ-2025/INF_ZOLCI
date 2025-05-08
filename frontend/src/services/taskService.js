@@ -9,7 +9,12 @@ const taskService = {
 
     // Pobieranie zadania po ID
     async getTaskById(taskId) {
-        return await apiService.get(`/database/tasks/${taskId}`);
+        try {
+            return await apiService.get(`/database/tasks/${taskId}`);
+        } catch (error) {
+            console.error('Error fetching task:', error);
+            throw new Error('Nie udało się pobrać szczegółów zadania');
+        }
     },
 
     // Tworzenie zadania
@@ -24,7 +29,12 @@ const taskService = {
 
     // Usuwanie zadania
     async deleteTask(taskId) {
-        return await apiService.delete(`/database/tasks/${taskId}`);
+        try {
+            return await apiService.delete(`/database/tasks/${taskId}`);
+        } catch (error) {
+            console.error('Error deleting task:', error);
+            throw new Error('Nie udało się usunąć zadania');
+        }
     },
 
     // Pobieranie zadań dla zespołu
@@ -50,7 +60,27 @@ const taskService = {
     // Pobieranie zadań z terminem przed określoną datą
     async getTasksWithDeadlineBefore(date) {
         return await apiService.get(`/database/tasks/deadline-before/${date}`);
-    }
+    },
+
+    // Dodawanie komentarza do zadania
+    async addComment(commentData) {
+        try {
+            console.log('Wysyłanie komentarza do API:', commentData);
+            const response = await apiService.post(
+                '/database/task-comments', 
+                {
+                    taskId: parseInt(commentData.taskId),
+                    userId: parseInt(commentData.userId),
+                    comment: commentData.content
+                }
+            );
+            console.log('Odpowiedź z API:', response);
+            return response;
+        } catch (error) {
+            console.error('API error:', error);
+            throw new Error(error.response?.data?.message || 'Nie udało się dodać komentarza');
+        }
+    },
 };
 
 export default taskService;
