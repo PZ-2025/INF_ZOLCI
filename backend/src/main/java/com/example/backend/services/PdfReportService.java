@@ -35,7 +35,7 @@ public class PdfReportService {
     private final ReportTypeRepository reportTypeRepository;
     private final ObjectMapper objectMapper;
 
-    @Value("${app.reports.storage-path:./reports}")
+    @Value("${app.reports.storage-path}")
     private String reportStoragePath;
 
     @Autowired
