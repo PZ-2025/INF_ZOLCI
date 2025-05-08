@@ -1,9 +1,16 @@
 <template>
   <div class="min-h-screen bg-background text-text flex justify-center items-start px-4 py-10">
     <div class="bg-surface rounded-lg shadow-md border border-gray-200 p-6 w-full space-y-8">
-
-      <h1 class="text-3xl font-bold text-primary">Historia Zadań</h1>
-
+      <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold text-primary">Historia Zadań</h1>
+        <router-link
+            to="/addtask"
+            class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
+        >
+          Dodaj Zadanie
+        </router-link>
+      </div>
+      
       <!-- Filtry -->
       <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div class="flex flex-col">
@@ -90,22 +97,22 @@
               <span
                   class="text-xs px-2 py-1 rounded text-white"
                   :class="{
-                  'bg-red-500': getPriorityName(task.priority) === 'high',
-                  'bg-yellow-500': getPriorityName(task.priority) === 'medium',
-                  'bg-blue-500': getPriorityName(task.priority) === 'low'
-                }"
+                  'bg-red-500': getPriorityName(task.priorityId) === 'high',
+                  'bg-yellow-500': getPriorityName(task.priorityId) === 'medium',
+                  'bg-blue-500': getPriorityName(task.priorityId) === 'low'
+                  }"
               >
-                {{ getPriorityText(getPriorityName(task.priority)) }}
+                  {{ getPriorityText(getPriorityName(task.priorityId)) }}
               </span>
               <span
                   class="text-xs px-2 py-1 rounded"
                   :class="{
-                  'bg-green-100 text-green-800': getStatusName(task.status) === 'completed',
-                  'bg-yellow-100 text-yellow-800': getStatusName(task.status) === 'in_progress',
-                  'bg-blue-100 text-blue-800': getStatusName(task.status) === 'open'
-                }"
+                  'bg-green-100 text-green-800': getStatusName(task.statusId) === 'completed',
+                  'bg-yellow-100 text-yellow-800': getStatusName(task.statusId) === 'in_progress',
+                  'bg-blue-100 text-blue-800': getStatusName(task.statusId) === 'open'
+                  }"
               >
-                {{ getStatusText(getStatusName(task.status)) }}
+                  {{ getStatusText(getStatusName(task.statusId)) }}
               </span>
             </div>
             <p v-if="task.deadline" class="text-xs text-muted mt-1">
@@ -118,15 +125,6 @@
             Szczegóły
           </button>
         </div>
-      </div>
-
-      <div class="flex justify-end pt-6">
-        <router-link
-            to="/addtask"
-            class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
-        >
-          Dodaj Zadanie
-        </router-link>
       </div>
     </div>
   </div>
@@ -159,18 +157,11 @@ export default {
 
       try {
         const response = await taskService.getAllTasks();
+        console.log('Otrzymane zadania z API:', JSON.stringify(response, null, 2));
         tasks.value = response;
-        console.log('Pobrano zadania:', tasks.value);
       } catch (err) {
         console.error('Błąd podczas pobierania zadań:', err);
         error.value = `Nie udało się pobrać zadań: ${err.message}`;
-
-        // Dane demonstracyjne w przypadku błędu
-        tasks.value = [
-          { id: 1, title: "Zadanie 1", description: "Praca nad frontendem aplikacji.", teamId: 1, priority: "high", status: "open", deadline: "2025-03-20" },
-          { id: 2, title: "Zadanie 2", description: "Rozwój backendu aplikacji.", teamId: 2, priority: "medium", status: "in_progress", deadline: "2025-03-25" },
-          { id: 3, title: "Zadanie 3", description: "Testowanie aplikacji.", teamId: 3, priority: "low", status: "completed", deadline: "2025-03-15" }
-        ];
       } finally {
         loading.value = false;
       }
@@ -184,10 +175,9 @@ export default {
       } catch (err) {
         console.error('Błąd podczas pobierania zespołów:', err);
         teams.value = [
-          { id: 1, name: 'Frontend Devs' },
-          { id: 2, name: 'Backend Engineers' },
-          { id: 3, name: 'QA Team' },
-          { id: 4, name: 'Design Team' }
+          { id: 1, name: 'Zespół szybkiego reagowania A1' },
+          { id: 2, name: 'Zespół ekspertów budowlanych E1' },
+          { id: 3, name: 'Zespół szybkiego reagowania A2' }
         ];
       }
     };
@@ -200,10 +190,10 @@ export default {
             (task.teamId === filters.value.team);
 
         const priorityMatch = !filters.value.priority ||
-            getPriorityName(task.priority) === filters.value.priority;
+            getPriorityName(task.priorityId) === filters.value.priority;
 
         const statusMatch = !filters.value.status ||
-            getStatusName(task.status) === filters.value.status;
+            getStatusName(task.statusId) === filters.value.status;
 
         const deadlineMatch = !filters.value.deadline ||
             task.deadline?.split('T')[0] === filters.value.deadline;
@@ -302,17 +292,15 @@ export default {
     };
 
     const getPriorityName = (priority) => {
-      if (!priority) return 'medium';
+      if (priority === null || priority === undefined) return 'medium';
 
-      // Obsługa różnych formatów priorytetu
-      if (typeof priority === 'string') return priority;
       if (typeof priority === 'number') {
-        const priorityMap = { 1: 'low', 2: 'medium', 3: 'high' };
+        const priorityMap = {
+          1: 'low',
+          2: 'medium',
+          3: 'high'
+        };
         return priorityMap[priority] || 'medium';
-      }
-      if (typeof priority === 'object' && priority.value) {
-        const priorityMap = { 1: 'low', 2: 'medium', 3: 'high' };
-        return priorityMap[priority.value] || 'medium';
       }
 
       return 'medium';
@@ -328,17 +316,15 @@ export default {
     };
 
     const getStatusName = (status) => {
-      if (!status) return 'open';
+      if (status === null || status === undefined) return 'open';
 
-      // Obsługa różnych formatów statusu
-      if (typeof status === 'string') return status;
       if (typeof status === 'number') {
-        const statusMap = { 1: 'open', 2: 'in_progress', 3: 'completed' };
+        const statusMap = {
+          1: 'open',
+          2: 'in_progress',
+          3: 'completed'
+        };
         return statusMap[status] || 'open';
-      }
-      if (typeof status === 'object' && status.value) {
-        const statusMap = { 1: 'open', 2: 'in_progress', 3: 'completed' };
-        return statusMap[status.value] || 'open';
       }
 
       return 'open';
