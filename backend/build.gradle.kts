@@ -88,3 +88,21 @@ tasks.register("codeQuality") {
     // Make this task depend on checkstyle and spotbugs tasks
     dependsOn("checkstyleMain", "checkstyleTest", "spotbugsMain", "spotbugsTest")
 }
+
+// Włączenie budowania pliku JAR z zależnościami
+tasks.register<Jar>("uberJar") {
+    archiveClassifier.set("uber")
+
+    manifest {
+        attributes["Main-Class"] = "com.example.backend.BackendApplication"
+    }
+
+    from(sourceSets.main.get().output)
+
+    dependsOn(configurations.runtimeClasspath)
+    from({
+        configurations.runtimeClasspath.get().filter { it.name.endsWith("jar") }.map { zipTree(it) }
+    })
+
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
