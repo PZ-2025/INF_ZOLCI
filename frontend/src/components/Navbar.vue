@@ -15,18 +15,24 @@
         v-if="canAccessManagerFeatures" 
         to="/raportgenerate" 
         class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Zarządzanie Raportami
+        Generowanie Raportów
+      </router-link>
+            <router-link 
+        v-if="canAccessManagerFeatures" 
+        to="/raporthistory" 
+        class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
+        Historia Raportów
       </router-link>
       <router-link 
         to="/taskshistory" 
         class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Zarządzanie Zadaniami
+        Historia zadań
       </router-link>
       <router-link 
         v-if="canAccessManagerFeatures" 
         to="/allusers" 
         class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Zarządzanie Użytkownikami
+        Zarządzanie użytkownikami
       </router-link>
       <router-link 
         to="/settings" 
