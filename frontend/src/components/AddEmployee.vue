@@ -3,15 +3,6 @@
     <div class="bg-surface p-6 rounded-lg shadow-md border border-gray-200 space-y-4 w-full max-w-2xl">
       <h1 class="text-2xl font-bold text-primary mb-4">Dodaj Pracownika</h1>
 
-      <!-- Komunikaty -->
-      <div v-if="successMessage" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
-        {{ successMessage }}
-      </div>
-
-      <div v-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-        {{ error }}
-      </div>
-
       <form @submit.prevent="addEmployee" class="space-y-4">
         <div class="flex flex-col">
           <label for="firstName" class="block text-lg font-medium mb-2">Imię</label>
@@ -108,12 +99,26 @@
       </form>
     </div>
   </div>
+
+  <!-- Status Modal -->
+  <StatusModal
+    :show="showModal"
+    :type="modalConfig.type"
+    :title="modalConfig.title"
+    :message="modalConfig.message"
+    :button-text="modalConfig.buttonText"
+    :auto-close="modalConfig.autoClose"
+    :auto-close-delay="modalConfig.autoCloseDelay"
+    @close="hideModal"
+  />
 </template>
 
 <script>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import userService from '../services/userService';
+import StatusModal from './StatusModal.vue';
+import { useStatusModal } from '../composables/useStatusModal';
 
 export default {
   setup() {
@@ -135,6 +140,9 @@ export default {
     const error = ref('');
     const successMessage = ref('');
 
+    // Użycie composable do obsługi modalu
+    const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
+
     // Dodawanie pracownika
     const addEmployee = async () => {
       loading.value = true;
@@ -144,7 +152,12 @@ export default {
       try {
         // Walidacja
         if (user.value.password.length < 6) {
-          error.value = 'Hasło musi mieć co najmniej 6 znaków';
+          showStatus({
+            type: 'error',
+            title: 'Błąd',
+            message: 'Hasło musi mieć co najmniej 6 znaków.',
+            buttonText: 'Zamknij'
+          });
           loading.value = false;
           return;
         }
@@ -165,7 +178,15 @@ export default {
         console.log('Pracownik został dodany:', createdUser);
 
         // Wyświetl komunikat sukcesu
-        successMessage.value = 'Pracownik został pomyślnie dodany!';
+        showStatus({
+          type: 'success',
+          title: 'Sukces',
+          message: 'Pracownik został pomyślnie dodany!',
+          buttonText: 'OK',
+          autoClose: true,
+          autoCloseDelay: 2000,
+          onClose: () => router.push('/allemployees')
+        });
 
         // Wyczyść formularz
         user.value = {
@@ -178,14 +199,14 @@ export default {
           isActive: true
         };
 
-        // Po 2 sekundach przekieruj do listy pracowników
-        setTimeout(() => {
-          router.push('/employees');
-        }, 2000);
-
       } catch (err) {
         console.error('Błąd podczas dodawania pracownika:', err);
-        error.value = `Nie udało się dodać pracownika: ${err.message}`;
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: `Nie udało się dodać pracownika: ${err.message}`,
+          buttonText: 'Zamknij'
+        });
       } finally {
         loading.value = false;
       }
@@ -202,8 +223,14 @@ export default {
       error,
       successMessage,
       addEmployee,
-      goBack
+      goBack,
+      showModal,
+      modalConfig,
+      hideModal
     };
+  },
+  components: {
+    StatusModal
   }
 };
 </script>

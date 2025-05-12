@@ -10,6 +10,7 @@
     </div>
 
     <div v-else>
+      <!-- Nagłówek zespołu -->
       <div class="bg-surface rounded-xl p-4 flex justify-between items-center mb-6 shadow border border-gray-200">
         <div class="flex items-center">
           <div class="w-12 h-12 rounded-xl mr-4 flex items-center justify-center text-white font-bold" :style="{ backgroundColor: getTeamColor(currentTeam) }">
@@ -20,11 +21,18 @@
             <p class="text-muted text-sm">{{ getTeamMembersCount() }} członków</p>
           </div>
         </div>
+        <button
+          @click="navigateToManageMembers"
+          class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
+        >
+          Zarządzaj członkami
+        </button>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- Główna siatka -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <!-- Członkowie Zespołu -->
-        <div class="bg-surface rounded-xl p-6 shadow border border-gray-200 col-span-1 md:col-span-2 lg:col-span-1">
+        <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
           <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-primary">Członkowie Zespołu</h2>
             <span class="bg-primary text-white px-2 py-1 rounded-md text-sm">
@@ -37,9 +45,9 @@
           </div>
           <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
             <div
-                v-for="member in teamMembers"
-                :key="member.id"
-                class="flex items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition"
+              v-for="member in teamMembers"
+              :key="member.id"
+              class="flex items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition"
             >
               <div class="w-10 h-10 rounded-xl mr-3 flex items-center justify-center text-white font-bold" :style="{ backgroundColor: getMemberColor(member) }">
                 {{ getMemberInitials(member) }}
@@ -55,66 +63,107 @@
           </div>
         </div>
 
-        <!-- Ostatnie Aktywności -->
-        <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
-          <h2 class="text-xl font-bold text-primary mb-4">Ostatnie Aktywności</h2>
-          <div v-if="teamActivities.length === 0" class="text-muted text-center">
-            Brak aktywności
-          </div>
-          <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
-            <div
-                v-for="activity in teamActivities"
-                :key="activity.id"
-                class="bg-gray-50 p-3 rounded-lg"
-            >
-              <h3 class="font-semibold text-text">{{ activity.title }}</h3>
-              <p class="text-sm text-muted">{{ activity.description }}</p>
-              <p class="text-xs text-muted">{{ activity.timestamp }}</p>
-            </div>
-          </div>
-        </div>
-
         <!-- Nadchodzące Zadania -->
         <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
           <h2 class="text-xl font-bold text-primary mb-4">Nadchodzące Zadania</h2>
-          <div v-if="teamTasks.length === 0" class="text-muted text-center">
+          <div v-if="upcomingTasks.length === 0" class="text-muted text-center">
             Brak nadchodzących zadań
           </div>
           <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
             <div
-                v-for="task in teamTasks"
-                :key="task.id"
-                class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
+              v-for="task in upcomingTasks"
+              :key="task.id"
+              class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
             >
               <div>
                 <h3 class="font-semibold text-text">{{ task.title }}</h3>
                 <p class="text-sm text-muted">{{ task.assignedTo }}</p>
               </div>
-              <span
+              <div class="flex items-center space-x-2">
+                <span
                   class="px-2 py-1 rounded-md text-xs font-bold text-white"
                   :class="{
-                  'bg-danger': task.priority === 'high',
-                  'bg-warning': task.priority === 'medium',
-                  'bg-secondary': task.priority === 'low'
-                }"
+                    'bg-red-500': getPriorityName(task.priority) === 'high',
+                    'bg-yellow-500': getPriorityName(task.priority) === 'medium',
+                    'bg-blue-500': getPriorityName(task.priority) === 'low'
+                  }"
+                >
+                  {{ getPriorityText(getPriorityName(task.priority)) }}
+                </span>
+                <button
+                  @click="navigateToTaskDetails(task.id)"
+                  class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition"
+                >
+                  Szczegóły
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Zakończone Zadania -->
+          <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
+            <h2 class="text-xl font-bold text-primary mb-4">Zakończone Zadania</h2>
+            <div v-if="completedTasks.length === 0" class="text-muted text-center">
+              Brak zakończonych zadań
+            </div>
+            <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
+              <div
+                v-for="task in completedTasks"
+                :key="task.id"
+                class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
               >
-                {{ task.priority ? task.priority.toUpperCase() : 'MEDIUM' }}
-              </span>
+                <div>
+                  <h3 class="font-semibold text-text">{{ task.title }}</h3>
+                  <p class="text-sm text-muted">{{ task.assignedTo }}</p>
+                </div>
+                <div class="flex items-center space-x-2">
+                  <span
+                    class="px-2 py-1 rounded-md text-xs font-bold text-white"
+                    :class="{
+                      'bg-red-500': getPriorityName(task.priority) === 'high',
+                      'bg-yellow-500': getPriorityName(task.priority) === 'medium',
+                      'bg-blue-500': getPriorityName(task.priority) === 'low'
+                    }"
+                  >
+                    {{ getPriorityText(getPriorityName(task.priority)) }}
+                  </span>
+                  <button
+                    @click="navigateToTaskDetails(task.id)"
+                    class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition"
+                  >
+                    Szczegóły
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ostatnie Aktywności -->
+          <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
+            <h2 class="text-xl font-bold text-primary mb-4">Ostatnie Aktywności</h2>
+            <div v-if="teamActivities.length === 0" class="text-muted text-center">
+              Brak aktywności
+            </div>
+            <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
+              <div
+                v-for="activity in teamActivities"
+                :key="activity.id"
+                class="bg-gray-50 p-3 rounded-lg"
+              >
+                <h3 class="font-semibold text-text">{{ activity.title }}</h3>
+                <p class="text-sm text-muted">{{ activity.description }}</p>
+                <p class="text-xs text-muted">{{ activity.timestamp }}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
-    <div class="fixed bottom-4 right-4">
-      <button
-        @click="navigateToManageMembers"
-        class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
-      >
-        Zarządzaj członkami
-      </button>
-    </div>
   </div>
 </template>
+
 
 <script>
 import { ref, onMounted, watch } from 'vue';
@@ -136,6 +185,8 @@ export default {
     const teamMembers = ref([]);
     const teamActivities = ref([]);
     const teamTasks = ref([]);
+    const upcomingTasks = ref([]);
+    const completedTasks = ref([]);
     const loading = ref(true);
     const error = ref(null);
 
@@ -148,6 +199,11 @@ export default {
       } else {
         console.error('Nie można nawigować - brak ID zespołu');
       }
+    };
+
+    // Navigate to TaskDetails view
+    const navigateToTaskDetails = (taskId) => {
+      router.push({ name: 'taskDetails', params: { id: taskId } });
     };
 
     // Metoda pozyskiwania ID zespołu
@@ -202,9 +258,14 @@ export default {
             id: task.id,
             title: task.title,
             assignedTo: task.createdBy ? `${task.createdBy.firstName} ${task.createdBy.lastName}` : 'Nieprzypisane',
-            priority: getPriorityName(task.priority)
+            priority: task.priorityId,
+            status: task.statusId
           }));
           console.log("Pobrano zadania zespołu:", teamTasks.value);
+
+          // Podziel zadania na nadchodzące i zakończone
+          upcomingTasks.value = teamTasks.value.filter(task => task.status === 1 || task.status === 2); // Rozpoczęte, W toku
+          completedTasks.value = teamTasks.value.filter(task => task.status === 3); // Zakończone
         } catch (err) {
           console.error('Error fetching team tasks:', err);
           teamTasks.value = generateDemoTasks(teamId); // Dane demonstracyjne
@@ -281,19 +342,22 @@ export default {
           id: teamId * 100 + 1,
           title: 'Remont mieszkania',
           assignedTo: 'Jan Kowalski',
-          priority: 'high'
+          priority: 'high',
+          status: 1
         },
         {
           id: teamId * 100 + 2,
           title: 'Budowa werandy',
           assignedTo: 'Anna Nowak',
-          priority: 'medium'
+          priority: 'medium',
+          status: 3
         },
         {
           id: teamId * 100 + 3,
           title: 'Naprawa dachu',
           assignedTo: 'Piotr Zieliński',
-          priority: 'low'
+          priority: 'low',
+          status: 2
         }
       ];
     };
@@ -352,19 +416,23 @@ export default {
     };
 
     const getPriorityName = (priority) => {
-      if (!priority) return 'low';
+      if (priority === null || priority === undefined) return 'medium';
 
-      const priorityNames = {
+      const priorityMap = {
         1: 'low',
         2: 'medium',
         3: 'high'
       };
+      return priorityMap[priority] || 'medium';
+    };
 
-      if (typeof priority === 'object' && priority.value) {
-        return priorityNames[priority.value] || 'medium';
-      }
-
-      return 'medium';
+    const getPriorityText = (priority) => {
+      const priorityTexts = {
+        'low': 'Niski',
+        'medium': 'Średni',
+        'high': 'Wysoki'
+      };
+      return priorityTexts[priority] || 'Średni';
     };
 
     const formatDate = (dateString) => {
@@ -397,6 +465,8 @@ export default {
       teamMembers,
       teamActivities,
       teamTasks,
+      upcomingTasks,
+      completedTasks,
       loading,
       error,
       fetchTeamDetails,
@@ -406,6 +476,9 @@ export default {
       getMemberInitials,
       getMemberColor,
       navigateToManageMembers,  // potrzebne do nawigacji
+      navigateToTaskDetails,
+      getPriorityName,
+      getPriorityText
     };
   }
 };

@@ -6,6 +6,8 @@ import Teams from '@/components/Teams.vue';
 import AllEmployees from '@/components/AllEmployees.vue';
 import LoginForm from '@/components/LoginForm.vue';
 import RaportGenerate from '@/components/RaportGenerate.vue';
+import RaportHistory from '@/components/RaportHistory.vue';
+import RaportView from '@/components/RaportView.vue';
 import SystemConf from '@/components/SystemConf.vue';
 import TasksHistory from '@/components/TasksHistory.vue';
 import TeamDetails from '@/components/TeamDetails.vue';
@@ -33,6 +35,7 @@ const routes = [
   { path: '/allemployees', name: "allEmployees", component: AllEmployees, meta: { requiresAuth: true, minRole: 'manager' } },
   { path: '/addemployee', name: "addEmployee", component: AddEmployee, meta: { requiresAuth: true, minRole: 'manager' } },
   { path: '/raportgenerate', name: "raportGenerate", component: RaportGenerate, meta: { requiresAuth: true, minRole: 'manager' } },
+  { path: '/raporthistory', name: "raportHistory", component: RaportHistory, meta: { requiresAuth: true, minRole: 'manager' } },
   { path: '/systemconf', name: "systemConf", component: SystemConf, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
   { path: '/taskshistory', name: "tasksHistory", component: TasksHistory, meta: { requiresAuth: true } },
   { path: '/addtask', name: "addTask", component: AddTask, meta: { requiresAuth: true, minRole: 'manager' } },
@@ -53,6 +56,13 @@ const routes = [
     component: UserSettings, 
     meta: { requiresAuth: true, minRole: 'manager' },
     props: route => ({ userId: parseInt(route.params.id) || null })
+  },
+    { 
+    path: '/raportview/:id',
+    name: "raportView", 
+    component: RaportView, 
+    meta: { requiresAuth: true, minRole: 'manager' },
+    props: route => ({ id: parseInt(route.params.id) || null })
   },
 ];
 
