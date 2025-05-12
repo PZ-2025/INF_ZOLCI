@@ -73,6 +73,7 @@
               Aktywuj
             </button>
             <button
+                v-if="employee.role !== 'administrator' || employee.role !== 'Administrator'"
                 @click="removeEmployee(employee.id, employee.firstName, employee.lastName)"
                 class="text-xs bg-danger text-white px-2 py-1 rounded-md hover:bg-red-600 transition"
             >
