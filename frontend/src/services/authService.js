@@ -7,9 +7,9 @@ const API_URL = process.env.API_URL || 'http://localhost:8080';
 
 // Hierarchia ról (im wyższa liczba, tym większe uprawnienia)
 const roleHierarchy = {
-  'employee': 1,
-  'manager': 2,
-  'ADMIN': 3
+  'użytkownik': 1,    //employee
+  'kierownik': 2,     //manager
+  'administrator': 3  //admin
 };
 
 const authService = {
@@ -34,7 +34,7 @@ const authService = {
           firstName: response.data.firstName,
           lastName: response.data.lastName,
           email: response.data.email,
-          role: response.data.role || 'employee'
+          role: response.data.role || 'użytkownik' 
         };
 
         console.log("Stan uwierzytelnienia po logowaniu:", authState);
