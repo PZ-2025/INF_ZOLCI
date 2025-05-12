@@ -11,6 +11,7 @@
       <div class="flex items-center">
         <label for="reportType" class="mr-2 font-medium">Typ Raportu:</label>
         <select v-model="selectedType" class="p-2 border border-gray-300 rounded-md bg-white text-text focus:ring-2 focus:ring-primary">
+          <option value="">Typ</option>
           <option value="workload">Raport obciążenia pracownika</option>
           <option value="construction_progress">Raport postępu prac na budowie</option>
           <option value="team_efficiency">Raport efektywności zespołu</option>
@@ -47,7 +48,9 @@ export default {
   },
   computed: {
     filteredReports() {
-      return this.reports.filter(report => !this.selectedType || report.type === this.selectedType);
+      return this.reports.filter(report =>
+        (!this.selectedType || report.type === this.selectedType)
+      );
     }
   },
   methods: {
