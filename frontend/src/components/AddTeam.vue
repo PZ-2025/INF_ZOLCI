@@ -3,15 +3,6 @@
     <div class="bg-surface p-6 rounded-lg shadow-md border border-gray-200 space-y-6 w-full max-w-2xl">
       <h1 class="text-2xl font-bold text-primary mb-4">Dodaj Zespół</h1>
 
-      <!-- Komunikaty -->
-      <div v-if="successMessage" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
-        {{ successMessage }}
-      </div>
-
-      <div v-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4">
-        {{ error }}
-      </div>
-
       <form @submit.prevent="addTeam" class="space-y-4">
         <!-- Nazwa zespołu -->
         <div>
@@ -90,6 +81,18 @@
       </form>
     </div>
   </div>
+
+  <!-- Status Modal -->
+  <StatusModal
+    :show="showModal"
+    :type="modalConfig.type"
+    :title="modalConfig.title"
+    :message="modalConfig.message"
+    :button-text="modalConfig.buttonText"
+    :auto-close="modalConfig.autoClose"
+    :auto-close-delay="modalConfig.autoCloseDelay"
+    @close="hideModal"
+  />
 </template>
 
 <script>
@@ -97,6 +100,8 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import teamService from '../services/teamService';
 import userService from '../services/userService';
+import StatusModal from './StatusModal.vue';
+import { useStatusModal } from '../composables/useStatusModal';
 
 export default {
   setup() {
@@ -113,19 +118,25 @@ export default {
     const selectedMembers = ref([]);
 
     const loading = ref(false);
-    const error = ref('');
-    const successMessage = ref('');
+
+    // Użycie composable do obsługi modalu
+    const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
     // Pobranie listy kierowników
     const fetchManagers = async () => {
       try {
         const users = await userService.getActiveUsers();
-        managers.value = users.filter(user => user.role === 'manager' || user.role === 'admin');
+        managers.value = users.filter(user => user.role === 'kierownik' || user.role === 'administrator' || user.role === 'Administrator');
         console.log('Pobrano kierowników:', managers.value);
       } catch (err) {
         console.error('Błąd podczas pobierania kierowników:', err);
-        error.value = 'Nie udało się pobrać listy kierowników. Spróbuj odświeżyć stronę.';
-        
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: 'Nie udało się pobrać listy kierowników. Spróbuj odświeżyć stronę.',
+          buttonText: 'Zamknij'
+        });
+
         // Dane awaryjne w przypadku błędu
         managers.value = [
           { id: 1, firstName: 'Jan', lastName: 'Kowalski' },
@@ -143,8 +154,13 @@ export default {
         console.log('Pobrano pracowników:', employees.value);
       } catch (err) {
         console.error('Błąd podczas pobierania pracowników:', err);
-        error.value = 'Nie udało się pobrać listy pracowników. Spróbuj odświeżyć stronę.';
-        
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: 'Nie udało się pobrać listy pracowników. Spróbuj odświeżyć stronę.',
+          buttonText: 'Zamknij'
+        });
+
         // Dane awaryjne w przypadku błędu
         employees.value = [
           { id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan.kowalski@firma.pl' },
@@ -157,18 +173,26 @@ export default {
 
     const addTeam = async () => {
       loading.value = true;
-      error.value = '';
-      successMessage.value = '';
 
       // Walidacja danych
       if (!team.value.name.trim()) {
-        error.value = 'Nazwa zespołu jest wymagana';
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: 'Nazwa zespołu jest wymagana.',
+          buttonText: 'Zamknij'
+        });
         loading.value = false;
         return;
       }
 
       if (!team.value.managerId) {
-        error.value = 'Wybór kierownika jest wymagany';
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: 'Wybór kierownika jest wymagany.',
+          buttonText: 'Zamknij'
+        });
         loading.value = false;
         return;
       }
@@ -178,16 +202,28 @@ export default {
         const teamData = {
           name: team.value.name.trim(),
           description: team.value.description?.trim() || '',
-          managerId: parseInt(team.value.managerId), // Upewniamy się, że to liczba
-          memberIds: selectedMembers.value
+          managerId: parseInt(team.value.managerId) // Upewniamy się, że to liczba
         };
 
         // Wysłanie danych do API
         const createdTeam = await teamService.createTeam(teamData);
         console.log('Zespół został utworzony:', createdTeam);
-        
+
+        // Dodanie członków do zespołu
+        for (const memberId of selectedMembers.value) {
+          await teamService.addTeamMember(createdTeam.id, memberId);
+        }
+
         // Wyświetl komunikat sukcesu
-        successMessage.value = 'Zespół został pomyślnie utworzony!';
+        showStatus({
+          type: 'success',
+          title: 'Sukces',
+          message: 'Zespół został pomyślnie utworzony!',
+          buttonText: 'OK',
+          autoClose: true,
+          autoCloseDelay: 2000,
+          onClose: () => router.push('/teams')
+        });
 
         // Wyczyść formularz
         team.value = {
@@ -197,13 +233,14 @@ export default {
         };
         selectedMembers.value = [];
 
-        // Po 2 sekundach przekieruj do listy zespołów
-        setTimeout(() => {
-          router.push('/teams');
-        }, 2000);
       } catch (err) {
         console.error('Błąd podczas tworzenia zespołu:', err);
-        error.value = `Nie udało się utworzyć zespołu: ${err.message}`;
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: `Nie udało się utworzyć zespołu: ${err.message}`,
+          buttonText: 'Zamknij'
+        });
       } finally {
         loading.value = false;
       }
@@ -224,11 +261,15 @@ export default {
       employees,
       selectedMembers,
       loading,
-      error,
-      successMessage,
       addTeam,
-      goBack
+      goBack,
+      showModal,
+      modalConfig,
+      hideModal
     };
+  },
+  components: {
+    StatusModal
   }
 };
 </script>
