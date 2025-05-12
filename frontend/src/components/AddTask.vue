@@ -292,7 +292,7 @@ const addTask = async () => {
       buttonText: 'OK',
       autoClose: true,
       autoCloseDelay: 2000,
-      onClose: () => router.push('/tasks')
+      onClose: () => router.push('/taskshistory')
     });
 
   } catch (err) {
