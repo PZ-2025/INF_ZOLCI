@@ -40,6 +40,13 @@
     "productName": "BuildTask",
     "copyright": "Copyright © 2023 INF_ŻÓŁCI",
     "forceCodeSigning": false,
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "node_modules/**/*",
+      "package.json"
+    ],
     "extraFiles": [
       {
         "from": "../backend/build/libs",
