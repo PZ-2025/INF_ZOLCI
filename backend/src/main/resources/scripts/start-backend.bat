@@ -1,4 +1,4 @@
 @echo off
-echo Starting BuildTask Backend...
-java -jar buildtask-backend.jar
+cd /d %~dp0
+java -jar backend-0.0.1-SNAPSHOT.jar
 pause
