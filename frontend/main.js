@@ -1,10 +1,9 @@
-// frontend/main.js
 import { app, BrowserWindow, Menu } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import dotenv from "dotenv";
-import fs from 'fs';
+import { exec } from 'child_process';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -16,16 +15,17 @@ dotenv.config();
 let mainWindow;
 let backendProcess = null;
 
-// Check if in development mode
+const isWindows = process.platform === 'win32';
 const isDev = process.env.NODE_ENV === 'development';
 
 function createWindow() {
+    console.log('Creating main window');
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
-        resizable: false, // Blokuje możliwość zmiany rozmiaru okna
-        useContentSize: true, // Sprawia, że podane wymiary odnoszą się do zawartości (bez ramek)
-        autoHideMenuBar: true,      // menu jest schowane
+        resizable: false,
+        useContentSize: true,
+        autoHideMenuBar: false,
         icon: path.join(__dirname, "src/assets/buildtask_logo.ico"),
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
@@ -34,34 +34,16 @@ function createWindow() {
         }
     });
 
-    // Load the index.html file
-    if (isDev) {
-        mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
-    } else {
-        mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
-    }
+    mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
 
-    // Create menu
-    const template = [
+    const menu = Menu.buildFromTemplate([
         {
             label: 'File',
             submenu: [
-                {
-                    label: 'Start Backend',
-                    click: startBackend
-                },
-                {
-                    label: 'Stop Backend',
-                    click: stopBackend
-                },
+                { label: 'Start Backend', click: startBackend },
+                { label: 'Stop Backend', click: stopBackend },
                 { type: 'separator' },
-                {
-                    label: 'Exit',
-                    click: () => {
-                        stopBackend();
-                        app.quit();
-                    }
-                }
+                { label: 'Exit', click: () => { stopBackend(); app.quit(); } }
             ]
         },
         {
@@ -78,94 +60,51 @@ function createWindow() {
                 { role: 'togglefullscreen' }
             ]
         }
-    ];
-
-    const menu = Menu.buildFromTemplate(template);
+    ]);
     Menu.setApplicationMenu(menu);
+    console.log('Menu created');
 }
 
-function startBackend() {
-    if (backendProcess) {
-        console.log('Backend already running');
-        return;
+const startBackend = () => {
+    if (isWindows) {
+        const backendPath = path.join('./','backend', 'start-backend.bat');
+        console.log('Starting backend with batch file:', backendPath);
+        exec(`start "" "${backendPath}"`, (error) => {
+            if (error) {
+                console.error('Failed to start backend:', error);
+            } else {
+                console.log('Backend started successfully.');
+            }
+        });
     }
-
-    try {
-        const backendDir = path.join(__dirname, 'backend');
-        const isWindows = process.platform === 'win32';
-
-        // Find the JAR file
-        const files = fs.readdirSync(backendDir);
-        const jarFile = files.find(file => file.endsWith('.jar'));
-
-        if (!jarFile) {
-            console.error('No JAR file found in the backend directory');
-            return;
-        }
-
-        const jarPath = path.join(backendDir, jarFile);
-
-        // Start the backend process
-        if (isWindows) {
-            backendProcess = spawn('java', ['-jar', jarPath], {
-                cwd: backendDir,
-                detached: false
-            });
-        } else {
-            backendProcess = spawn('java', ['-jar', jarPath], {
-                cwd: backendDir,
-                detached: false
-            });
-        }
-
-        console.log('Backend started');
-
-        backendProcess.stdout.on('data', (data) => {
-            console.log(`Backend stdout: ${data}`);
-        });
-
-        backendProcess.stderr.on('data', (data) => {
-            console.error(`Backend stderr: ${data}`);
-        });
-
-        backendProcess.on('close', (code) => {
-            console.log(`Backend process exited with code ${code}`);
-            backendProcess = null;
-        });
-    } catch (error) {
-        console.error('Failed to start backend:', error);
-    }
-}
+};
 
 function stopBackend() {
     if (backendProcess) {
-        if (process.platform === 'win32') {
-            spawn('taskkill', ['/pid', backendProcess.pid, '/f', '/t']);
-        } else {
-            backendProcess.kill();
+        try {
+            if (isWindows) {
+                spawn('taskkill', ['/pid', backendProcess.pid, '/f', '/t']);
+            } else {
+                backendProcess.kill();
+            }
+            console.log('Backend stopped');
+        } catch (err) {
+            console.error('Error stopping backend:', err);
         }
         backendProcess = null;
-        console.log('Backend stopped');
     }
 }
 
 app.whenReady().then(() => {
+    console.log('App is ready');
     createWindow();
-
-    // Automatically start the backend when the app starts
+    console.log('Starting backend...');
     startBackend();
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
 });
-
-// app.on('window-all-closed', () => {
-//     if (process.platform !== 'darwin') {
-//         stopBackend();
-//         app.quit();
-//     }
-// });
 
 app.on('will-quit', () => {
     stopBackend();
