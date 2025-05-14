@@ -41,12 +41,13 @@ public class ReportDataService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate startDate = LocalDate.parse(dateFrom, formatter);
         LocalDate endDate = LocalDate.parse(dateTo, formatter);
+        LocalDate currentDate = LocalDate.now();
 
         // Fetch the team
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new RuntimeException("Team not found"));
 
-        // Fetch tasks for the team within the date range
+        // Fetch tasks for the team within the date range, excluding administrator tasks
         List<Task> tasks = taskRepository.findByTeam(team).stream()
                 .filter(task -> {
                     LocalDate taskDate = task.getStartDate();
@@ -54,33 +55,102 @@ public class ReportDataService {
                             !taskDate.isBefore(startDate) &&
                             !taskDate.isAfter(endDate);
                 })
+                // Exclude tasks created by administrators
+                .filter(task -> task.getCreatedBy() != null &&
+                        !"administrator".equalsIgnoreCase(task.getCreatedBy().getRole()))
                 .collect(Collectors.toList());
 
-        // Count completed and delayed tasks
+        // Count completed tasks
         long completedCount = tasks.stream()
                 .filter(task -> task.getCompletedDate() != null)
                 .count();
 
+        // Count delayed tasks
         long delayedCount = tasks.stream()
                 .filter(task -> {
-                    if (task.getDeadline() == null || task.getCompletedDate() == null) {
+                    if (task.getDeadline() == null) {
                         return false;
                     }
-                    return task.getCompletedDate().isAfter(task.getDeadline());
+                    if (task.getCompletedDate() == null) {
+                        return currentDate.isAfter(task.getDeadline());
+                    } else {
+                        return task.getCompletedDate().isAfter(task.getDeadline());
+                    }
                 })
                 .count();
 
+        // Calculate actual completed percentage based on task completion
+        int totalCompletionSum = 0;
+        for (Task task : tasks) {
+            int taskCompletion;
+            if (task.getCompletedDate() != null) {
+                taskCompletion = 100;
+            } else if (task.getStatus() != null) {
+                // Use progressMin for consistency
+                taskCompletion = task.getStatus().getProgressMin();
+            } else {
+                taskCompletion = 0;
+            }
+            totalCompletionSum += taskCompletion;
+        }
+
+        // Calculate average completion
         int completedPercentage = tasks.isEmpty() ? 0 :
-                (int) Math.round((double) completedCount / tasks.size() * 100);
+                totalCompletionSum / tasks.size();
+
+        // Count tasks by status
+        Map<String, Long> tasksByStatus = tasks.stream()
+                .filter(task -> task.getStatus() != null)
+                .collect(Collectors.groupingBy(
+                        task -> task.getStatus().getName(),
+                        Collectors.counting()
+                ));
 
         // Create data items
         List<ConstructionProgressItemDTO> items = tasks.stream()
                 .map(task -> {
                     ConstructionProgressItemDTO item = new ConstructionProgressItemDTO();
                     item.setTaskName(task.getTitle());
-                    item.setStatus(task.getStatus().getName());
+                    item.setStatus(task.getStatus() != null ? task.getStatus().getName() : "Nieznany");
                     item.setPlannedEnd(task.getDeadline());
                     item.setActualEnd(task.getCompletedDate());
+
+                    // Calculate delay information
+                    boolean isDelayed = false;
+                    int delayInDays = 0;
+
+                    if (task.getDeadline() != null) {
+                        if (task.getCompletedDate() == null) {
+                            // Task not completed yet, check if current date is after deadline
+                            if (currentDate.isAfter(task.getDeadline())) {
+                                isDelayed = true;
+                                delayInDays = (int) ChronoUnit.DAYS.between(task.getDeadline(), currentDate);
+                            }
+                        } else {
+                            // Task completed, check if completion date is after deadline
+                            if (task.getCompletedDate().isAfter(task.getDeadline())) {
+                                isDelayed = true;
+                                delayInDays = (int) ChronoUnit.DAYS.between(task.getDeadline(), task.getCompletedDate());
+                            }
+                        }
+                    }
+
+                    item.setDelayed(isDelayed);
+                    item.setDelayInDays(delayInDays);
+
+                    // Calculate completion percentage using ONLY progressMin
+                    int completionPercentage;
+                    if (task.getCompletedDate() != null) {
+                        completionPercentage = 100;
+                    } else if (task.getStatus() != null) {
+                        // Use ONLY the minimum progress value for the status
+                        completionPercentage = task.getStatus().getProgressMin();
+                    } else {
+                        completionPercentage = 0;
+                    }
+
+                    item.setCompletionPercentage(completionPercentage);
+
                     return item;
                 })
                 .collect(Collectors.toList());
@@ -92,10 +162,10 @@ public class ReportDataService {
         reportDTO.setDateTo(dateTo);
         reportDTO.setCompletedPercentage(completedPercentage);
         reportDTO.setDelayedCount((int) delayedCount);
+        reportDTO.setTasksByStatus(tasksByStatus);
 
         return reportDTO;
     }
-
     public EmployeeLoadReportDTO collectEmployeeLoadData(Integer userId, String dateFrom, String dateTo) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate startDate = LocalDate.parse(dateFrom, formatter);

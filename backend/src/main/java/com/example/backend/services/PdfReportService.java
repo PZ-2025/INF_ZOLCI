@@ -64,6 +64,9 @@ public class PdfReportService {
                     progress.setStatus(item.getStatus());
                     progress.setPlannedEnd(item.getPlannedEnd());
                     progress.setActualEnd(item.getActualEnd());
+                    progress.setDelayed(item.isDelayed());
+                    progress.setDelayInDays(item.getDelayInDays());
+                    progress.setCompletionPercentage(item.getCompletionPercentage());
                     return progress;
                 })
                 .collect(Collectors.toList());
@@ -74,6 +77,7 @@ public class PdfReportService {
         parameters.put("dateTo", reportDTO.getDateTo());
         parameters.put("completedPercentage", reportDTO.getCompletedPercentage());
         parameters.put("delayedCount", reportDTO.getDelayedCount());
+        parameters.put("tasksByStatus", reportDTO.getTasksByStatus());
 
         // 3. Utworzenie generatora raportów
         ConstructionProgressReportGenerator generator = new ConstructionProgressReportGenerator();
