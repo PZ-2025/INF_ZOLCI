@@ -12,4 +12,7 @@ public class ConstructionProgressItemDTO {
     private String status;
     private LocalDate plannedEnd;
     private LocalDate actualEnd;
+    private boolean isDelayed;
+    private Integer delayInDays;
+    private Integer completionPercentage;
 }

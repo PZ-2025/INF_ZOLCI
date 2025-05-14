@@ -41,22 +41,46 @@
     <!-- Podstawowe statusy zadań -->
     <changeSet id="14-insert-task-statuses" author="your-name">
         <insert tableName="task_statuses">
-            <column name="name" value="Rozpoczęte"/>
+            <column name="name" value="Zaplanowane"/>
             <column name="progress_min" value="0"/>
-            <column name="progress_max" value="30"/>
+            <column name="progress_max" value="14"/>
             <column name="display_order" value="1"/>
         </insert>
         <insert tableName="task_statuses">
-            <column name="name" value="W toku"/>
-            <column name="progress_min" value="31"/>
-            <column name="progress_max" value="99"/>
+            <column name="name" value="Rozpoczęte"/>
+            <column name="progress_min" value="15"/>
+            <column name="progress_max" value="34"/>
             <column name="display_order" value="2"/>
+        </insert>
+        <insert tableName="task_statuses">
+            <column name="name" value="W toku"/>
+            <column name="progress_min" value="35"/>
+            <column name="progress_max" value="59"/>
+            <column name="display_order" value="3"/>
+        </insert>
+        <insert tableName="task_statuses">
+            <column name="name" value="Zaawansowane"/>
+            <column name="progress_min" value="60"/>
+            <column name="progress_max" value="79"/>
+            <column name="display_order" value="4"/>
+        </insert>
+        <insert tableName="task_statuses">
+            <column name="name" value="Finalizowanie"/>
+            <column name="progress_min" value="80"/>
+            <column name="progress_max" value="94"/>
+            <column name="display_order" value="5"/>
+        </insert>
+        <insert tableName="task_statuses">
+            <column name="name" value="Przed odbiorem"/>
+            <column name="progress_min" value="95"/>
+            <column name="progress_max" value="99"/>
+            <column name="display_order" value="6"/>
         </insert>
         <insert tableName="task_statuses">
             <column name="name" value="Zakończone"/>
             <column name="progress_min" value="100"/>
             <column name="progress_max" value="100"/>
-            <column name="display_order" value="3"/>
+            <column name="display_order" value="7"/>
         </insert>
     </changeSet>
 
