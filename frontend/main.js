@@ -13,6 +13,7 @@ const createWindow = () => {
     const win = new BrowserWindow({
         width: 1200,
         height: 800,
+        resizable: false, // Block resizing
         icon: path.join(__dirname, "src/assets/buildtask_logo.ico"), // Set custom icon
         webPreferences: {
             preload: path.join(__dirname, "preload.js"), // Setting the preload.js file
