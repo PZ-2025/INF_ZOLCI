@@ -111,7 +111,6 @@ public class PdfReportService {
      * @throws Exception w przypadku błędu podczas generowania raportu
      */
     public Report generateEmployeeLoadReport(EmployeeLoadReportDTO reportDTO, User createdBy) throws Exception {
-        // 1. Konwersja DTO na model biblioteczny
         List<EmployeeLoad> dataItems = reportDTO.getItems().stream()
                 .map(item -> {
                     EmployeeLoad load = new EmployeeLoad();
@@ -119,6 +118,39 @@ public class PdfReportService {
                     load.setEmployeeName(item.getEmployeeName());
                     load.setTaskCount(item.getTaskCount());
                     load.setTotalHours(item.getTotalHours());
+
+                    // Dodanie brakujących transferów danych
+                    load.setFteEquivalent(item.getFteEquivalent());
+
+                    // Konwersja informacji o zadaniach
+                    if (item.getTasks() != null && !item.getTasks().isEmpty()) {
+                        List<TaskDetail> taskDetails = item.getTasks().stream()
+                                .map(taskDTO -> {
+                                    TaskDetail detail = new TaskDetail();
+                                    detail.setTaskId(taskDTO.getTaskId());
+                                    detail.setTaskName(taskDTO.getTaskName());
+                                    detail.setStatus(taskDTO.getStatus());
+                                    detail.setPriority(taskDTO.getPriority());
+                                    detail.setStartDate(taskDTO.getStartDate());
+                                    detail.setDeadlineDate(taskDTO.getDeadlineDate());
+                                    detail.setCompletedDate(taskDTO.getCompletedDate());
+                                    detail.setEstimatedHours(taskDTO.getEstimatedHours());
+                                    detail.setDelayed(taskDTO.isDelayed());
+                                    return detail;
+                                }).collect(Collectors.toList());
+                        load.setTasks(taskDetails);
+                    }
+
+                    // Konwersja informacji o statusach
+                    if (item.getTasksByStatus() != null) {
+                        load.setTasksByStatus(new HashMap<>(item.getTasksByStatus()));
+                    } else {
+                        // Domyślna wartość jeśli brak danych
+                        Map<String, Integer> defaultStatuses = new HashMap<>();
+                        defaultStatuses.put("Nieznany", item.getTaskCount());
+                        load.setTasksByStatus(defaultStatuses);
+                    }
+
                     return load;
                 })
                 .collect(Collectors.toList());
@@ -127,6 +159,7 @@ public class PdfReportService {
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("dateFrom", reportDTO.getDateFrom());
         parameters.put("dateTo", reportDTO.getDateTo());
+        parameters.put("workingDays", reportDTO.getWorkingDays());
 
         // 3. Utworzenie generatora raportów
         EmployeeLoadReportGenerator generator = new EmployeeLoadReportGenerator();
