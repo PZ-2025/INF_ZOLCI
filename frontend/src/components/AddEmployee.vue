@@ -73,9 +73,9 @@
               required
               class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           >
-            <option value="employee">Pracownik</option>
-            <option value="manager">Kierownik</option>
-            <option value="admin">Administrator</option>
+            <option value="pracownik">Pracownik</option>
+            <option value="kierownik">Kierownik</option>
+            <option value="administrator">Administrator</option>
           </select>
         </div>
 
@@ -185,7 +185,7 @@ export default {
           buttonText: 'OK',
           autoClose: true,
           autoCloseDelay: 2000,
-          onClose: () => router.push('/allemployees')
+          onClose: () => router.push('/allusers')
         });
 
         // Wyczyść formularz

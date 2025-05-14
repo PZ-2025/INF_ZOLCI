@@ -36,7 +36,7 @@ const routes = [
   { path: '/addemployee', name: "addEmployee", component: AddEmployee, meta: { requiresAuth: true, minRole: 'manager' } },
   { path: '/raportgenerate', name: "raportGenerate", component: RaportGenerate, meta: { requiresAuth: true, minRole: 'manager' } },
   { path: '/raporthistory', name: "raportHistory", component: RaportHistory, meta: { requiresAuth: true, minRole: 'manager' } },
-  { path: '/systemconf', name: "systemConf", component: SystemConf, meta: { requiresAuth: true, requiredRole: 'ADMIN' } },
+  { path: '/systemconf', name: "systemConf", component: SystemConf, meta: { requiresAuth: true, requiredRole: 'administrator' } },
   { path: '/taskshistory', name: "tasksHistory", component: TasksHistory, meta: { requiresAuth: true } },
   { path: '/addtask', name: "addTask", component: AddTask, meta: { requiresAuth: true, minRole: 'manager' } },
   { path: '/settings', name: "userSettings", component: UserSettings, meta: { requiresAuth: true } },

@@ -67,7 +67,7 @@ export default {
       return authService.hasRoleAtLeast('manager');
     },
     isAdmin() {
-      return authState.user?.role === 'ADMIN';
+      return authState.user?.role === 'administrator';
     }
   },
   methods: {
