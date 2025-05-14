@@ -11,4 +11,5 @@ public class EmployeeLoadReportDTO {
     private List<EmployeeLoadItemDTO> items;
     private String dateFrom;
     private String dateTo;
+    private Integer workingDays;
 }
