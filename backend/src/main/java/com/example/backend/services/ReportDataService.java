@@ -3,6 +3,7 @@ package com.example.backend.services;
 import com.example.backend.dto.reports.*;
 import com.example.backend.models.*;
 import com.example.backend.repository.*;
+import org.example.reporting.model.TeamEfficiency;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -323,6 +324,7 @@ public class ReportDataService {
         return reportDTO;
     }
 
+
     public TeamEfficiencyReportDTO collectTeamEfficiencyData(String dateFrom, String dateTo) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate startDate = LocalDate.parse(dateFrom, formatter);
@@ -334,6 +336,11 @@ public class ReportDataService {
         // Create data items
         List<TeamEfficiencyItemDTO> items = new ArrayList<>();
 
+        // Liczniki do podsumowania ogólnego
+        int teamsWithTasksCount = 0;
+        int totalTasksCount = 0;
+        int totalCompletedTasksCount = 0;
+
         for (Team team : teams) {
             // Get tasks for the team
             List<Task> teamTasks = taskRepository.findByTeam(team).stream()
@@ -343,39 +350,158 @@ public class ReportDataService {
                     })
                     .collect(Collectors.toList());
 
-            // Count open and closed issues
-            long openIssues = teamTasks.stream()
-                    .filter(task -> task.getCompletedDate() == null)
-                    .count();
-
-            long closedIssues = teamTasks.stream()
-                    .filter(task -> task.getCompletedDate() != null)
-                    .count();
-
-            // Calculate average completion hours (assuming 8 hours per day between start and completion)
-            double avgCompletionHours = teamTasks.stream()
-                    .filter(task -> task.getStartDate() != null && task.getCompletedDate() != null)
-                    .mapToLong(task -> {
-                        long days = java.time.temporal.ChronoUnit.DAYS.between(
-                                task.getStartDate(), task.getCompletedDate());
-                        return days * 8; // 8 hours per day
-                    })
-                    .average()
-                    .orElse(0);
-
             TeamEfficiencyItemDTO item = new TeamEfficiencyItemDTO();
             item.setTeamName(team.getName());
-            item.setAvgCompletionHours(avgCompletionHours);
-            item.setOpenIssues((int) openIssues);
-            item.setClosedIssues((int) closedIssues);
+
+            // Sprawdź czy zespół ma zadania
+            if (teamTasks.isEmpty()) {
+                // Zespół bez zadań - ustaw specjalny flag
+                item.setHasNoTasks(true);
+                item.setAvgCompletionHours(0.0);
+                item.setOpenIssues(0);
+                item.setClosedIssues(0);
+                item.setCompletedTasksCount(0);
+                item.setTotalTasksCount(0);
+                item.setOnTimeTasksCount(0);
+                item.setDelayedTasksCount(0);
+                item.setAvgDelayDays(0.0);
+                item.setActiveTeamMembersCount(teamMemberRepository.findByTeamAndIsActive(team, true).size());
+                item.setTasksPerMember(0.0);
+                item.setEfficiencyScore(0.0);
+
+                // Dodaj pustą mapę priorytetów
+                item.setTasksByPriority(new HashMap<>());
+            } else {
+                // Zespół z zadaniami - normalny przepływ
+                teamsWithTasksCount++;
+                totalTasksCount += teamTasks.size();
+
+                // Count open and closed issues
+                long openIssues = teamTasks.stream()
+                        .filter(task -> task.getCompletedDate() == null)
+                        .count();
+
+                long closedIssues = teamTasks.stream()
+                        .filter(task -> task.getCompletedDate() != null)
+                        .count();
+
+                totalCompletedTasksCount += closedIssues;
+
+                // Calculate average completion hours (assuming 8 hours per day between start and completion)
+                double avgCompletionHours = teamTasks.stream()
+                        .filter(task -> task.getStartDate() != null && task.getCompletedDate() != null)
+                        .mapToLong(task -> {
+                            long days = java.time.temporal.ChronoUnit.DAYS.between(
+                                    task.getStartDate(), task.getCompletedDate());
+                            return days * 8; // 8 hours per day
+                        })
+                        .average()
+                        .orElse(0);
+
+                // Policz zadania na czas i opóźnione
+                long onTimeTasksCount = teamTasks.stream()
+                        .filter(task -> {
+                            if (task.getCompletedDate() == null || task.getDeadline() == null) {
+                                return false;
+                            }
+                            return !task.getCompletedDate().isAfter(task.getDeadline());
+                        })
+                        .count();
+
+                long delayedTasksCount = teamTasks.stream()
+                        .filter(task -> {
+                            if (task.getCompletedDate() == null || task.getDeadline() == null) {
+                                return false;
+                            }
+                            return task.getCompletedDate().isAfter(task.getDeadline());
+                        })
+                        .count();
+
+                // Oblicz średnie opóźnienie w dniach
+                double avgDelayDays = teamTasks.stream()
+                        .filter(task -> {
+                            if (task.getCompletedDate() == null || task.getDeadline() == null) {
+                                return false;
+                            }
+                            return task.getCompletedDate().isAfter(task.getDeadline());
+                        })
+                        .mapToLong(task ->
+                                java.time.temporal.ChronoUnit.DAYS.between(task.getDeadline(), task.getCompletedDate())
+                        )
+                        .average()
+                        .orElse(0);
+
+                // Pobierz aktywnych członków zespołu
+                int activeMembers = teamMemberRepository.findByTeamAndIsActive(team, true).size();
+
+                // Zadania per członek zespołu
+                double tasksPerMember = activeMembers > 0 ?
+                        (double) teamTasks.size() / activeMembers : 0;
+
+                // Grupuj zadania według priorytetu
+                Map<String, Integer> tasksByPriority = teamTasks.stream()
+                        .collect(Collectors.groupingBy(
+                                task -> task.getPriority() != null ? task.getPriority().getName() : "Nieokreślony",
+                                Collectors.summingInt(task -> 1)
+                        ));
+
+                // Oblicz wskaźnik efektywności (50% - zadania ukończone, 30% - zadania na czas, 20% - obciążenie członków)
+                double completionRate = teamTasks.isEmpty() ? 0 :
+                        (double) closedIssues / teamTasks.size() * 100;
+
+                double onTimeRate = closedIssues > 0 ?
+                        (double) onTimeTasksCount / closedIssues * 100 : 0;
+
+                // Dla zespołów z 0 ukończonych zadań, pierwsza część (50%) i druga (30%) powinny być 0
+                double efficiencyScore = 0;
+                if (closedIssues > 0) {
+                    efficiencyScore = (completionRate * 0.5) + (onTimeRate * 0.3);
+                }
+
+                // Dodaj tylko część związaną z obciążeniem zespołu
+                double memberLoadBalance = activeMembers > 0 ?
+                        Math.min(100, (teamTasks.size() / activeMembers) * 20) : 0;
+                efficiencyScore += memberLoadBalance * 0.2;
+
+                // Ogranicz do 100%
+                efficiencyScore = Math.min(100, efficiencyScore);
+
+                item.setAvgCompletionHours(avgCompletionHours);
+                item.setOpenIssues((int) openIssues);
+                item.setClosedIssues((int) closedIssues);
+                item.setCompletedTasksCount((int) closedIssues);
+                item.setTotalTasksCount(teamTasks.size());
+                item.setOnTimeTasksCount((int) onTimeTasksCount);
+                item.setDelayedTasksCount((int) delayedTasksCount);
+                item.setAvgDelayDays(avgDelayDays);
+                item.setActiveTeamMembersCount(activeMembers);
+                item.setTasksPerMember(tasksPerMember);
+                item.setTasksByPriority(tasksByPriority);
+                item.setEfficiencyScore(efficiencyScore);
+                item.setHasNoTasks(false);
+            }
+
             items.add(item);
         }
+
+        // Oblicz współczynnik ukończenia zadań
+        double overallCompletionRate = totalTasksCount > 0 ?
+                (double) totalCompletedTasksCount / totalTasksCount * 100 : 0;
 
         // Create report DTO
         TeamEfficiencyReportDTO reportDTO = new TeamEfficiencyReportDTO();
         reportDTO.setItems(items);
         reportDTO.setDateFrom(dateFrom);
         reportDTO.setDateTo(dateTo);
+
+        // Dodaj parametry podsumowania do DTO
+        Map<String, Object> summaryParameters = new HashMap<>();
+        summaryParameters.put("teamsWithTasksCount", teamsWithTasksCount);
+        summaryParameters.put("totalTeamsCount", teams.size());
+        summaryParameters.put("totalTasksCount", totalTasksCount);
+        summaryParameters.put("totalCompletedTasksCount", totalCompletedTasksCount);
+        summaryParameters.put("overallCompletionRate", overallCompletionRate);
+        reportDTO.setSummaryParameters(summaryParameters);
 
         return reportDTO;
     }
