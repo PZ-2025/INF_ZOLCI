@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -169,11 +170,15 @@ public class ReportDataService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate startDate = LocalDate.parse(dateFrom, formatter);
         LocalDate endDate = LocalDate.parse(dateTo, formatter);
+        LocalDate currentDate = LocalDate.now();
 
         // Get all users if userId is null, otherwise get specific user
         List<User> users;
         if (userId == null) {
-            users = userRepository.findAll();
+            // Get all users excluding administrators
+            users = userRepository.findAll().stream()
+                    .filter(user -> !"administrator".equalsIgnoreCase(user.getRole()))
+                    .collect(Collectors.toList());
         } else {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new RuntimeException("User not found"));
@@ -183,23 +188,128 @@ public class ReportDataService {
         // Create data items
         List<EmployeeLoadItemDTO> items = new ArrayList<>();
 
+        // Standard work hours per day
+        final double WORK_HOURS_PER_DAY = 8.0;
+        // Number of working days in the period
+        long workingDays = ChronoUnit.DAYS.between(startDate, endDate.plusDays(1));
+        // Simple adjustment for weekends (approximation)
+        workingDays = workingDays - (workingDays * 2 / 7); // Subtract weekends
+
+        // Ensure at least 1 day
+        if (workingDays < 1) workingDays = 1;
+
         for (User user : users) {
-            // Get tasks created by the user
+            // Get tasks created by or assigned to the user
             List<Task> userTasks = taskRepository.findByCreatedBy(user).stream()
                     .filter(task -> {
-                        LocalDate taskDate = task.getCreatedAt().toLocalDate();
-                        return !taskDate.isBefore(startDate) && !taskDate.isAfter(endDate);
+                        // Check if task is in the date range
+                        LocalDate taskStartDate = task.getStartDate();
+                        LocalDate taskEndDate = task.getCompletedDate() != null ?
+                                task.getCompletedDate() : currentDate;
+
+                        // Task is relevant if it overlaps with the date range
+                        return (taskStartDate == null || !taskStartDate.isAfter(endDate)) &&
+                                (taskEndDate == null || !taskEndDate.isBefore(startDate));
                     })
                     .collect(Collectors.toList());
 
-            // Calculate total hours (here we assume 8 hours per task as an example)
-            double totalHours = userTasks.size() * 8.0;
+            // Skip if user has no tasks
+            if (userTasks.isEmpty()) continue;
 
+            // Calculate total task hours based on priority and duration
+            double totalHours = 0.0;
+            Map<String, Integer> tasksByStatus = new HashMap<>();
+            List<TaskDetailDTO> taskDetails = new ArrayList<>();
+
+            for (Task task : userTasks) {
+                // Collect status information - ensure it's never null
+                String status = task.getStatus() != null ? task.getStatus().getName() : "Nieznany";
+                tasksByStatus.merge(status, 1, Integer::sum);
+
+                // Calculate estimated hours based on priority
+                double priorityMultiplier = 1.0;
+                if (task.getPriority() != null) {
+                    int priorityValue = task.getPriority().getValue();
+                    priorityMultiplier = 0.5 + (priorityValue * 0.25); // Scale from 0.75 to 1.5 based on priority
+                }
+
+                // Calculate task duration in days
+                LocalDate taskStart = task.getStartDate() != null ? task.getStartDate() : startDate;
+                LocalDate taskEnd = task.getCompletedDate() != null ? task.getCompletedDate() :
+                        (task.getDeadline() != null ? task.getDeadline() : endDate);
+
+                // Ensure dates are within report period
+                if (taskStart.isBefore(startDate)) taskStart = startDate;
+                if (taskEnd.isAfter(endDate)) taskEnd = endDate;
+
+                // Calculate days between dates (simplified)
+                long days = ChronoUnit.DAYS.between(taskStart, taskEnd.plusDays(1));
+                // Simple adjustment for weekends (approximation)
+                long businessDays = days - (days * 2 / 7); // Subtract weekends
+                if (businessDays < 1) businessDays = 1; // At least 1 day
+
+                // Calculate hours for this task
+                double taskHours = businessDays * WORK_HOURS_PER_DAY * priorityMultiplier;
+                totalHours += taskHours;
+
+                // Determine if task is delayed
+                boolean isDelayed = false;
+                if (task.getDeadline() != null) {
+                    if (task.getCompletedDate() == null) {
+                        // Not completed yet, check if current date is past deadline
+                        isDelayed = currentDate.isAfter(task.getDeadline());
+                    } else {
+                        // Completed, check if completion date is past deadline
+                        isDelayed = task.getCompletedDate().isAfter(task.getDeadline());
+                    }
+                }
+
+                // Add task details
+                TaskDetailDTO detail = new TaskDetailDTO();
+                detail.setTaskId(task.getId());
+                detail.setTaskName(task.getTitle());
+                detail.setStatus(status);
+                detail.setPriority(task.getPriority() != null ? task.getPriority().getName() : "Standardowy");
+                detail.setStartDate(task.getStartDate());
+                detail.setDeadlineDate(task.getDeadline());
+                detail.setCompletedDate(task.getCompletedDate());
+                detail.setEstimatedHours(taskHours);
+                detail.setDelayed(isDelayed);
+
+                taskDetails.add(detail);
+            }
+
+            // Ensure we have status data - if not, create a default
+            if (tasksByStatus.isEmpty()) {
+                tasksByStatus.put("W toku", userTasks.size());
+            }
+
+            // Calculate FTE equivalent (based on 8-hour workday)
+            double totalPossibleHours = workingDays * WORK_HOURS_PER_DAY;
+            double fteEquivalent;
+
+            if (totalPossibleHours > 0) {
+                fteEquivalent = totalHours / totalPossibleHours;
+            } else {
+                // Fallback if calculation fails
+                fteEquivalent = totalHours / 160.0; // Assume standard month workload
+            }
+
+            // Guard against NaN or infinity
+            if (Double.isNaN(fteEquivalent) || Double.isInfinite(fteEquivalent)) {
+                fteEquivalent = totalHours / 160.0;
+            }
+
+            // Create and add the employee load item
             EmployeeLoadItemDTO item = new EmployeeLoadItemDTO();
             item.setEmployeeId(user.getId());
             item.setEmployeeName(user.getFirstName() + " " + user.getLastName());
             item.setTaskCount(userTasks.size());
             item.setTotalHours(totalHours);
+            item.setFteEquivalent(fteEquivalent);
+            item.setTasks(taskDetails);
+            item.setTasksByStatus(tasksByStatus);
+
             items.add(item);
         }
 
@@ -208,6 +318,7 @@ public class ReportDataService {
         reportDTO.setItems(items);
         reportDTO.setDateFrom(dateFrom);
         reportDTO.setDateTo(dateTo);
+        reportDTO.setWorkingDays((int) workingDays);
 
         return reportDTO;
     }
