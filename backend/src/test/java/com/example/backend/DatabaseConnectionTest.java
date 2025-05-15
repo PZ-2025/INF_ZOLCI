@@ -28,7 +28,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @since 1.0.0
  */
 @SpringBootTest
-@ActiveProfiles("test")
+@ActiveProfiles("deploy")
 class DatabaseConnectionTest {
 
     @Autowired
