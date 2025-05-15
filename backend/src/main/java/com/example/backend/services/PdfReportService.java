@@ -191,7 +191,6 @@ public class PdfReportService {
 
         return reportRepository.save(report);
     }
-
     /**
      * Generuje raport efektywności zespołu w formacie PDF.
      *
@@ -209,6 +208,19 @@ public class PdfReportService {
                     efficiency.setAvgCompletionHours(item.getAvgCompletionHours());
                     efficiency.setOpenIssues(item.getOpenIssues());
                     efficiency.setClosedIssues(item.getClosedIssues());
+
+                    // Mapowanie dodatkowych pól
+                    efficiency.setCompletedTasksCount(item.getCompletedTasksCount());
+                    efficiency.setTotalTasksCount(item.getTotalTasksCount());
+                    efficiency.setOnTimeTasksCount(item.getOnTimeTasksCount());
+                    efficiency.setDelayedTasksCount(item.getDelayedTasksCount());
+                    efficiency.setAvgDelayDays(item.getAvgDelayDays());
+                    efficiency.setActiveTeamMembersCount(item.getActiveTeamMembersCount());
+                    efficiency.setTasksPerMember(item.getTasksPerMember());
+                    efficiency.setTasksByPriority(item.getTasksByPriority());
+                    efficiency.setEfficiencyScore(item.getEfficiencyScore());
+                    efficiency.setHasNoTasks(item.getHasNoTasks());
+
                     return efficiency;
                 })
                 .collect(Collectors.toList());
@@ -217,6 +229,11 @@ public class PdfReportService {
         Map<String, Object> parameters = new HashMap<>();
         parameters.put("dateFrom", reportDTO.getDateFrom());
         parameters.put("dateTo", reportDTO.getDateTo());
+
+        // Dodaj parametry podsumowania
+        if (reportDTO.getSummaryParameters() != null) {
+            parameters.putAll(reportDTO.getSummaryParameters());
+        }
 
         // 3. Utworzenie generatora raportów
         TeamEfficiencyReportGenerator generator = new TeamEfficiencyReportGenerator();
