@@ -1,11 +1,11 @@
-import { warn } from 'vue';
+import { warn } from 'vue'
 
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
     "./src/**/*.{vue,js,ts,jsx,tsx}",
-  ],  
+  ],
   theme: {
     extend: {
       colors: {
@@ -21,6 +21,15 @@ export default {
         warning: "#3949AB",        // ostrzeżenia
         warningHover: "#303F9F",   // kolor ostrzeżenia po najechaniu
         navbar: "#212A5C",         // kolor tła paska nawigacyjnego
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.3s ease-out both',
+      },
+      keyframes: {
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(-10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
     },
   },
