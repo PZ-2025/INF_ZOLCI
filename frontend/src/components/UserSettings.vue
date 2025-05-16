@@ -1,6 +1,6 @@
 <template>
   <div class="bg-background min-h-screen p-8 text-text">
-    <h1 class="text-3xl font-bold text-primary mb-6">
+    <h1 class="text-3xl text-left font-bold text-primary mb-6">
       {{ userId ? 'Edycja Użytkownika' : 'Ustawienia Użytkownika' }}
     </h1>
 
@@ -15,109 +15,108 @@
       </button>
     </div>
 
-    <form v-else @submit.prevent="updateSettings" class="bg-surface p-6 rounded-lg shadow-md border border-gray-200">
+    <form v-else @submit.prevent="updateSettings" class="bg-surface p-6 rounded-lg space-y-6">
       <!-- Komunikat sukcesu -->
       <div v-if="successMessage" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
         {{ successMessage }}
       </div>
 
-      <div class="mb-4">
-        <label class="block font-semibold mb-2">Imię</label>
+      <!-- Pole formularza -->
+      <div class="flex items-center mb-4">
+        <label class="w-40 font-semibold">Imię</label>
         <input
-            type="text"
-            v-model="user.firstName"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="Wpisz imię"
-            required
+          type="text"
+          v-model="user.firstName"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+          placeholder="Wpisz imię"
+          required
         />
       </div>
 
-      <div class="mb-4">
-        <label class="block font-semibold mb-2">Nazwisko</label>
+      <div class="flex items-center mb-4">
+        <label class="w-40 font-semibold">Nazwisko</label>
         <input
-            type="text"
-            v-model="user.lastName"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="Wpisz nazwisko"
-            required
+          type="text"
+          v-model="user.lastName"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+          placeholder="Wpisz nazwisko"
+          required
         />
       </div>
 
-      <div class="mb-4">
-        <label for="email" class="block font-semibold mb-2">Adres e-mail</label>
+      <div class="flex items-center mb-4">
+        <label for="email" class="w-40 font-semibold">Adres e-mail</label>
         <input
-            type="email"
-            id="email"
-            v-model="user.email"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="Twój adres e-mail"
-            required
+          type="email"
+          id="email"
+          v-model="user.email"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+          placeholder="Twój adres e-mail"
+          required
         />
       </div>
 
-      <div class="mb-4">
-        <label for="phone" class="block font-semibold mb-2">Telefon</label>
+      <div class="flex items-center mb-4">
+        <label for="phone" class="w-40 font-semibold">Telefon</label>
         <input
-            type="text"
-            id="phone"
-            v-model="user.phone"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="Numer telefonu"
+          type="text"
+          id="phone"
+          v-model="user.phone"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+          placeholder="Numer telefonu"
         />
       </div>
 
-      <div class="mb-4">
-        <label for="currentPassword" class="block font-semibold mb-2">Aktualne hasło</label>
+      <div class="flex items-center mb-4">
+        <label for="currentPassword" class="w-40 font-semibold">Aktualne hasło</label>
         <input
-            type="password"
-            id="currentPassword"
-            v-model="passwordData.currentPassword"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="Wpisz aktualne hasło (wymagane do zmiany hasła)"
-            :required="passwordData.newPassword.length > 0"
+          type="password"
+          id="currentPassword"
+          v-model="passwordData.currentPassword"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+          placeholder="Wpisz aktualne hasło"
+          :required="passwordData.newPassword.length > 0"
         />
       </div>
 
-      <div class="mb-4">
-        <label for="newPassword" class="block font-semibold mb-2">Nowe hasło</label>
+      <div class="flex items-center mb-4">
+        <label for="newPassword" class="w-40 font-semibold">Nowe hasło</label>
         <input
-            type="password"
-            id="newPassword"
-            v-model="passwordData.newPassword"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="Wpisz nowe hasło (pozostaw puste, aby nie zmieniać)"
+          type="password"
+          id="newPassword"
+          v-model="passwordData.newPassword"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+          placeholder="Wpisz nowe hasło"
         />
       </div>
 
-      <div class="mb-4">
-        <label for="confirmPassword" class="block font-semibold mb-2">Potwierdź nowe hasło</label>
+      <div class="flex items-center mb-1">
+        <label for="confirmPassword" class="w-40 font-semibold">Potwierdź hasło</label>
         <input
-            type="password"
-            id="confirmPassword"
-            v-model="passwordData.confirmPassword"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="Potwierdź nowe hasło"
-            :required="passwordData.newPassword.length > 0"
+          type="password"
+          id="confirmPassword"
+          v-model="passwordData.confirmPassword"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+          placeholder="Potwierdź nowe hasło"
+          :required="passwordData.newPassword.length > 0"
         />
-        <p v-if="passwordError" class="text-red-500 mt-1 text-sm">{{ passwordError }}</p>
       </div>
+      <p v-if="passwordError" class="text-red-500 ml-40 mt-1 text-sm">{{ passwordError }}</p>
 
-      <div class="mb-6">
-        <label for="theme" class="block font-semibold mb-2">Motyw</label>
-        <select
-            id="theme"
-            v-model="user.theme"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-        >
-          <option value="light">Jasny</option>
-          <option value="dark">Ciemny</option>
-        </select>
+      <div v-if="userId" class="flex items-center mb-6">
+        <label for="isActive" class="w-40 font-semibold">Aktywny</label>
+        <input
+          type="checkbox"
+          id="isActive"
+          v-model="user.isActive"
+          class="h-5 w-5"
+        />
       </div>
 
       <button
-          type="submit"
-          class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
-          :disabled="isSaving"
+        type="submit"
+        class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
+        :disabled="isSaving"
       >
         <span v-if="isSaving">Zapisywanie zmian...</span>
         <span v-else>Zapisz Zmiany</span>
@@ -170,7 +169,7 @@ export default {
       lastName: '',
       email: '',
       phone: '',
-      theme: 'light'
+      isActive: true
     });
 
     // Dane dotyczące hasła przechowujemy osobno
@@ -227,10 +226,7 @@ export default {
         user.lastName = userData.lastName || '';
         user.email = userData.email || '';
         user.phone = userData.phone || '';
-
-        // Jeśli mamy zapisane preferencje motywu w localStorage, użyj ich
-        const savedTheme = localStorage.getItem('theme');
-        user.theme = savedTheme || 'light';
+        user.isActive = userData.isActive !== undefined ? userData.isActive : true;
 
         console.log('Dane użytkownika załadowane:', user);
       } catch (err) {
@@ -249,7 +245,7 @@ export default {
         user.lastName = 'Kowalski';
         user.email = 'jan.kowalski@example.com';
         user.phone = '';
-        user.theme = localStorage.getItem('theme') || 'light';
+        user.isActive = true;
       } finally {
         loading.value = false;
       }
@@ -284,6 +280,9 @@ export default {
         if (user.phone !== originalUserData.value.phone) {
           changedFields.phone = user.phone;
         }
+        if (props.userId && user.isActive !== originalUserData.value.isActive) {
+          changedFields.isActive = user.isActive;
+        }
 
         // Dodaj hasło tylko jeśli użytkownik chce je zmienić
         if (passwordData.newPassword) {
@@ -305,15 +304,8 @@ export default {
           // Aktualizuj tylko zmienione pola za pomocą PATCH
           await userService.partialUpdateUser(user.id, changedFields);
         } else {
-          // Brak zmian, ale zapisz temat
-          console.log('Brak zmian w danych użytkownika, aktualizuję tylko preferencje motywu');
+          console.log('Brak zmian w danych użytkownika');
         }
-
-        // Zapisz preferencje motywu w localStorage
-        localStorage.setItem('theme', user.theme);
-
-        // Aktywuj motyw
-        document.documentElement.classList.toggle('dark', user.theme === 'dark');
 
         // Wyczyść dane hasła
         passwordData.currentPassword = '';

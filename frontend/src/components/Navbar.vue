@@ -32,7 +32,7 @@
         v-if="canAccessManagerFeatures" 
         to="/allusers" 
         class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Zarządzanie użytkownikami
+        Zarządzanie pracownikami
       </router-link>
       <router-link 
         to="/settings" 
@@ -67,7 +67,7 @@ export default {
       return authService.hasRoleAtLeast('manager');
     },
     isAdmin() {
-      return authState.user?.role === 'ADMIN';
+      return authState.user?.role === 'administrator';
     }
   },
   methods: {

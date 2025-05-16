@@ -1,6 +1,6 @@
 <template>
   <div class="bg-background text-text min-h-screen p-6">
-    <h1 class="text-3xl font-bold text-primary mb-6">Historia Raportów</h1>
+    <h1 class="text-3xl text-left font-bold text-primary mb-6">Historia Raportów</h1>
 
     <div class="flex flex-wrap gap-4 justify-between items-center mb-6">
       <div class="flex items-center">

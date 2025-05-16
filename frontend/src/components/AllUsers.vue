@@ -1,7 +1,7 @@
 <template>
   <div class="h-full flex flex-col p-6 bg-background text-text">
-    <div class="flex justify-between items-center mb-6">
-      <h1 class="text-3xl font-bold text-primary">Pracownicy</h1>
+    <div class="flex items-center mb-6">
+      <h1 class="text-3xl font-bold text-primary mr-auto">Pracownicy</h1>
       <router-link
         to="/addemployee"
         class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition text-center"
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Lista pracowników -->
-    <div v-else class="flex-grow bg-surface p-6 rounded-lg shadow-md mb-6 overflow-auto border border-gray-200">
+    <div v-else class="flex-grow ">
       <div v-if="employees.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
             v-for="employee in employees"
@@ -73,7 +73,7 @@
               Aktywuj
             </button>
             <button
-                v-if="employee.role !== 'administrator' || employee.role !== 'Administrator'"
+                v-if="employee.role !== 'administrator'"
                 @click="removeEmployee(employee.id, employee.firstName, employee.lastName)"
                 class="text-xs bg-danger text-white px-2 py-1 rounded-md hover:bg-red-600 transition"
             >

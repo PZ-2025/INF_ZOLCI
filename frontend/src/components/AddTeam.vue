@@ -126,7 +126,7 @@ export default {
     const fetchManagers = async () => {
       try {
         const users = await userService.getActiveUsers();
-        managers.value = users.filter(user => user.role === 'kierownik' || user.role === 'administrator' || user.role === 'Administrator');
+        managers.value = users.filter(user => user.role === 'kierownik' || user.role === 'administrator');
         console.log('Pobrano kierowników:', managers.value);
       } catch (err) {
         console.error('Błąd podczas pobierania kierowników:', err);

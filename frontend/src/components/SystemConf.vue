@@ -1,6 +1,6 @@
 <template>
   <div class="bg-background min-h-screen p-8 text-text">
-    <h1 class="text-3xl font-bold text-primary mb-6">Konfiguracja Systemu</h1>
+    <h1 class="text-3xl text-left font-bold text-primary mb-6">Konfiguracja Systemu</h1>
 
     <!-- Loading state -->
     <div v-if="loading" class="flex justify-center items-center h-64">

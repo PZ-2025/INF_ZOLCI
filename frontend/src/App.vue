@@ -63,12 +63,11 @@ function getFriendlyErrorMessage() {
   } else if (connectionErrorType.value === ERROR_TYPES.SERVER) {
     return "Wystąpił błąd po stronie serwera. Prosimy spróbować później.";
   } else {
-    return "Nie można połączyć się z serwerem API. Możesz korzystać z aplikacji w trybie demonstracyjnym lub spróbować ponownie.";
+    return "Nie można połączyć się z serwerem API. Prosimy spróbować później.";
   }
 }
 
 
-// Funkcja sprawdzająca połączenie
 // Funkcja sprawdzająca połączenie
 async function checkBackendConnection() {
   console.log("Sprawdzanie połączenia - rozpoczęte");
@@ -191,41 +190,43 @@ onMounted(async () => {
 <!--      </button>-->
 <!--    </div>-->
 
-    <!-- Komponent wyświetlający błąd API (tylko jeśli użytkownik nie jest zalogowany) -->
-    <div v-if="backendStatus === 'disconnected' && !authState.isAuthenticated" class="fixed top-20 right-5 z-40 bg-white shadow-lg rounded-lg p-4 max-w-sm">
-      <div class="flex flex-col">
-        <div class="flex items-center text-red-600 mb-2">
-          <!-- Ikona zależna od typu błędu -->
-          <svg v-if="isDatabaseError" xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
-          </svg>
-          <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-          <h3 class="font-bold">{{ isDatabaseError ? 'Problem z bazą danych' : 'Problem z połączeniem' }}</h3>
+    <!-- Komponent wyświetlający błąd API -->
+    <div
+      v-if="backendStatus === 'disconnected'"
+      class="fixed top-20 right-5 z-50 w-full max-w-md bg-white border border-red-300 shadow-2xl rounded-xl overflow-hidden animate-fade-in"
+    >
+      <!-- Nagłówek z gradientem -->
+      <div class="bg-gradient-to-r from-red-500 to-red-600 px-4 py-3 flex items-center text-white">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path v-if="isDatabaseError" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 11l7-7 7 7M5 19l7-7 7 7" />
+          <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <h3 class="text-lg font-semibold">
+          {{ isDatabaseError ? 'Błąd bazy danych' : 'Brak połączenia z API' }}
+        </h3>
+      </div>
+
+      <!-- Treść -->
+      <div class="p-4 space-y-3 text-sm text-gray-800">
+        <p>{{ getFriendlyErrorMessage() }}</p>
+
+        <div v-if="isDatabaseError" class="bg-yellow-50 border-l-4 border-yellow-400 p-3 rounded text-yellow-800">
+          Serwer ma obecnie problem z połączeniem z bazą danych. Prosimy o cierpliwość — sytuacja powinna się wkrótce poprawić.
         </div>
 
-        <p class="text-gray-700 mb-4">{{ getFriendlyErrorMessage() }}</p>
-
-        <!-- Pokaż szczegóły dla błędu bazy danych -->
-        <div v-if="isDatabaseError" class="mb-4 text-sm bg-yellow-50 border-l-4 border-yellow-500 p-2 text-left">
-          <p class="text-yellow-700">Serwer nie może połączyć się z bazą danych. Ta sytuacja jest tymczasowa i zostanie rozwiązana wkrótce.</p>
-        </div>
-
-        <button
+        <div class="flex justify-end mt-4">
+          <button
             @click="retryConnection"
-            class="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded self-end"
+            class="bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition duration-200"
             :disabled="retryInProgress || backendStatus === 'checking'"
-        >
-      <span v-if="retryInProgress || backendStatus === 'checking'">
-        Próbuję...
-      </span>
-          <span v-else>
-        Spróbuj ponownie
-      </span>
-        </button>
+          >
+            <span v-if="retryInProgress || backendStatus === 'checking'">Próbuję...</span>
+            <span v-else>Spróbuj ponownie</span>
+          </button>
+        </div>
       </div>
     </div>
+
 
     <!-- Login Form zawsze wyświetlany dla niezalogowanych użytkowników -->
     <LoginForm v-if="!authState.isAuthenticated" />

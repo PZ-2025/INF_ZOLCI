@@ -1,26 +1,28 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-background text-text px-4">
-    <form @submit.prevent="generateReport" class="bg-surface p-6 rounded-lg shadow-md border border-gray-200 space-y-6 w-full max-w-xl">
-      <h1 class="text-2xl font-bold text-primary mb-2">Generowanie Raportów</h1>
+  <div class="bg-background min-h-screen p-8 text-text">
+    <h1 class="text-3xl text-left font-bold text-primary mb-6">
+      Generowanie Raportów
+    </h1>
 
-      <div class="flex flex-col">
-        <label for="reportName" class="text-lg font-medium mb-2">Nazwa raportu:</label>
+    <form @submit.prevent="generateReport" class="bg-surface p-6 rounded-lg shadow-md border border-gray-200 w-full max-w-3xl mx-auto">
+      <div class="mb-4">
+        <label for="reportName" class="block font-semibold mb-2">Nazwa raportu:</label>
         <input
           id="reportName"
           v-model="reportName"
           type="text"
           placeholder="np. Raport marzec 2025"
-          class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
         />
       </div>
 
-      <div class="flex flex-col">
-        <label for="reportType" class="text-lg font-medium mb-2">Wybierz typ raportu:</label>
+      <div class="mb-4">
+        <label for="reportType" class="block font-semibold mb-2">Wybierz typ raportu:</label>
         <select
           id="reportType"
           v-model="reportType"
           @change="handleReportTypeChange"
-          class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="workload">Raport obciążenia pracownika</option>
           <option value="progress">Raport postępu prac na budowie</option>
@@ -28,33 +30,33 @@
         </select>
       </div>
 
-      <div class="flex flex-col md:flex-row gap-4">
-        <div class="flex flex-col flex-1">
-          <label for="startDate" class="text-lg font-medium mb-2">Data początkowa:</label>
+      <div class="flex flex-col md:flex-row gap-4 mb-4">
+        <div class="flex-1">
+          <label for="startDate" class="block font-semibold mb-2">Data początkowa:</label>
           <input
             id="startDate"
             type="date"
             v-model="startDate"
-            class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
-        <div class="flex flex-col flex-1">
-          <label for="endDate" class="text-lg font-medium mb-2">Data końcowa:</label>
+        <div class="flex-1">
+          <label for="endDate" class="block font-semibold mb-2">Data końcowa:</label>
           <input
             id="endDate"
             type="date"
             v-model="endDate"
-            class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
       </div>
 
-      <div v-if="reportType === 'teamEffectiveness'" class="flex flex-col">
-        <label for="team" class="text-lg font-medium mb-2">Zespół:</label>
+      <div v-if="reportType === 'teamEffectiveness'" class="mb-4">
+        <label for="team" class="block font-semibold mb-2">Zespół:</label>
         <select
           id="team"
           v-model="selectedTeam"
-          class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option disabled selected value="">Wybierz zespół</option>
           <option v-for="team in teams" :key="team.id" :value="team.id">
@@ -63,12 +65,12 @@
         </select>
       </div>
 
-      <div v-if="reportType === 'workload'" class="flex flex-col">
-        <label for="user" class="text-lg font-medium mb-2">Użytkownik:</label>
+      <div v-if="reportType === 'workload'" class="mb-4">
+        <label for="user" class="block font-semibold mb-2">Użytkownik:</label>
         <select
           id="user"
           v-model="selectedUser"
-          class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option disabled selected value="">Wybierz użytkownika</option>
           <option v-for="user in users" :key="user.id" :value="user.id">
@@ -78,7 +80,7 @@
       </div>
 
       <div class="pt-2">
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition w-full">
+        <button type="submit" class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition">
           Generuj Raport
         </button>
       </div>

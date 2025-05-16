@@ -1,7 +1,7 @@
 <template>
   <div class="p-4 bg-background min-h-screen text-text">
     <div class="flex justify-between items-center mb-6">
-      <h1 class="text-2xl font-bold text-primary">Zespoły</h1>
+      <h1 class="text-3xl font-bold text-primary">Zespoły</h1>
 
       <!-- Przycisk do przejścia na stronę dodawania zespołu -->
       <router-link
