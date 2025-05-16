@@ -1,116 +1,143 @@
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-background text-text px-4">
-    <div class="bg-surface p-6 rounded-lg shadow-md border border-gray-200 space-y-4 w-full max-w-2xl">
-      <h1 class="text-2xl font-bold text-primary mb-4">Dodaj Pracownika</h1>
+  <div class="bg-background min-h-screen p-8 text-text">
+    <h1 class="text-3xl text-left font-bold text-primary mb-6">Dodaj Pracownika</h1>
 
-      <form @submit.prevent="addEmployee" class="space-y-4">
-        <div class="flex flex-col">
-          <label for="firstName" class="block text-lg font-medium mb-2">Imię</label>
-          <input
-              v-model="user.firstName"
-              id="firstName"
-              type="text"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Jan"
-          />
-        </div>
+    <div v-if="loading" class="flex justify-center items-center h-64">
+      <p class="text-primary text-xl">Dodawanie pracownika...</p>
+    </div>
 
-        <div class="flex flex-col">
-          <label for="lastName" class="block text-lg font-medium mb-2">Nazwisko</label>
-          <input
-              v-model="user.lastName"
-              id="lastName"
-              type="text"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="Kowalski"
-          />
-        </div>
+    <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6">
+      <p>{{ error }}</p>
+      <button @click="resetForm" class="mt-2 bg-primary text-white px-4 py-1 rounded-md">
+        Spróbuj ponownie
+      </button>
+    </div>
 
-        <div class="flex flex-col">
-          <label for="email" class="block text-lg font-medium mb-2">Email</label>
-          <input
-              v-model="user.email"
-              id="email"
-              type="email"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="jan.kowalski@example.com"
-          />
-        </div>
+    <form @submit.prevent="addEmployee" class="bg-surface p-6 rounded-lg shadow-md border border-gray-200">
+      <!-- Komunikat sukcesu -->
+      <div v-if="successMessage" class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4">
+        {{ successMessage }}
+      </div>
 
-        <div class="flex flex-col">
-          <label for="username" class="block text-lg font-medium mb-2">Nazwa użytkownika</label>
-          <input
-              v-model="user.username"
-              id="username"
-              type="text"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              placeholder="jan.kowalski"
-          />
-        </div>
+      <div class="mb-4 flex items-center">
+        <label for="firstName" class="block font-semibold mr-4 w-40 text-right">Imię</label>
+        <input
+            type="text"
+            id="firstName"
+            v-model="user.firstName"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz imię"
+            required
+        />
+      </div>
 
-        <div class="flex flex-col">
-          <label for="password" class="block text-lg font-medium mb-2">Hasło</label>
+      <div class="mb-4 flex items-center">
+        <label for="lastName" class="block font-semibold mr-4 w-40 text-right">Nazwisko</label>
+        <input
+            type="text"
+            id="lastName"
+            v-model="user.lastName"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz nazwisko"
+            required
+        />
+      </div>
+
+      <div class="mb-4 flex items-center">
+        <label for="email" class="block font-semibold mr-4 w-40 text-right">Adres e-mail</label>
+        <input
+            type="email"
+            id="email"
+            v-model="user.email"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="jan.kowalski@example.com"
+            required
+        />
+      </div>
+
+      <div class="mb-4 flex items-center">
+        <label for="phone" class="block font-semibold mr-4 w-40 text-right">Telefon</label>
+        <input
+            type="text"
+            id="phone"
+            v-model="user.phone"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Numer telefonu"
+        />
+      </div>
+      
+      <div class="mb-4 flex items-center">
+        <label for="username" class="block font-semibold mr-4 w-40 text-right">Nazwa użytkownika</label>
+        <input
+            type="text"
+            id="username"
+            v-model="user.username"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="jan.kowalski"
+            required
+        />
+      </div>
+
+      <div class="mb-4 flex items-center">
+        <label for="password" class="block font-semibold mr-4 w-40 text-right">Hasło</label>
+        <div class="flex-1">
           <input
-              v-model="user.password"
-              id="password"
               type="password"
-              required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+              id="password"
+              v-model="user.password"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
               placeholder="Minimum 6 znaków"
               minlength="6"
-          />
-        </div>
-
-        <div class="flex flex-col">
-          <label for="role" class="block text-lg font-medium mb-2">Rola</label>
-          <select
-              v-model="user.role"
-              id="role"
               required
-              class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="pracownik">Pracownik</option>
-            <option value="kierownik">Kierownik</option>
-            <option value="administrator">Administrator</option>
-          </select>
+          />
+          <p v-if="passwordError" class="text-red-500 mt-1 text-sm">{{ passwordError }}</p>
         </div>
+      </div>
 
-        <div class="flex justify-between mt-6">
-          <button
-              type="button"
-              @click="goBack"
-              class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition"
-          >
-            Anuluj
-          </button>
-          <button
-              type="submit"
-              class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
-              :disabled="loading"
-          >
-            <span v-if="loading">Dodawanie...</span>
-            <span v-else>Dodaj Pracownika</span>
-          </button>
-        </div>
-      </form>
-    </div>
+      <div class="mb-6 flex items-center">
+        <label for="role" class="block font-semibold mr-4 w-40 text-right">Rola</label>
+        <select
+            id="role"
+            v-model="user.role"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            required
+        >
+          <option value="employee">Pracownik</option>
+          <option value="manager">Kierownik</option>
+          <option value="admin">Administrator</option>
+        </select>
+      </div>
+
+      <div class="flex justify-between mt-6">
+        <button
+            type="button"
+            @click="goBack"
+            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition"
+        >
+          Anuluj
+        </button>
+        <button
+            type="submit"
+            class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-lg transition"
+            :disabled="loading"
+        >
+          <span v-if="loading">Dodawanie...</span>
+          <span v-else>Zapisz</span>
+        </button>
+      </div>
+    </form>
+
+    <StatusModal
+      :show="showModal"
+      :type="modalConfig.type"
+      :title="modalConfig.title"
+      :message="modalConfig.message"
+      :button-text="modalConfig.buttonText"
+      :auto-close="modalConfig.autoClose"
+      :auto-close-delay="modalConfig.autoCloseDelay"
+      @close="hideModal"
+    />
   </div>
-
-  <!-- Status Modal -->
-  <StatusModal
-    :show="showModal"
-    :type="modalConfig.type"
-    :title="modalConfig.title"
-    :message="modalConfig.message"
-    :button-text="modalConfig.buttonText"
-    :auto-close="modalConfig.autoClose"
-    :auto-close-delay="modalConfig.autoCloseDelay"
-    @close="hideModal"
-  />
 </template>
 
 <script>
@@ -131,6 +158,7 @@ export default {
       email: '',
       username: '',
       password: '',
+      phone: '', 
       role: 'employee',
       isActive: true
     });
@@ -139,29 +167,39 @@ export default {
     const loading = ref(false);
     const error = ref('');
     const successMessage = ref('');
+    const passwordError = ref('');
 
     // Użycie composable do obsługi modalu
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
+    // Walidacja hasła
+    const validatePassword = () => {
+      if (user.value.password.length < 6) {
+        passwordError.value = 'Hasło musi mieć co najmniej 6 znaków';
+        return false;
+      }
+      passwordError.value = '';
+      return true;
+    };
+
+    // Reset formularza
+    const resetForm = () => {
+      error.value = '';
+      passwordError.value = '';
+    };
+
     // Dodawanie pracownika
     const addEmployee = async () => {
+      // Walidacja formularza
+      if (!validatePassword()) {
+        return;
+      }
+
       loading.value = true;
       error.value = '';
       successMessage.value = '';
 
       try {
-        // Walidacja
-        if (user.value.password.length < 6) {
-          showStatus({
-            type: 'error',
-            title: 'Błąd',
-            message: 'Hasło musi mieć co najmniej 6 znaków.',
-            buttonText: 'Zamknij'
-          });
-          loading.value = false;
-          return;
-        }
-
         // Przekształcenie danych do formatu API
         const userData = {
           firstName: user.value.firstName,
@@ -169,6 +207,7 @@ export default {
           email: user.value.email,
           username: user.value.username,
           password: user.value.password,
+          phone: user.value.phone, 
           role: user.value.role,
           isActive: user.value.isActive
         };
@@ -185,7 +224,7 @@ export default {
           buttonText: 'OK',
           autoClose: true,
           autoCloseDelay: 2000,
-          onClose: () => router.push('/allusers')
+          onClose: () => router.push('/allemployees')
         });
 
         // Wyczyść formularz
@@ -195,6 +234,7 @@ export default {
           email: '',
           username: '',
           password: '',
+          phone: '', // reset phone
           role: 'employee',
           isActive: true
         };
@@ -222,8 +262,10 @@ export default {
       loading,
       error,
       successMessage,
+      passwordError,
       addEmployee,
       goBack,
+      resetForm,
       showModal,
       modalConfig,
       hideModal

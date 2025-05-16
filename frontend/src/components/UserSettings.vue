@@ -103,16 +103,14 @@
       </div>
       <p v-if="passwordError" class="text-red-500 ml-40 mt-1 text-sm">{{ passwordError }}</p>
 
-      <div class="flex items-center mb-6">
-        <label for="theme" class="w-40 font-semibold">Motyw</label>
-        <select
-          id="theme"
-          v-model="user.theme"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-        >
-          <option value="light">Jasny</option>
-          <option value="dark">Ciemny</option>
-        </select>
+      <div v-if="userId" class="flex items-center mb-6">
+        <label for="isActive" class="w-40 font-semibold">Aktywny</label>
+        <input
+          type="checkbox"
+          id="isActive"
+          v-model="user.isActive"
+          class="h-5 w-5"
+        />
       </div>
 
       <button
@@ -171,7 +169,7 @@ export default {
       lastName: '',
       email: '',
       phone: '',
-      theme: 'light'
+      isActive: true
     });
 
     // Dane dotyczące hasła przechowujemy osobno
@@ -228,10 +226,7 @@ export default {
         user.lastName = userData.lastName || '';
         user.email = userData.email || '';
         user.phone = userData.phone || '';
-
-        // Jeśli mamy zapisane preferencje motywu w localStorage, użyj ich
-        const savedTheme = localStorage.getItem('theme');
-        user.theme = savedTheme || 'light';
+        user.isActive = userData.isActive !== undefined ? userData.isActive : true;
 
         console.log('Dane użytkownika załadowane:', user);
       } catch (err) {
@@ -250,7 +245,7 @@ export default {
         user.lastName = 'Kowalski';
         user.email = 'jan.kowalski@example.com';
         user.phone = '';
-        user.theme = localStorage.getItem('theme') || 'light';
+        user.isActive = true;
       } finally {
         loading.value = false;
       }
@@ -285,6 +280,9 @@ export default {
         if (user.phone !== originalUserData.value.phone) {
           changedFields.phone = user.phone;
         }
+        if (props.userId && user.isActive !== originalUserData.value.isActive) {
+          changedFields.isActive = user.isActive;
+        }
 
         // Dodaj hasło tylko jeśli użytkownik chce je zmienić
         if (passwordData.newPassword) {
@@ -306,15 +304,8 @@ export default {
           // Aktualizuj tylko zmienione pola za pomocą PATCH
           await userService.partialUpdateUser(user.id, changedFields);
         } else {
-          // Brak zmian, ale zapisz temat
-          console.log('Brak zmian w danych użytkownika, aktualizuję tylko preferencje motywu');
+          console.log('Brak zmian w danych użytkownika');
         }
-
-        // Zapisz preferencje motywu w localStorage
-        localStorage.setItem('theme', user.theme);
-
-        // Aktywuj motyw
-        document.documentElement.classList.toggle('dark', user.theme === 'dark');
 
         // Wyczyść dane hasła
         passwordData.currentPassword = '';
