@@ -65,7 +65,7 @@
             placeholder="Numer telefonu"
         />
       </div>
-      
+
       <div class="mb-4 flex items-center">
         <label for="username" class="block font-semibold mr-4 w-40 text-right">Nazwa użytkownika</label>
         <input
@@ -224,7 +224,7 @@ export default {
           buttonText: 'OK',
           autoClose: true,
           autoCloseDelay: 2000,
-          onClose: () => router.push('/allemployees')
+          onClose: () => router.push('/allusers')
         });
 
         // Wyczyść formularz
