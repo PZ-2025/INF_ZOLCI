@@ -3,7 +3,7 @@
     <div v-if="loading" class="text-center">
       <p class="text-xl text-primary">Ładowanie szczegółów zadania...</p>
     </div>
-    
+
     <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
       <p>{{ error }}</p>
       <button @click="fetchTaskDetails" class="mt-2 bg-primary text-white px-4 py-1 rounded-md">
@@ -18,19 +18,23 @@
         <p><span class="font-semibold text-black">Tytuł: </span> <span class="text-black">{{ task.title }}</span></p>
         <p><span class="font-semibold text-black">Opis: </span> <span class="text-black">{{ task.description }}</span></p>
         <p>
-          <span class="font-semibold text-black">Status: </span> 
-          <span :class="statusColor">{{ getStatusText(getStatusName(task.statusId)) }}</span>
+          <span class="font-semibold text-black">Status: </span>
+          <span :class="getStatusClass(task.statusId || task.status?.id)">
+            {{ getStatusText(task.statusId || task.status?.id) }}
+          </span>
         </p>
         <p>
-          <span class="font-semibold text-black">Priorytet: </span> 
-          <span :class="priorityColor">{{ getPriorityText(getPriorityName(task.priorityId)) }}</span>
+          <span class="font-semibold text-black">Priorytet: </span>
+          <span :class="getPriorityClass(task.priorityId || task.priority?.id)">
+            {{ getPriorityText(task.priorityId || task.priority?.id) }}
+          </span>
         </p>
         <p>
-          <span class="font-semibold text-black">Termin: </span> 
+          <span class="font-semibold text-black">Termin: </span>
           <span class="text-black">{{ formatDate(task.deadline) }}</span>
         </p>
         <p>
-          <span class="font-semibold text-black">Data rozpoczęcia: </span> 
+          <span class="font-semibold text-black">Data rozpoczęcia: </span>
           <span class="text-black">{{ formatDate(task.startDate) }}</span>
         </p>
         <p><span class="font-semibold text-black">Zespół: </span> <span class="text-black">{{ teamName }}</span></p>
@@ -47,14 +51,14 @@
           <h3 class="text-xl font-semibold text-primary">Komentarze</h3>
           <span class="text-sm text-gray-500">{{ taskComments.length }} {{ commentCountText }}</span>
         </div>
-        
+
         <div v-if="!taskComments || taskComments.length === 0" class="text-center text-gray-500">
           Brak komentarzy
         </div>
-        
-        <div v-else 
-          class="space-y-4 overflow-y-auto transition-all" 
-          :class="{'max-h-60': taskComments.length > 3 && !showAllComments, 'scrollbar-custom': taskComments.length > 3}">
+
+        <div v-else
+             class="space-y-4 overflow-y-auto transition-all"
+             :class="{'max-h-60': taskComments.length > 3 && !showAllComments, 'scrollbar-custom': taskComments.length > 3}">
           <ul class="space-y-4">
             <li v-for="comment in taskComments" :key="comment.id" class="bg-gray-100 p-4 rounded-lg">
               <div class="flex justify-between">
@@ -62,12 +66,12 @@
                   {{ comment.userFullName || comment.username || 'Użytkownik' }} — {{ formatDate(comment.createdAt) }}
                 </div>
                 <!-- Przycisk usuwania komentarza - widoczny tylko dla managera lub admina -->
-                <button 
-                  v-if="canDeleteComments" 
-                  @click="deleteComment(comment.id)" 
-                  class="bg-red-600 hover:bg-red-700 text-white p-2 transition-colors duration-200"
-                  :disabled="isDeletingComment"
-                  title="Usuń komentarz"
+                <button
+                    v-if="canDeleteComments"
+                    @click="deleteComment(comment.id)"
+                    class="bg-red-600 hover:bg-red-700 text-white p-2 transition-colors duration-200"
+                    :disabled="isDeletingComment"
+                    title="Usuń komentarz"
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -78,7 +82,7 @@
             </li>
           </ul>
         </div>
-        
+
         <!-- Przycisk "Pokaż więcej" gdy liczba komentarzy > 3 -->
         <div v-if="taskComments.length > 3" class="text-center pt-2">
           <button @click="toggleComments" class="text-primary hover:text-secondary text-sm">
@@ -103,30 +107,42 @@
               class="w-full bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition"
               :disabled="isAddingComment || !newComment.trim()"
           >
-              {{ isAddingComment ? 'Dodawanie...' : 'Dodaj komentarz' }}
+            {{ isAddingComment ? 'Dodawanie...' : 'Dodaj komentarz' }}
           </button>
         </form>
       </div>
 
       <div class="flex justify-between">
-        <button @click="toggleDebug" 
-          class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition">
+        <button @click="toggleDebug"
+                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition">
           {{ debugMode ? 'Ukryj debug' : 'Debug' }}
         </button>
-        
+
         <div class="space-x-4">
           <button @click="editTask"
-            class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm transition">
+                  class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm transition">
             Edytuj
           </button>
           <button @click="deleteTask"
-            class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition">
+                  class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm transition">
             Usuń zadanie
           </button>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Status Modal -->
+  <StatusModal
+      :show="showModal"
+      :type="modalConfig.type"
+      :title="modalConfig.title"
+      :message="modalConfig.message"
+      :button-text="modalConfig.buttonText"
+      :auto-close="modalConfig.autoClose"
+      :auto-close-delay="modalConfig.autoCloseDelay"
+      @close="hideModal"
+  />
 </template>
 
 <script>
@@ -134,11 +150,18 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import taskService from '../services/taskService';
 import teamService from '../services/teamService';
+import taskStatusService from '../services/taskStatusService';
+import priorityService from '../services/priorityService';
 import authService from '../services/authService';
 import { authState } from '../../router/router';
+import StatusModal from './StatusModal.vue';
+import { useStatusModal } from '../composables/useStatusModal';
 
 export default {
   name: 'TaskDetails',
+  components: {
+    StatusModal
+  },
   setup() {
     const route = useRoute();
     const router = useRouter();
@@ -150,6 +173,11 @@ export default {
     const isDeletingComment = ref(false);
     const debugMode = ref(false);
     const showAllComments = ref(false);
+    const statuses = ref([]);
+    const priorities = ref([]);
+
+    // Modal setup
+    const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
     // Sprawdzenie czy użytkownik może usuwać komentarze (manager lub admin)
     const canDeleteComments = computed(() => {
@@ -161,7 +189,7 @@ export default {
       // Sprawdza różne możliwe struktury komentarzy
       if (task.value?.comments && Array.isArray(task.value.comments)) {
         return task.value.comments;
-      } 
+      }
       if (task.value?.taskComments && Array.isArray(task.value.taskComments)) {
         return task.value.taskComments;
       }
@@ -176,19 +204,65 @@ export default {
       debugMode.value = !debugMode.value;
     };
 
+    // Pobieranie danych referencyjnych (statusy, priorytety)
+    const fetchReferenceData = async () => {
+      try {
+        // Pobierz statusy zadań
+        try {
+          const statusesResponse = await taskStatusService.getAllTaskStatuses();
+          statuses.value = statusesResponse;
+          console.log('Pobrano statusy zadań:', statuses.value);
+        } catch (err) {
+          console.error('Błąd podczas pobierania statusów zadań:', err);
+          // Dane awaryjne
+          statuses.value = [
+            { id: 1, name: 'Rozpoczęte' },
+            { id: 2, name: 'W toku' },
+            { id: 3, name: 'Zakończone' }
+          ];
+        }
+
+        // Pobierz priorytety
+        try {
+          const prioritiesResponse = await priorityService.getAllPriorities();
+          priorities.value = prioritiesResponse;
+          console.log('Pobrano priorytety zadań:', priorities.value);
+        } catch (err) {
+          console.error('Błąd podczas pobierania priorytetów zadań:', err);
+          // Dane awaryjne
+          priorities.value = [
+            { id: 1, name: 'Niski' },
+            { id: 2, name: 'Średni' },
+            { id: 3, name: 'Wysoki' }
+          ];
+        }
+      } catch (err) {
+        console.error('Błąd podczas pobierania danych referencyjnych:', err);
+      }
+    };
+
     const fetchTaskDetails = async () => {
       loading.value = true;
       error.value = null;
 
       try {
+        // Pobierz ID zadania z parametrów URL
         const taskId = parseInt(route.params.id);
+
+        if (!taskId || isNaN(taskId)) {
+          throw new Error('Nieprawidłowe ID zadania');
+        }
+
+        console.log('Pobieranie zadania o ID:', taskId);
+
+        // Pobierz dane zadania
         const response = await taskService.getTaskById(taskId);
         console.log('Odpowiedź z backendu:', response);
-        
+
         // Zapisz odpowiedź i pokaż w konsoli strukturę
         task.value = response;
         console.log('Struktura task:', task.value);
-        
+
         // Sprawdź, czy są komentarze i wyświetl ich strukturę
         if (task.value.comments) {
           console.log('Struktura komentarzy:', task.value.comments);
@@ -198,12 +272,12 @@ export default {
           console.log('Struktura task_comments:', task.value.task_comments);
         } else {
           console.log('Brak komentarzy w odpowiedzi API');
-          
+
           // Spróbuj pobrać komentarze osobno, jeśli nie ma ich w głównej odpowiedzi
           try {
             const commentsResponse = await taskService.getTaskComments(taskId);
             console.log('Pobrane komentarze:', commentsResponse);
-            
+
             // Dodaj komentarze do obiektu zadania
             if (Array.isArray(commentsResponse)) {
               task.value.comments = commentsResponse;
@@ -214,7 +288,7 @@ export default {
         }
       } catch (err) {
         console.error('Błąd podczas pobierania szczegółów zadania:', err);
-        error.value = 'Nie udało się pobrać szczegółów zadania';
+        error.value = `Nie udało się pobrać szczegółów zadania: ${err.message}`;
       } finally {
         loading.value = false;
       }
@@ -228,37 +302,53 @@ export default {
 
     const addComment = async () => {
       if (!newComment.value.trim()) return;
-      
+
       isAddingComment.value = true;
       try {
-          if (!authState.user?.id) {
-              throw new Error('Użytkownik nie jest zalogowany');
-          }
+        if (!authState.user?.id) {
+          throw new Error('Użytkownik nie jest zalogowany');
+        }
 
-          if (!task.value.id) {
-              throw new Error('Brak ID zadania');
-          }
+        if (!task.value.id) {
+          throw new Error('Brak ID zadania');
+        }
 
-          const commentData = {
-              taskId: task.value.id,
-              userId: authState.user.id,
-              content: newComment.value.trim()
-          };
-          
-          console.log('Wysyłanie komentarza:', commentData);
-          await taskService.addComment(commentData);
-          
-          // Odśwież zadanie aby pobrać nowe komentarze
-          await fetchTaskDetails();
-          
-          // Wyczyść pole komentarza
-          newComment.value = '';
-          
+        const commentData = {
+          taskId: task.value.id,
+          userId: authState.user.id,
+          content: newComment.value.trim()
+        };
+
+        console.log('Wysyłanie komentarza:', commentData);
+        await taskService.addComment(commentData);
+
+        // Odśwież zadanie aby pobrać nowe komentarze
+        await fetchTaskDetails();
+
+        // Wyczyść pole komentarza
+        newComment.value = '';
+
+        // Wyświetl potwierdzenie
+        showStatus({
+          type: 'success',
+          title: 'Sukces',
+          message: 'Komentarz został dodany',
+          buttonText: 'OK',
+          autoClose: true,
+          autoCloseDelay: 1500
+        });
+
       } catch (err) {
-          console.error('Błąd podczas dodawania komentarza:', err);
-          alert(err.message || 'Nie udało się dodać komentarza. Spróbuj ponownie później.');
+        console.error('Błąd podczas dodawania komentarza:', err);
+
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: `Nie udało się dodać komentarza: ${err.message}`,
+          buttonText: 'Zamknij'
+        });
       } finally {
-          isAddingComment.value = false;
+        isAddingComment.value = false;
       }
     };
 
@@ -278,54 +368,96 @@ export default {
       try {
         // Wywołaj usługę usuwania komentarza
         await taskService.deleteComment(commentId);
-        
+
         // Odśwież zadanie, aby zaktualizować listę komentarzy
         await fetchTaskDetails();
-        
+
+        // Wyświetl potwierdzenie
+        showStatus({
+          type: 'success',
+          title: 'Sukces',
+          message: 'Komentarz został usunięty',
+          buttonText: 'OK',
+          autoClose: true,
+          autoCloseDelay: 1500
+        });
+
       } catch (err) {
         console.error('Błąd podczas usuwania komentarza:', err);
-        alert(err.message || 'Nie udało się usunąć komentarza. Spróbuj ponownie później.');
+
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: `Nie udało się usunąć komentarza: ${err.message}`,
+          buttonText: 'Zamknij'
+        });
       } finally {
         isDeletingComment.value = false;
       }
     };
 
-    const getStatusName = (status) => {
-      if (status === null || status === undefined) return 'open';
+    // Funkcja zwracająca tekst statusu na podstawie ID
+    const getStatusText = (statusId) => {
+      if (statusId === null || statusId === undefined) return 'Nieznany';
+
+      // Najpierw szukaj w pobranych danych
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      if (foundStatus) return foundStatus.name;
+
+      // Jeśli nie znajdziemy, użyj mapowania awaryjnego
       const statusMap = {
-        1: 'open',
-        2: 'in_progress',
-        3: 'completed'
+        1: 'Rozpoczęte',
+        2: 'W toku',
+        3: 'Zakończone'
       };
-      return statusMap[status] || 'open';
+
+      return statusMap[statusId] || 'Nieznany status';
     };
 
-    const getStatusText = (status) => {
-      const statusTexts = {
-        'open': 'Rozpoczęte',
-        'in_progress': 'W toku',
-        'completed': 'Zakończone'
+    // Funkcja zwracająca klasę CSS dla statusu
+    const getStatusClass = (statusId) => {
+      if (statusId === null || statusId === undefined) return 'text-gray-500 font-semibold';
+
+      // Mapowanie ID na klasy
+      const statusClasses = {
+        1: 'text-blue-500 font-semibold',
+        2: 'text-yellow-500 font-semibold',
+        3: 'text-green-500 font-semibold'
       };
-      return statusTexts[status] || 'Rozpoczęte';
+
+      return statusClasses[statusId] || 'text-gray-500 font-semibold';
     };
 
-    const getPriorityName = (priority) => {
-      if (priority === null || priority === undefined) return 'medium';
+    // Funkcja zwracająca tekst priorytetu na podstawie ID
+    const getPriorityText = (priorityId) => {
+      if (priorityId === null || priorityId === undefined) return 'Nieznany';
+
+      // Najpierw szukaj w pobranych danych
+      const foundPriority = priorities.value.find(p => p.id === Number(priorityId));
+      if (foundPriority) return foundPriority.name;
+
+      // Jeśli nie znajdziemy, użyj mapowania awaryjnego
       const priorityMap = {
-        1: 'low',
-        2: 'medium',
-        3: 'high'
+        1: 'Niski',
+        2: 'Średni',
+        3: 'Wysoki'
       };
-      return priorityMap[priority] || 'medium';
+
+      return priorityMap[priorityId] || 'Nieznany priorytet';
     };
 
-    const getPriorityText = (priority) => {
-      const priorityTexts = {
-        'low': 'Niski',
-        'medium': 'Średni',
-        'high': 'Wysoki'
+    // Funkcja zwracająca klasę CSS dla priorytetu
+    const getPriorityClass = (priorityId) => {
+      if (priorityId === null || priorityId === undefined) return 'text-gray-500 font-semibold';
+
+      // Mapowanie ID na klasy
+      const priorityClasses = {
+        1: 'text-blue-500 font-semibold',
+        2: 'text-yellow-500 font-semibold',
+        3: 'text-red-500 font-semibold'
       };
-      return priorityTexts[priority] || 'Średni';
+
+      return priorityClasses[priorityId] || 'text-gray-500 font-semibold';
     };
 
     const formatDate = (dateString) => {
@@ -344,39 +476,52 @@ export default {
       }
     };
 
-    const statusColor = computed(() => {
-      const status = getStatusName(task.value.statusId);
-      const colorMap = {
-        'open': 'text-blue-500',
-        'in_progress': 'text-yellow-500',
-        'completed': 'text-green-500'
-      };
-      return `${colorMap[status] || ''} font-semibold`;
-    });
-
-    const priorityColor = computed(() => {
-      const priority = getPriorityName(task.value.priorityId);
-      const colorMap = {
-        'low': 'text-blue-500',
-        'medium': 'text-yellow-500',
-        'high': 'text-red-500'
-      };
-      return `${colorMap[priority] || ''} font-semibold`;
-    });
-
     const editTask = () => {
-      router.push({ name: 'editTask', params: { id: task.value.id } });
+      if (!task.value || !task.value.id) {
+        console.error('Nie można edytować zadania - brak ID');
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: 'Nie można edytować zadania - brak ID',
+          buttonText: 'Zamknij'
+        });
+        return;
+      }
+
+      const taskId = task.value.id.toString();
+      console.log('Przekierowanie do edycji zadania o ID:', taskId);
+
+      // Przekierowanie do edycji zadania
+      router.push({
+        name: 'editTask',
+        params: { id: taskId }
+      });
     };
 
     const deleteTask = async () => {
       if (!confirm('Czy na pewno chcesz usunąć to zadanie?')) return;
-      
+
       try {
         await taskService.deleteTask(task.value.id);
-        router.push('/taskshistory');
+
+        showStatus({
+          type: 'success',
+          title: 'Sukces',
+          message: 'Zadanie zostało usunięte',
+          buttonText: 'OK',
+          autoClose: true,
+          autoCloseDelay: 1500,
+          onClose: () => router.push('/taskshistory')
+        });
       } catch (err) {
         console.error('Błąd podczas usuwania zadania:', err);
-        alert('Nie udało się usunąć zadania');
+
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: `Nie udało się usunąć zadania: ${err.message}`,
+          buttonText: 'Zamknij'
+        });
       }
     };
 
@@ -384,7 +529,7 @@ export default {
     const toggleComments = () => {
       showAllComments.value = !showAllComments.value;
     };
-    
+
     // Oblicza tekst z liczbą komentarzy
     const commentCountText = computed(() => {
       const count = taskComments.value.length;
@@ -393,9 +538,13 @@ export default {
       else return 'komentarzy';
     });
 
-    onMounted(() => {
-      fetchTaskDetails();
-      
+    onMounted(async () => {
+      console.log('TaskDetails component mounted, route params:', route.params);
+      // Pobierz dane referencyjne (statusy, priorytety)
+      await fetchReferenceData();
+      // Pobierz szczegóły zadania
+      await fetchTaskDetails();
+
       // Dodanie stylów dla niestandardowego scrollbara
       const style = document.createElement('style');
       style.textContent = `
@@ -425,8 +574,6 @@ export default {
       isAddingComment,
       isDeletingComment,
       teamName,
-      statusColor,
-      priorityColor,
       taskComments,
       commentCountText,
       showAllComments,
@@ -438,12 +585,15 @@ export default {
       deleteComment,
       editTask,
       deleteTask,
-      getStatusName,
       getStatusText,
-      getPriorityName,
+      getStatusClass,
       getPriorityText,
+      getPriorityClass,
       formatDate,
-      fetchTaskDetails
+      fetchTaskDetails,
+      showModal,
+      modalConfig,
+      hideModal
     };
   }
 };
