@@ -24,3 +24,5 @@ installer/files/frontend/*
 installer/files/frontend/dist_electron/*
 installer/files/backend/*
 buildtask_setup.exe
+/installer/files/mariadb
+/installer/phpMyAdmin
