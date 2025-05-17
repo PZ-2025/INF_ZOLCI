@@ -6,13 +6,13 @@ const taskService = {
     async getAllTasks() {
         return await apiService.get('/database/tasks');
     },
-    
+
     // Pobieranie zadania po ID
     async getTaskById(taskId) {
         try {
             const task = await apiService.get(`/database/tasks/${taskId}`);
             console.log('Pobrane zadanie z API:', task);
-            
+
             // Jeśli nie ma komentarzy w odpowiedzi, spróbuj je pobrać osobno
             if (!task.comments && !task.taskComments && !task.task_comments) {
                 try {
@@ -24,14 +24,14 @@ const taskService = {
                     console.error('Nie udało się pobrać komentarzy:', commentsErr);
                 }
             }
-            
+
             return task;
         } catch (error) {
             console.error('Error fetching task:', error);
             throw new Error('Nie udało się pobrać szczegółów zadania');
         }
     },
-    
+
     // Pobieranie komentarzy dla zadania
     async getTaskComments(taskId) {
         try {
@@ -41,7 +41,7 @@ const taskService = {
             throw new Error('Nie udało się pobrać komentarzy zadania');
         }
     },
-    
+
     // Tworzenie zadania
     async createTask(taskData) {
         // Sprawdzamy, czy dane mają prawidłowy format przed wysłaniem
@@ -59,8 +59,8 @@ const taskService = {
         console.log('Oczyszczone dane zadania do wysłania:', cleanedData);
         return await apiService.post('/database/tasks', cleanedData);
     },
-    
-    // Aktualizacja zadania
+
+    // Aktualizacja zadania (pełna)
     async updateTask(taskId, taskData) {
         // Również tutaj zapewniamy poprawne typy danych
         const cleanedData = {
@@ -73,7 +73,48 @@ const taskService = {
 
         return await apiService.put(`/database/tasks/${taskId}`, cleanedData);
     },
-    
+
+    // Częściowa aktualizacja zadania
+    async partialUpdateTask(taskId, taskData) {
+        try {
+            // Przygotowanie danych
+            const cleanedData = { ...taskData };
+
+            // Konwersja ID na liczby
+            if (taskData.teamId !== undefined) cleanedData.teamId = Number(taskData.teamId);
+            if (taskData.priorityId !== undefined) cleanedData.priorityId = Number(taskData.priorityId);
+            if (taskData.statusId !== undefined) cleanedData.statusId = Number(taskData.statusId);
+
+            // Najpierw spróbuj użyć PATCH
+            try {
+                return await apiService.patch(`/database/tasks/${taskId}`, cleanedData);
+            } catch (error) {
+                // Jeśli błąd to 405 (Method Not Allowed), użyj PUT jako fallback
+                if (error.response && error.response.status === 405) {
+                    console.warn('Server does not support PATCH, falling back to PUT');
+
+                    // Najpierw pobierz pełne dane zadania
+                    const fullTask = await this.getTaskById(taskId);
+
+                    // Połącz istniejące dane z aktualizacjami
+                    const fullUpdateData = {
+                        ...fullTask,
+                        ...cleanedData
+                    };
+
+                    // Użyj PUT z pełnymi danymi
+                    return await apiService.put(`/database/tasks/${taskId}`, fullUpdateData);
+                }
+
+                // Przekaż inne błędy
+                throw error;
+            }
+        } catch (error) {
+            console.error('Error updating task:', error);
+            throw error;
+        }
+    },
+
     // Usuwanie zadania
     async deleteTask(taskId) {
         try {
@@ -83,38 +124,38 @@ const taskService = {
             throw new Error('Nie udało się usunąć zadania');
         }
     },
-    
+
     // Pobieranie zadań dla zespołu
     async getTasksByTeamId(teamId) {
         return await apiService.get(`/database/tasks/team/${teamId}`);
     },
-    
+
     // Pobieranie zadań o określonym statusie
     async getTasksByStatusId(statusId) {
         return await apiService.get(`/database/tasks/status/${statusId}`);
     },
-    
+
     // Pobieranie zadań o określonym priorytecie
     async getTasksByPriorityId(priorityId) {
         return await apiService.get(`/database/tasks/priority/${priorityId}`);
     },
-    
+
     // Pobieranie zadania po tytule
     async getTaskByTitle(title) {
         return await apiService.get(`/database/tasks/title/${title}`);
     },
-    
+
     // Pobieranie zadań z terminem przed określoną datą
     async getTasksWithDeadlineBefore(date) {
         return await apiService.get(`/database/tasks/deadline-before/${date}`);
     },
-    
+
     // Dodawanie komentarza do zadania
     async addComment(commentData) {
         try {
             console.log('Wysyłanie komentarza do API:', commentData);
             const response = await apiService.post(
-                '/database/task-comments', 
+                '/database/task-comments',
                 {
                     taskId: parseInt(commentData.taskId),
                     userId: parseInt(commentData.userId),
