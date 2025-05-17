@@ -26,3 +26,5 @@ installer/files/backend/*
 buildtask_setup.exe
 installer/phpMyAdmin/phpMyAdmin-5.2.2-all-languages.zip
 installer/files/mariadb/mariadb-11.4.5-winx64.msi
+*.msi
+*.zip
