@@ -1,4 +1,4 @@
-// index.js - using ES module imports
+// main.js
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -13,31 +13,35 @@ const createWindow = () => {
     const win = new BrowserWindow({
         width: 1200,
         height: 800,
-        icon: path.join(__dirname, "src/assets/buildtask_logo.ico"), // Set custom icon
+        resizable: true,
+        icon: app.isPackaged
+            ? path.join(process.resourcesPath, 'dist/assets/buildtask_logo.ico')
+            : path.join(__dirname, 'src/assets/buildtask_logo.ico'),
         webPreferences: {
-            preload: path.join(__dirname, "preload.js"), // Setting the preload.js file
-            contextIsolation: true, // Must be true for contextBridge
-            nodeIntegration: false // Disables access to Node.js in the renderer
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false
         }
     });
 
-    win.loadFile(path.join(__dirname, 'dist/index.html'));
-
-    // Open DevTools (optional, for debugging)
-    // win.webContents.openDevTools();
+    // Ładuj strony w zależności od trybu (produkcyjny/deweloperski)
+    if (app.isPackaged) {
+        // W produkcji, ładuj z zasobów
+        win.loadFile(path.join(process.resourcesPath, 'dist/index.html'));
+    } else {
+        // W trybie dev, ładuj z lokalnego katalogu dist
+        win.loadFile(path.join(__dirname, 'dist/index.html'));
+    }
 };
 
 app.whenReady().then(() => {
     createWindow();
 
     app.on('activate', () => {
-        // On macOS it's common to re-create a window in the app when the
-        // dock icon is clicked and there are no other windows open.
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
 });
 
-// Quit when all windows are closed, except on macOS
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
