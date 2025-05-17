@@ -14,7 +14,7 @@ import io.github.cdimascio.dotenv.Dotenv;
  * z określonych pakietów oraz ładuje zmienne środowiskowe przed uruchomieniem aplikacji.</p>
  *
  * @author Jakub
- * @version 1.1.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 @SpringBootApplication
@@ -40,14 +40,20 @@ public class BackendApplication {
      * @param args argumenty wiersza poleceń przekazywane podczas uruchamiania aplikacji
      */
     public static void main(final String[] args) {
-        // Ładowanie zmiennych środowiskowych
-        Dotenv dotenv = Dotenv.configure().load();
+        try {
+            // Próbuj załadować zmienne środowiskowe
+            Dotenv dotenv = Dotenv.configure()
+                    .directory("./") // Spróbuj wskazać katalog główny projektu
+                    .ignoreIfMissing() // Ignoruj, jeśli plik nie istnieje
+                    .load();
 
-        // Ustaw je jako właściwości systemowe
-        dotenv.entries().forEach(e ->
-                System.setProperty(e.getKey(), e.getValue())
-        );
-
+            // Ustaw je jako właściwości systemowe
+            dotenv.entries().forEach(e ->
+                    System.setProperty(e.getKey(), e.getValue())
+            );
+        } catch (Exception e) {
+            System.out.println("Uwaga: Nie znaleziono pliku .env, używam domyślnych ustawień");
+        }
 
         SpringApplication.run(BackendApplication.class, args);
     }
