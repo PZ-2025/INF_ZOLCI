@@ -3,37 +3,41 @@
     <div class="w-full max-w-2xl bg-surface border border-gray-200 rounded-2xl shadow-xl p-8 space-y-6">
       <h1 class="text-3xl font-bold text-primary">Dodaj zadanie</h1>
 
-      <form @submit.prevent="addTask" class="space-y-5">
+      <div v-if="dataLoading" class="text-center py-6">
+        <p class="text-primary text-xl">Ładowanie danych...</p>
+      </div>
+
+      <form v-else @submit.prevent="addTask" class="space-y-5">
         <div>
           <label for="title" class="block text-lg text-black font-medium mb-2">Tytuł zadania</label>
           <input
-            v-model="task.title"
-            id="title"
-            type="text"
-            required
-            class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
-            placeholder="np. Remont mieszkania ul. Załęska 76"
+              v-model="task.title"
+              id="title"
+              type="text"
+              required
+              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+              placeholder="np. Remont mieszkania ul. Załęska 76"
           />
         </div>
 
         <div>
           <label for="description" class="block text-lg text-black font-medium mb-2">Opis zadania</label>
           <textarea
-            v-model="task.description"
-            id="description"
-            rows="4"
-            class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
-            placeholder="np. Klient ma problemy z wilgocią..."
+              v-model="task.description"
+              id="description"
+              rows="4"
+              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+              placeholder="np. Klient ma problemy z wilgocią..."
           ></textarea>
         </div>
 
         <div>
           <label for="teamId" class="block text-lg text-black font-medium mb-2">Zespół</label>
           <select
-            v-model.number="task.teamId"
-            id="teamId"
-            required
-            class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+              v-model.number="task.teamId"
+              id="teamId"
+              required
+              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
           >
             <option disabled value="" class="text-gray-400">Wybierz zespół</option>
             <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
@@ -44,10 +48,10 @@
           <div>
             <label for="priorityId" class="block text-lg text-black font-medium mb-2">Priorytet</label>
             <select
-              v-model.number="task.priorityId"
-              id="priorityId"
-              required
-              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+                v-model.number="task.priorityId"
+                id="priorityId"
+                required
+                class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
             >
               <option disabled value="" class="text-gray-400">Wybierz priorytet</option>
               <option v-for="priority in priorities" :key="priority.id" :value="priority.id">{{ priority.name }}</option>
@@ -57,10 +61,10 @@
           <div>
             <label for="statusId" class="block text-lg text-black font-medium mb-2">Status</label>
             <select
-              v-model.number="task.statusId"
-              id="statusId"
-              required
-              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+                v-model.number="task.statusId"
+                id="statusId"
+                required
+                class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
             >
               <option disabled value="" class="text-gray-400">Wybierz status</option>
               <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
@@ -73,14 +77,14 @@
             <label for="startDate" class="block text-lg text-black font-medium mb-2">Data rozpoczęcia</label>
             <div class="relative">
               <input
-                v-model="task.startDate"
-                id="startDate"
-                type="date"
-                required
-                class="w-full p-2.5 pl-10 cursor-pointer border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+                  v-model="task.startDate"
+                  id="startDate"
+                  type="date"
+                  required
+                  class="w-full p-2.5 pl-10 cursor-pointer border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
               />
               <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
-                <i class="fas fa-calendar-alt"></i> <!-- Ikona Font Awesome -->
+                <i class="fas fa-calendar-alt"></i>
               </span>
             </div>
           </div>
@@ -89,14 +93,14 @@
             <label for="deadline" class="block text-lg text-black font-medium mb-2">Deadline</label>
             <div class="relative">
               <input
-                v-model="task.deadline"
-                id="deadline"
-                type="date"
-                required
-                class="w-full p-2.5 pl-10 cursor-pointer border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+                  v-model="task.deadline"
+                  id="deadline"
+                  type="date"
+                  required
+                  class="w-full p-2.5 pl-10 cursor-pointer border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
               />
               <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
-                <i class="fas fa-calendar-alt"></i> <!-- Ikona Font Awesome -->
+                <i class="fas fa-calendar-alt"></i>
               </span>
             </div>
           </div>
@@ -105,16 +109,16 @@
         <div class="flex justify-between pt-4">
           <div class="flex gap-4">
             <button
-              type="button"
-              @click="goBack"
-              class="px-5 py-2 rounded-md bg-gray-500 text-white text-sm hover:bg-gray-600 transition"
+                type="button"
+                @click="goBack"
+                class="px-5 py-2 rounded-md bg-gray-500 text-white text-sm hover:bg-gray-600 transition"
             >
               Anuluj
             </button>
             <button
-              type="submit"
-              class="px-6 py-2 rounded-md bg-primary hover:bg-secondary text-white text-sm font-semibold transition"
-              :disabled="loading"
+                type="submit"
+                class="px-6 py-2 rounded-md bg-primary hover:bg-secondary text-white text-sm font-semibold transition"
+                :disabled="loading"
             >
               <span v-if="loading">Dodawanie...</span>
               <span v-else>Dodaj zadanie</span>
@@ -124,17 +128,17 @@
       </form>
     </div>
   </div>
-  
+
   <!-- Status Modal -->
   <StatusModal
-    :show="showModal"
-    :type="modalConfig.type"
-    :title="modalConfig.title"
-    :message="modalConfig.message"
-    :button-text="modalConfig.buttonText"
-    :auto-close="modalConfig.autoClose"
-    :auto-close-delay="modalConfig.autoCloseDelay"
-    @close="hideModal"
+      :show="showModal"
+      :type="modalConfig.type"
+      :title="modalConfig.title"
+      :message="modalConfig.message"
+      :button-text="modalConfig.buttonText"
+      :auto-close="modalConfig.autoClose"
+      :auto-close-delay="modalConfig.autoCloseDelay"
+      @close="hideModal"
   />
 </template>
 
@@ -143,6 +147,8 @@ import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import taskService from '../services/taskService';
 import teamService from '../services/teamService';
+import priorityService from '../services/priorityService';
+import taskStatusService from '../services/taskStatusService';
 import { authState } from '../../router/router.js';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
@@ -155,7 +161,7 @@ const task = ref({
   description: '',
   teamId: '',
   priorityId: '',
-  statusId: '', 
+  statusId: '',
   startDate: '',
   deadline: ''
   // Pola id, createdById i createdAt będą dodane przez backend
@@ -163,46 +169,90 @@ const task = ref({
 
 // Dane do formularza
 const teams = ref([]);
-const priorities = ref([
-  { id: 1, name: 'Niski' },
-  { id: 2, name: 'Średni' },
-  { id: 3, name: 'Wysoki' }
-]);
-const statuses = ref([
-  { id: 1, name: 'Rozpoczęte' },
-  { id: 2, name: 'W toku' },
-  { id: 3, name: 'Zakończone' }
-]);
+const priorities = ref([]);
+const statuses = ref([]);
 
 // Stany komponentu
 const loading = ref(false);
+const dataLoading = ref(true);
 
 // Użycie composable do obsługi modalu
 const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
-// Inicjalizacja - pobranie danych zespołów
-onMounted(async () => {
+// Pobieranie danych referencyjnych (zespoły, priorytety, statusy)
+const fetchReferenceData = async () => {
+  dataLoading.value = true;
+
   try {
     // Pobierz zespoły z API
-    const fetchedTeams = await teamService.getAllTeams();
-    teams.value = fetchedTeams;
+    try {
+      const fetchedTeams = await teamService.getAllTeams();
+      teams.value = fetchedTeams;
+      console.log('Pobrano zespoły:', teams.value);
+    } catch (err) {
+      console.error('Błąd podczas pobierania zespołów:', err);
+      teams.value = [
+        { id: 1, name: 'Zespół remontowy' },
+        { id: 2, name: 'Zespół instalacyjny' },
+        { id: 3, name: 'Zespół projektowy' }
+      ];
+    }
+
+    // Pobierz priorytety z API
+    try {
+      const fetchedPriorities = await priorityService.getAllPriorities();
+      priorities.value = fetchedPriorities;
+      console.log('Pobrano priorytety:', priorities.value);
+    } catch (err) {
+      console.error('Błąd podczas pobierania priorytetów:', err);
+      priorities.value = [
+        { id: 1, name: 'Niski' },
+        { id: 2, name: 'Średni' },
+        { id: 3, name: 'Wysoki' }
+      ];
+    }
+
+    // Pobierz statusy z API
+    try {
+      const fetchedStatuses = await taskStatusService.getAllTaskStatuses();
+      statuses.value = fetchedStatuses;
+      console.log('Pobrano statusy:', statuses.value);
+    } catch (err) {
+      console.error('Błąd podczas pobierania statusów:', err);
+      statuses.value = [
+        { id: 1, name: 'Rozpoczęte' },
+        { id: 2, name: 'W toku' },
+        { id: 3, name: 'Zakończone' }
+      ];
+    }
+
+    // Ustaw domyślne wartości formularza
+    if (statuses.value.length > 0) {
+      // Domyślnie wybierz pierwszy status (zwykle "Rozpoczęte")
+      task.value.statusId = statuses.value[0].id;
+    }
+
+    if (priorities.value.length > 0) {
+      // Domyślnie wybierz średni priorytet
+      const mediumPriority = priorities.value.find(p => p.name.toLowerCase().includes('średni'));
+      task.value.priorityId = mediumPriority ? mediumPriority.id : priorities.value[0].id;
+    }
+
   } catch (err) {
-    console.error('Błąd podczas pobierania zespołów:', err);
+    console.error('Błąd podczas pobierania danych referencyjnych:', err);
     showStatus({
       type: 'error',
       title: 'Błąd',
-      message: 'Nie udało się pobrać listy zespołów. Spróbuj odświeżyć stronę.',
+      message: 'Wystąpił problem podczas ładowania danych. Niektóre opcje mogą być niedostępne.',
       buttonText: 'Zamknij'
     });
-
-    // Dane awaryjne w przypadku błędu
-    teams.value = [
-      { id: 1, name: 'Zespół remontowy' },
-      { id: 2, name: 'Zespół instalacyjny' },
-      { id: 3, name: 'Zespół projektowy' }
-    ];
+  } finally {
+    dataLoading.value = false;
   }
+};
 
+// Inicjalizacja - pobranie danych referencyjnych
+onMounted(async () => {
   // Ustawienie domyślnej daty rozpoczęcia na dzisiaj
   const today = new Date();
   task.value.startDate = today.toISOString().split('T')[0];
@@ -211,13 +261,16 @@ onMounted(async () => {
   const nextWeek = new Date();
   nextWeek.setDate(nextWeek.getDate() + 7);
   task.value.deadline = nextWeek.toISOString().split('T')[0];
+
+  // Pobierz dane referencyjne
+  await fetchReferenceData();
 });
 
 // Dodawanie zadania
 const addTask = async () => {
   loading.value = true;
 
-  // Sprawdzenie czy wszystkie wymagane pola są wypełnione 
+  // Sprawdzenie czy wszystkie wymagane pola są wypełnione
   if (!task.value.title || !task.value.teamId || !task.value.priorityId || !task.value.statusId) {
     showStatus({
       type: 'error',
@@ -250,23 +303,28 @@ const addTask = async () => {
     // Pobierz ID zalogowanego użytkownika
     const userId = authState.user?.id || 1; // Domyślnie 1, jeśli brak zalogowanego użytkownika
 
-    // Logowanie do konsoli dla celów debugowania (z wersji main)
-    console.log('Wartości przed konwersją:', {
+    // Logowanie do konsoli dla celów debugowania
+    console.log('Dane zadania do wysłania:', {
+      title: task.value.title,
+      description: task.value.description,
       teamId: task.value.teamId,
       priorityId: task.value.priorityId,
-      statusId: task.value.statusId
+      statusId: task.value.statusId,
+      startDate: task.value.startDate,
+      deadline: task.value.deadline,
+      createdById: userId
     });
 
     // Przekształcenie danych do formatu API zgodnego z oczekiwanym JSON
     const taskData = {
       title: task.value.title,
-      description: task.value.description || '', // Upewnienie się, że opis nie jest undefined
-      teamId: task.value.teamId, // v-model.number już konwertuje do liczby
+      description: task.value.description || '',
+      teamId: task.value.teamId,
       priorityId: task.value.priorityId,
       statusId: task.value.statusId,
       startDate: task.value.startDate,
       deadline: task.value.deadline,
-      createdById: userId // Dodanie ID twórcy zadania
+      createdById: userId
     };
 
     // Zapis przez API
@@ -279,7 +337,7 @@ const addTask = async () => {
       description: '',
       teamId: '',
       priorityId: '',
-      statusId: 1, // Domyślny status "Rozpoczęte"
+      statusId: statuses.value.length > 0 ? statuses.value[0].id : 1,
       startDate: task.value.startDate, // Pozostaw bieżącą datę
       deadline: task.value.deadline // Pozostaw domyślny deadline
     };
