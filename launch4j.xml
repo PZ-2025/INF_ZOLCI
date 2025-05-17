@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>console</headerType>
+  <jar>backend\build\libs\backend-0.0.1-SNAPSHOT.jar</jar>
+  <outfile>installer\files\backend\buildtask_backend.exe</outfile>
+  <errTitle>Java Error</errTitle>
+  <cmdLine>--spring.config.location=optional:file:../config/application-template.properties</cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptium.net/temurin/releases/?version=21</downloadUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>frontend\src\assets\buildtask_logo.ico</icon>
+  <jre>
+    <path></path>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <bundledJreAsFallback>false</bundledJreAsFallback>
+    <minVersion>21.0.0</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+    <initialHeapSize>256</initialHeapSize>
+    <maxHeapSize>1024</maxHeapSize>
+  </jre>
+  <versionInfo>
+    <fileVersion>1.0.0.0</fileVersion>
+    <txtFileVersion>1.0.0</txtFileVersion>
+    <fileDescription>BuildTask - System zarządzania zadaniami budowlanymi</fileDescription>
+    <copyright>INF ZOLCI 2025</copyright>
+    <productVersion>1.0.0.0</productVersion>
+    <txtProductVersion>1.0.0</txtProductVersion>
+    <productName>BuildTask</productName>
+    <internalName>buildtask</internalName>
+    <originalFilename>buildtask_backend.exe</originalFilename>
+  </versionInfo>
+</launch4jConfig>
