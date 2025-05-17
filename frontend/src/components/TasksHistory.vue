@@ -29,9 +29,9 @@
                   class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Wszystkie</option>
-            <option value="high">Wysoki</option>
-            <option value="medium">Średni</option>
-            <option value="low">Niski</option>
+            <option v-for="priority in priorities" :key="priority.id" :value="priority.id">
+              {{ priority.name }}
+            </option>
           </select>
         </div>
 
@@ -41,9 +41,9 @@
                   class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="">Wszystkie</option>
-            <option value="open">Rozpoczęte</option>
-            <option value="in_progress">W toku</option>
-            <option value="completed">Zakończony</option>
+            <option v-for="status in statuses" :key="status.id" :value="status.id">
+              {{ status.name }}
+            </option>
           </select>
         </div>
 
@@ -53,11 +53,18 @@
                  class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
-        <!-- <button @click="applyFilters"
+
+        <button @click="applyFilters"
                 class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
         >
           Filtruj
-        </button> -->
+        </button>
+
+        <button @click="resetFilters"
+                class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition"
+        >
+          Resetuj filtry
+        </button>
       </div>
 
       <!-- Stan ładowania -->
@@ -73,9 +80,17 @@
         </button>
       </div>
 
+      <!-- Diagnostyka danych (dla debugowania) -->
+      <div v-if="isDebugMode" class="bg-gray-100 p-4 rounded-lg mb-4 text-xs overflow-auto max-h-40">
+        <p class="font-bold mb-2">Dane diagnostyczne:</p>
+        <pre>{{ JSON.stringify({filters: filters, tasksCount: tasks.length, filteredCount: filteredTasks.length}, null, 2) }}</pre>
+        <button @click="isDebugMode = false" class="text-xs text-primary mt-2">Ukryj</button>
+      </div>
+
       <!-- Lista zadań -->
       <div v-else-if="filteredTasks.length === 0" class="text-center py-8 text-muted">
         <p>Brak zadań spełniających kryteria filtrowania</p>
+        <button @click="isDebugMode = true" class="text-xs text-primary mt-2">Pokaż diagnostykę</button>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -93,23 +108,15 @@
               </span>
               <span
                   class="text-xs px-2 py-1 rounded text-white"
-                  :class="{
-                  'bg-red-500': getPriorityName(task.priorityId) === 'high',
-                  'bg-yellow-500': getPriorityName(task.priorityId) === 'medium',
-                  'bg-blue-500': getPriorityName(task.priorityId) === 'low'
-                  }"
+                  :class="getPriorityClass(task.priorityId || task.priority?.id)"
               >
-                  {{ getPriorityText(getPriorityName(task.priorityId)) }}
+                  {{ getPriorityText(task.priorityId || task.priority?.id) }}
               </span>
               <span
                   class="text-xs px-2 py-1 rounded"
-                  :class="{
-                  'bg-green-100 text-green-800': getStatusName(task.statusId) === 'completed',
-                  'bg-yellow-100 text-yellow-800': getStatusName(task.statusId) === 'in_progress',
-                  'bg-blue-100 text-blue-800': getStatusName(task.statusId) === 'open'
-                  }"
+                  :class="getStatusClass(task.statusId || task.status?.id)"
               >
-                  {{ getStatusText(getStatusName(task.statusId)) }}
+                  {{ getStatusText(task.statusId || task.status?.id) }}
               </span>
             </div>
             <p v-if="task.deadline" class="text-xs text-muted mt-1">
@@ -128,18 +135,24 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import taskService from '../services/taskService';
 import teamService from '../services/teamService';
+import priorityService from '../services/priorityService';
+import taskStatusService from '../services/taskStatusService';
 
 export default {
   setup() {
     const router = useRouter();
     const tasks = ref([]);
     const teams = ref([]);
+    const priorities = ref([]);
+    const statuses = ref([]);
     const loading = ref(true);
     const error = ref(null);
+    const isDebugMode = ref(false);
+
     const filters = ref({
       team: "",
       priority: "",
@@ -154,7 +167,7 @@ export default {
 
       try {
         const response = await taskService.getAllTasks();
-        console.log('Otrzymane zadania z API:', JSON.stringify(response, null, 2));
+        console.log('Otrzymane zadania z API:', response);
         tasks.value = response;
       } catch (err) {
         console.error('Błąd podczas pobierania zadań:', err);
@@ -164,17 +177,47 @@ export default {
       }
     };
 
-    // Pobieranie zespołów dla filtru
-    const fetchTeams = async () => {
+    // Pobieranie danych referencyjnych
+    const fetchReferenceData = async () => {
       try {
-        const response = await teamService.getAllTeams();
-        teams.value = response;
+        // Pobierz zespoły
+        const teamsResponse = await teamService.getAllTeams();
+        teams.value = teamsResponse;
+
+        // Pobierz priorytety
+        try {
+          const prioritiesResponse = await priorityService.getAllPriorities();
+          priorities.value = prioritiesResponse;
+        } catch (err) {
+          console.error('Błąd podczas pobierania priorytetów:', err);
+          // Dane awaryjne
+          priorities.value = [
+            { id: 1, name: 'Niski' },
+            { id: 2, name: 'Średni' },
+            { id: 3, name: 'Wysoki' }
+          ];
+        }
+
+        // Pobierz statusy
+        try {
+          const statusesResponse = await taskStatusService.getAllTaskStatuses();
+          statuses.value = statusesResponse;
+        } catch (err) {
+          console.error('Błąd podczas pobierania statusów:', err);
+          // Dane awaryjne
+          statuses.value = [
+            { id: 1, name: 'Rozpoczęte' },
+            { id: 2, name: 'W toku' },
+            { id: 3, name: 'Zakończone' }
+          ];
+        }
       } catch (err) {
-        console.error('Błąd podczas pobierania zespołów:', err);
+        console.error('Błąd podczas pobierania danych referencyjnych:', err);
+        // Dane awaryjne
         teams.value = [
-          { id: 1, name: 'Zespół szybkiego reagowania A1' },
-          { id: 2, name: 'Zespół ekspertów budowlanych E1' },
-          { id: 3, name: 'Zespół szybkiego reagowania A2' }
+          { id: 1, name: 'Zespół A' },
+          { id: 2, name: 'Zespół B' },
+          { id: 3, name: 'Zespół C' }
         ];
       }
     };
@@ -182,94 +225,94 @@ export default {
     // Filtrowanie zadań na podstawie wybranych filtrów
     const filteredTasks = computed(() => {
       return tasks.value.filter(task => {
+        // Filtrowanie po zespole
         const teamMatch = !filters.value.team ||
-            (task.team?.id === filters.value.team) ||
-            (task.teamId === filters.value.team);
+            String(task.team?.id) === String(filters.value.team) ||
+            String(task.teamId) === String(filters.value.team);
 
+        // Filtrowanie po priorytecie
         const priorityMatch = !filters.value.priority ||
-            getPriorityName(task.priorityId) === filters.value.priority;
+            String(task.priority?.id) === String(filters.value.priority) ||
+            String(task.priorityId) === String(filters.value.priority);
 
+        // Filtrowanie po statusie
         const statusMatch = !filters.value.status ||
-            getStatusName(task.statusId) === filters.value.status;
+            String(task.status?.id) === String(filters.value.status) ||
+            String(task.statusId) === String(filters.value.status);
 
-        const deadlineMatch = !filters.value.deadline ||
-            task.deadline?.split('T')[0] === filters.value.deadline;
+        // Filtrowanie po deadline
+        let deadlineMatch = true;
+        if (filters.value.deadline && task.deadline) {
+          const taskDeadline = task.deadline.split('T')[0];
+          deadlineMatch = taskDeadline === filters.value.deadline;
+        }
 
         return teamMatch && priorityMatch && statusMatch && deadlineMatch;
       });
     });
 
-    // Aplikowanie filtrów na serwerze (w przypadku dużej ilości danych)
+    // Reset filtrów
+    const resetFilters = () => {
+      filters.value = {
+        team: "",
+        priority: "",
+        status: "",
+        deadline: ""
+      };
+    };
+
+    // Aplikowanie filtrów z możliwością użycia API
     const applyFilters = async () => {
       console.log("Zastosowano filtry:", filters.value);
 
-      // Jeśli mamy tylko filtr zespołu, możemy użyć dedykowanego endpointu
-      if (filters.value.team && !filters.value.priority && !filters.value.status && !filters.value.deadline) {
-        loading.value = true;
-        try {
-          const teamTasks = await taskService.getTasksByTeamId(filters.value.team);
-          tasks.value = teamTasks;
-        } catch (err) {
-          console.error('Błąd podczas pobierania zadań zespołu:', err);
-          error.value = `Nie udało się pobrać zadań zespołu: ${err.message}`;
-        } finally {
-          loading.value = false;
-        }
-      }
-      // Jeśli mamy tylko filtr priorytetu, możemy użyć dedykowanego endpointu
-      else if (filters.value.priority && !filters.value.team && !filters.value.status && !filters.value.deadline) {
-        loading.value = true;
-        try {
-          // Przekształć nazwę priorytetu na ID
-          const priorityIds = { 'low': 1, 'medium': 2, 'high': 3 };
-          const priorityId = priorityIds[filters.value.priority];
+      // Sprawdź czy można użyć dedykowanego endpointu API
+      const hasTeamFilter = !!filters.value.team;
+      const hasPriorityFilter = !!filters.value.priority;
+      const hasStatusFilter = !!filters.value.status;
+      const hasDeadlineFilter = !!filters.value.deadline;
 
-          if (priorityId) {
-            const priorityTasks = await taskService.getTasksByPriorityId(priorityId);
+      const filterCount = [hasTeamFilter, hasPriorityFilter, hasStatusFilter, hasDeadlineFilter]
+          .filter(Boolean).length;
+
+      // Użyj dedykowanych endpointów tylko gdy jest dokładnie jeden filtr
+      if (filterCount === 1) {
+        loading.value = true;
+
+        try {
+          // Filtrowanie po zespole
+          if (hasTeamFilter) {
+            const teamTasks = await taskService.getTasksByTeamId(filters.value.team);
+            tasks.value = teamTasks;
+          }
+          // Filtrowanie po priorytecie
+          else if (hasPriorityFilter) {
+            const priorityTasks = await taskService.getTasksByPriorityId(filters.value.priority);
             tasks.value = priorityTasks;
           }
-        } catch (err) {
-          console.error('Błąd podczas pobierania zadań o danym priorytecie:', err);
-          error.value = `Nie udało się pobrać zadań: ${err.message}`;
-        } finally {
-          loading.value = false;
-        }
-      }
-      // Jeśli mamy tylko filtr statusu, możemy użyć dedykowanego endpointu
-      else if (filters.value.status && !filters.value.team && !filters.value.priority && !filters.value.deadline) {
-        loading.value = true;
-        try {
-          // Przekształć nazwę statusu na ID
-          const statusIds = { 'open': 1, 'in_progress': 2, 'completed': 3 };
-          const statusId = statusIds[filters.value.status];
-
-          if (statusId) {
-            const statusTasks = await taskService.getTasksByStatusId(statusId);
+          // Filtrowanie po statusie
+          else if (hasStatusFilter) {
+            const statusTasks = await taskService.getTasksByStatusId(filters.value.status);
             tasks.value = statusTasks;
           }
+          // Filtrowanie po deadline
+          else if (hasDeadlineFilter) {
+            const deadlineTasks = await taskService.getTasksWithDeadlineBefore(filters.value.deadline);
+            tasks.value = deadlineTasks;
+          }
         } catch (err) {
-          console.error('Błąd podczas pobierania zadań o danym statusie:', err);
+          console.error('Błąd podczas filtrowania zadań przez API:', err);
           error.value = `Nie udało się pobrać zadań: ${err.message}`;
+
+          // W przypadku błędu pobierz wszystkie zadania i filtruj lokalnie
+          await fetchTasks();
         } finally {
           loading.value = false;
         }
       }
-      // Jeśli mamy tylko filtr deadline, możemy użyć dedykowanego endpointu
-      else if (filters.value.deadline && !filters.value.team && !filters.value.priority && !filters.value.status) {
-        loading.value = true;
-        try {
-          const deadlineTasks = await taskService.getTasksWithDeadlineBefore(filters.value.deadline);
-          tasks.value = deadlineTasks;
-        } catch (err) {
-          console.error('Błąd podczas pobierania zadań z terminem:', err);
-          error.value = `Nie udało się pobrać zadań: ${err.message}`;
-        } finally {
-          loading.value = false;
-        }
-      }
-      // W przeciwnym razie pobieramy wszystkie zadania i filtrujemy lokalnie
-      else {
-        fetchTasks();
+      // Dla wielu filtrów pobierz wszystkie zadania i filtruj lokalnie
+      else if (filterCount > 1) {
+        // Pobierz wszystkie zadania i filtruj lokalnie
+        await fetchTasks();
       }
     };
 
@@ -279,61 +322,82 @@ export default {
     };
 
     // Funkcje pomocnicze
-    const getTeamName = (team) => {
-      if (!team) return 'Nieznany';
-      if (typeof team === 'object' && team.name) return team.name;
+    const getTeamName = (teamData) => {
+      if (!teamData) return 'Nieznany zespół';
 
-      // Jeśli mamy tylko ID zespołu, poszukajmy w liście zespołów
-      const foundTeam = teams.value.find(t => t.id === team);
-      return foundTeam ? foundTeam.name : `Zespół #${team}`;
-    };
-
-    const getPriorityName = (priority) => {
-      if (priority === null || priority === undefined) return 'medium';
-
-      if (typeof priority === 'number') {
-        const priorityMap = {
-          1: 'low',
-          2: 'medium',
-          3: 'high'
-        };
-        return priorityMap[priority] || 'medium';
+      // Jeśli to obiekt zespołu
+      if (typeof teamData === 'object' && teamData.name) {
+        return teamData.name;
       }
 
-      return 'medium';
+      // Jeśli to ID zespołu
+      const teamId = Number(teamData);
+      const foundTeam = teams.value.find(t => t.id === teamId);
+      return foundTeam ? foundTeam.name : `Zespół #${teamId}`;
     };
 
-    const getPriorityText = (priority) => {
-      const priorityTexts = {
-        'low': 'Niski',
-        'medium': 'Średni',
-        'high': 'Wysoki'
+    // Tekstowa reprezentacja priorytetu
+    const getPriorityText = (priorityId) => {
+      if (priorityId === null || priorityId === undefined) return 'Średni';
+
+      // Znajdź priorytet po ID
+      const foundPriority = priorities.value.find(p => p.id === Number(priorityId));
+      if (foundPriority) return foundPriority.name;
+
+      // Awaryjne mapowanie jeśli nie znaleziono
+      const priorityMap = {
+        1: 'Niski',
+        2: 'Średni',
+        3: 'Wysoki'
       };
-      return priorityTexts[priority] || 'Średni';
+
+      return priorityMap[priorityId] || 'Średni';
     };
 
-    const getStatusName = (status) => {
-      if (status === null || status === undefined) return 'open';
+    // Klasa CSS dla priorytetu
+    const getPriorityClass = (priorityId) => {
+      if (priorityId === null || priorityId === undefined) return 'bg-yellow-500'; // Domyślny
 
-      if (typeof status === 'number') {
-        const statusMap = {
-          1: 'open',
-          2: 'in_progress',
-          3: 'completed'
-        };
-        return statusMap[status] || 'open';
-      }
-
-      return 'open';
-    };
-
-    const getStatusText = (status) => {
-      const statusTexts = {
-        'open': 'Rozpoczęte',
-        'in_progress': 'W toku',
-        'completed': 'Zakończone'
+      // Mapowanie ID priorytetów na klasy CSS
+      const priorityClasses = {
+        1: 'bg-blue-500',   // Niski
+        2: 'bg-yellow-500', // Średni
+        3: 'bg-red-500'     // Wysoki
       };
-      return statusTexts[status] || 'Rozpoczęte';
+
+      return priorityClasses[priorityId] || 'bg-yellow-500';
+    };
+
+    // Tekstowa reprezentacja statusu
+    const getStatusText = (statusId) => {
+      if (statusId === null || statusId === undefined) return 'Rozpoczęte';
+
+      // Znajdź status po ID
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      if (foundStatus) return foundStatus.name;
+
+      // Awaryjne mapowanie jeśli nie znaleziono
+      const statusMap = {
+        1: 'Rozpoczęte',
+        2: 'W toku',
+        3: 'Zakończone'
+      };
+
+      return statusMap[statusId] || 'Rozpoczęte';
+    };
+
+    // Klasa CSS dla statusu
+    const getStatusClass = (statusId) => {
+      if (statusId === null || statusId === undefined) return 'bg-blue-100 text-blue-800'; // Domyślny
+
+      // Mapowanie ID statusów na klasy CSS
+      const statusClasses = {
+        1: 'bg-blue-100 text-blue-800',      // Rozpoczęte
+        2: 'bg-yellow-100 text-yellow-800',  // W toku
+        3: 'bg-green-100 text-green-800'     // Zakończone
+      };
+
+      return statusClasses[statusId] || 'bg-blue-100 text-blue-800';
     };
 
     const formatDate = (dateString) => {
@@ -347,26 +411,37 @@ export default {
       }
     };
 
+    // Monitoruj zmiany filtrów dla trybu debugowania
+    watch(filters, (newFilters) => {
+      console.log('Zmiana filtrów:', newFilters);
+    });
+
     // Inicjalizacja komponentu
-    onMounted(() => {
-      fetchTasks();
-      fetchTeams();
+    onMounted(async () => {
+      // Pobierz dane referencyjne (zespoły, priorytety, statusy)
+      await fetchReferenceData();
+      // Pobierz zadania
+      await fetchTasks();
     });
 
     return {
       tasks,
       teams,
+      priorities,
+      statuses,
       loading,
       error,
       filters,
+      isDebugMode,
       filteredTasks,
+      resetFilters,
       applyFilters,
       openTaskDetails,
       getTeamName,
-      getPriorityName,
       getPriorityText,
-      getStatusName,
       getStatusText,
+      getPriorityClass,
+      getStatusClass,
       formatDate,
       fetchTasks
     };

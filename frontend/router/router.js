@@ -29,39 +29,39 @@ export const authState = reactive({
 const routes = [
   { path: '/', component: LoginForm },
   { path: '/teams', name: "teams", component: Teams, meta: { requiresAuth: true }, props: true },
-  { path: '/addteam', name: "addTeam", component: AddTeam, meta: { requiresAuth: true, minRole: 'manager' } },
+  { path: '/addteam', name: "addTeam", component: AddTeam, meta: { requiresAuth: true, minRole: 'kierownik' } },
   { path: '/teamdetails/:id', name: "teamDetails", component: TeamDetails, props: true },
   { path: '/teamtasks/:id', name: "teamTasks", component: TeamsTasks, props: true, meta: { requiresAuth: true } },
-  { path: '/allemployees', name: "allEmployees", component: AllEmployees, meta: { requiresAuth: true, minRole: 'manager' } },
-  { path: '/addemployee', name: "addEmployee", component: AddEmployee, meta: { requiresAuth: true, minRole: 'manager' } },
-  { path: '/raportgenerate', name: "raportGenerate", component: RaportGenerate, meta: { requiresAuth: true, minRole: 'manager' } },
-  { path: '/raporthistory', name: "raportHistory", component: RaportHistory, meta: { requiresAuth: true, minRole: 'manager' } },
+  { path: '/allemployees', name: "allEmployees", component: AllEmployees, meta: { requiresAuth: true, minRole: 'kierownik' } },
+  { path: '/addemployee', name: "addEmployee", component: AddEmployee, meta: { requiresAuth: true, minRole: 'kierownik' } },
+  { path: '/raportgenerate', name: "raportGenerate", component: RaportGenerate, meta: { requiresAuth: true, minRole: 'kierownik' } },
+  { path: '/raporthistory', name: "raportHistory", component: RaportHistory, meta: { requiresAuth: true, minRole: 'kierownik' } },
   { path: '/systemconf', name: "systemConf", component: SystemConf, meta: { requiresAuth: true, requiredRole: 'administrator' } },
   { path: '/taskshistory', name: "tasksHistory", component: TasksHistory, meta: { requiresAuth: true } },
-  { path: '/addtask', name: "addTask", component: AddTask, meta: { requiresAuth: true, minRole: 'manager' } },
+  { path: '/addtask', name: "addTask", component: AddTask, meta: { requiresAuth: true, minRole: 'kierownik' } },
   { path: '/settings', name: "userSettings", component: UserSettings, meta: { requiresAuth: true } },
-  { path: '/allusers', name: "allUsers", component: AllUsers, meta: { requiresAuth: true, minRole: 'manager' } },
-  { path: '/edittask', name: "editTask", component: EditTask, meta: { requiresAuth: true, minRole: 'manager' } },
+  { path: '/allusers', name: "allUsers", component: AllUsers, meta: { requiresAuth: true, minRole: 'kierownik' } },
+  { path: '/edittask/:id', name: "editTask", component: EditTask, meta: { requiresAuth: true, minRole: 'kierownik' }, props: true },
   { path: '/taskdetails/:id', name: "taskDetails", component: TaskDetails, meta: { requiresAuth: true } },
-  { 
+  {
     path: '/teammembers/:id',
-    name: "teamMembers", 
-    component: TeamMembersManage, 
-    meta: { requiresAuth: true, minRole: 'manager' },
+    name: "teamMembers",
+    component: TeamMembersManage,
+    meta: { requiresAuth: true, minRole: 'kierownik' },
     props: route => ({ id: parseInt(route.params.id) || null })
   },
-  { 
-    path: '/users/:id/edit', 
-    name: "editUser", 
-    component: UserSettings, 
-    meta: { requiresAuth: true, minRole: 'manager' },
+  {
+    path: '/users/:id/edit',
+    name: "editUser",
+    component: UserSettings,
+    meta: { requiresAuth: true, minRole: 'kierownik' },
     props: route => ({ userId: parseInt(route.params.id) || null })
   },
-    { 
+    {
     path: '/raportview/:id',
-    name: "raportView", 
-    component: RaportView, 
-    meta: { requiresAuth: true, minRole: 'manager' },
+    name: "raportView",
+    component: RaportView,
+    meta: { requiresAuth: true, minRole: 'kierownik' },
     props: route => ({ id: parseInt(route.params.id) || null })
   },
 ];
@@ -76,7 +76,7 @@ router.beforeEach((to, from, next) => {
     if (!authState.isAuthenticated) {
       return next('/');
     }
-    
+
     if (to.meta.requiredRole && authState.user.role !== to.meta.requiredRole) {
       alert('Access denied - specific role required');
       return next(false);
