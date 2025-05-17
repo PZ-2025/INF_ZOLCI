@@ -18,3 +18,9 @@ frontend/assets/styles.css
 docs/
 docs/**
 /backend/reports/
+/frontend/dist_electron/*
+/frontend/dist_electron/builder-debug.yml
+installer/files/frontend/*
+installer/files/frontend/dist_electron/*
+installer/files/backend/*
+buildtask_setup.exe
