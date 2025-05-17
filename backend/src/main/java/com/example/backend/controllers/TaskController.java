@@ -22,7 +22,7 @@ import java.util.HashMap;
  * wyszukiwanie zadań według różnych kryteriów.
  *
  * @author Karol
- * @version 1.0.2
+ * @version 1.0.3
  * @since 1.0.0
  */
 @RestController
@@ -125,6 +125,98 @@ public class TaskController {
         } catch (Exception e) {
             Map<String, String> errorResponse = new HashMap<>();
             errorResponse.put("error", "Wystąpił błąd podczas aktualizacji zadania");
+            errorResponse.put("message", e.getMessage());
+            return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Częściowo aktualizuje istniejące zadanie.
+     * Pozwala na aktualizację tylko wybranych pól zadania bez konieczności przesyłania całego obiektu.
+     *
+     * @param id       Identyfikator zadania
+     * @param updates  Mapa zawierająca pary klucz-wartość reprezentujące pola do aktualizacji
+     * @return Zaktualizowane zadanie lub status 404, jeśli nie istnieje
+     */
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<?> partialUpdateTask(@PathVariable Integer id, @RequestBody Map<String, Object> updates) {
+        try {
+            return taskService.getTaskById(id)
+                    .map(existingTask -> {
+                        // Tworzymy nowy DTO z istniejącymi danymi
+                        TaskDTO taskToUpdate = new TaskDTO();
+                        taskToUpdate.setId(id);
+                        taskToUpdate.setTitle(existingTask.getTitle());
+                        taskToUpdate.setDescription(existingTask.getDescription());
+                        taskToUpdate.setTeamId(existingTask.getTeamId());
+                        taskToUpdate.setPriorityId(existingTask.getPriorityId());
+                        taskToUpdate.setStatusId(existingTask.getStatusId());
+                        taskToUpdate.setStartDate(existingTask.getStartDate());
+                        taskToUpdate.setDeadline(existingTask.getDeadline());
+                        taskToUpdate.setCompletedDate(existingTask.getCompletedDate());
+                        taskToUpdate.setCreatedById(existingTask.getCreatedById());
+                        taskToUpdate.setCreatedAt(existingTask.getCreatedAt());
+
+                        // Aktualizujemy tylko te pola, które zostały przekazane w żądaniu
+                        for (Map.Entry<String, Object> entry : updates.entrySet()) {
+                            String key = entry.getKey();
+                            Object value = entry.getValue();
+
+                            switch (key) {
+                                case "title":
+                                    taskToUpdate.setTitle((String) value);
+                                    break;
+                                case "description":
+                                    taskToUpdate.setDescription((String) value);
+                                    break;
+                                case "teamId":
+                                    if (value instanceof Integer) {
+                                        taskToUpdate.setTeamId((Integer) value);
+                                    } else if (value instanceof String) {
+                                        taskToUpdate.setTeamId(Integer.parseInt((String) value));
+                                    }
+                                    break;
+                                case "priorityId":
+                                    if (value instanceof Integer) {
+                                        taskToUpdate.setPriorityId((Integer) value);
+                                    } else if (value instanceof String) {
+                                        taskToUpdate.setPriorityId(Integer.parseInt((String) value));
+                                    }
+                                    break;
+                                case "statusId":
+                                    if (value instanceof Integer) {
+                                        taskToUpdate.setStatusId((Integer) value);
+                                    } else if (value instanceof String) {
+                                        taskToUpdate.setStatusId(Integer.parseInt((String) value));
+                                    }
+                                    break;
+                                case "startDate":
+                                    if (value != null) {
+                                        taskToUpdate.setStartDate(LocalDate.parse(value.toString()));
+                                    }
+                                    break;
+                                case "deadline":
+                                    if (value != null) {
+                                        taskToUpdate.setDeadline(LocalDate.parse(value.toString()));
+                                    }
+                                    break;
+                                case "completedDate":
+                                    if (value != null) {
+                                        taskToUpdate.setCompletedDate(LocalDate.parse(value.toString()));
+                                    }
+                                    break;
+                                // Nie pozwalamy na aktualizację createdById i createdAt
+                            }
+                        }
+
+                        // Zapisujemy zaktualizowane zadanie
+                        TaskDTO updatedTask = taskService.updateTask(taskToUpdate);
+                        return new ResponseEntity<>(updatedTask, HttpStatus.OK);
+                    })
+                    .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        } catch (Exception e) {
+            Map<String, String> errorResponse = new HashMap<>();
+            errorResponse.put("error", "Wystąpił błąd podczas częściowej aktualizacji zadania");
             errorResponse.put("message", e.getMessage());
             return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         }
