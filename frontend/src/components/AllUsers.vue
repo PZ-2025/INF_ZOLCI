@@ -1,10 +1,10 @@
 <template>
   <div class="h-full flex flex-col p-6 bg-background text-text">
-    <div class="flex items-center mb-6">
-      <h1 class="text-3xl font-bold text-primary mr-auto">Pracownicy</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold text-primary">Pracownicy</h1>
       <router-link
-        to="/addemployee"
-        class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition text-center"
+          to="/addemployee"
+          class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition text-center"
       >
         Dodaj Pracownika
       </router-link>
@@ -24,7 +24,7 @@
     </div>
 
     <!-- Lista pracowników -->
-    <div v-else class="flex-grow ">
+    <div v-else class="flex-grow bg-surface p-6 rounded-lg shadow-md mb-6 overflow-auto border border-gray-200">
       <div v-if="employees.length" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <div
             v-for="employee in employees"
@@ -52,48 +52,49 @@
           </div>
 
           <div class="flex space-x-2">
+            <!-- Przycisk edycji - pokazany tylko wtedy, gdy użytkownik ma uprawnienia -->
             <button
+                v-if="canEditUser(employee)"
                 @click="editEmployee(employee.id)"
                 class="text-xs bg-primary text-white px-2 py-1 rounded-md hover:bg-secondary transition"
             >
               Edytuj
             </button>
+            <!-- Przyciski aktywacji/dezaktywacji - pokazane tylko wtedy, gdy użytkownik ma uprawnienia -->
             <button
-                v-if="employee.isActive"
+                v-if="canEditUser(employee) && employee.isActive"
                 @click="deactivateEmployee(employee.id)"
                 class="text-xs bg-yellow-500 text-white px-2 py-1 rounded-md hover:bg-yellow-600 transition"
             >
               Dezaktywuj
             </button>
             <button
-                v-else
+                v-if="canEditUser(employee) && !employee.isActive"
                 @click="activateEmployee(employee.id)"
                 class="text-xs bg-green-500 text-white px-2 py-1 rounded-md hover:bg-green-600 transition"
             >
               Aktywuj
             </button>
+            <!-- Przycisk usuwania - pokazany tylko wtedy, gdy użytkownik ma uprawnienia -->
             <button
-                v-if="employee.role !== 'administrator'"
+                v-if="canDeleteUser(employee)"
                 @click="removeEmployee(employee.id, employee.firstName, employee.lastName)"
                 class="text-xs bg-danger text-white px-2 py-1 rounded-md hover:bg-red-600 transition"
             >
               Usuń
             </button>
+            <!-- Informacja o braku uprawnień do usunięcia -->
+            <span
+                v-if="!canDeleteUser(employee) && isAdmin"
+                class="text-xs text-gray-500 italic"
+            >
+              Nie można usunąć administratora
+            </span>
           </div>
         </div>
       </div>
       <p v-else class="text-muted text-center py-8">Brak pracowników. Dodaj pierwszego pracownika używając przycisku poniżej.</p>
     </div>
-    
-    <!-- Przycisk usuwania wszystkich pracowników  -->
-    <!-- <div class="flex justify-end">
-      <button 
-        @click="removeAllUsers" 
-        class="bg-danger hover:bg-red-600 text-white px-4 py-2 rounded-md transition"
-      >
-        Usuń Wszystkich
-      </button>
-    </div> -->
 
     <!-- Modal potwierdzenia -->
     <div v-if="showConfirmModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -120,9 +121,11 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import userService from '../services/userService';
+import authService from '../services/authService';
+import { authState } from '../../router/router';
 
 export default {
   setup() {
@@ -135,6 +138,66 @@ export default {
     const showConfirmModal = ref(false);
     const confirmMessage = ref('');
     const pendingAction = ref(null);
+
+    // Określ rolę bieżącego użytkownika
+    const currentUserRole = computed(() => authState.user?.role || '');
+
+    // Czy bieżący użytkownik jest administratorem
+    const isAdmin = computed(() => {
+      return authService.hasRoleAtLeast('admin') ||
+          currentUserRole.value === 'administrator' ||
+          currentUserRole.value === 'ADMIN';
+    });
+
+    // Czy bieżący użytkownik jest kierownikiem
+    const isManager = computed(() => {
+      return authService.hasRoleAtLeast('manager') && !isAdmin.value;
+    });
+
+    // Czy użytkownik jest administratorem (na podstawie jego roli)
+    const isUserAdmin = (user) => {
+      return user.role === 'admin' ||
+          user.role === 'administrator' ||
+          user.role === 'ADMIN';
+    };
+
+    // Czy użytkownik jest pracownikiem (na podstawie jego roli)
+    const isUserEmployee = (user) => {
+      return user.role === 'employee' ||
+          user.role === 'pracownik';
+    };
+
+    // Czy bieżący użytkownik może edytować wskazanego użytkownika
+    const canEditUser = (user) => {
+      // Administrator może edytować wszystkich
+      if (isAdmin.value) {
+        return true;
+      }
+
+      // Kierownik może edytować tylko pracowników
+      if (isManager.value) {
+        return isUserEmployee(user);
+      }
+
+      // Domyślnie - brak uprawnień
+      return false;
+    };
+
+    // Czy bieżący użytkownik może usunąć wskazanego użytkownika
+    const canDeleteUser = (user) => {
+      // Administrator może usuwać wszystkich oprócz innych administratorów
+      if (isAdmin.value) {
+        return !isUserAdmin(user);
+      }
+
+      // Kierownik może usuwać tylko pracowników
+      if (isManager.value) {
+        return isUserEmployee(user);
+      }
+
+      // Domyślnie - brak uprawnień
+      return false;
+    };
 
     // Pobieranie pracowników
     const fetchEmployees = async () => {
@@ -153,7 +216,8 @@ export default {
         employees.value = [
           { id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan.kowalski@example.com', username: 'jkowalski', role: 'employee', isActive: true },
           { id: 2, firstName: 'Anna', lastName: 'Nowak', email: 'anna.nowak@example.com', username: 'anowak', role: 'manager', isActive: true },
-          { id: 3, firstName: 'Piotr', lastName: 'Zieliński', email: 'piotr.zielinski@example.com', username: 'pzielinski', role: 'employee', isActive: false }
+          { id: 3, firstName: 'Piotr', lastName: 'Zieliński', email: 'piotr.zielinski@example.com', username: 'pzielinski', role: 'employee', isActive: false },
+          { id: 4, firstName: 'Adam', lastName: 'Wiśniewski', email: 'adam.wisniewski@example.com', username: 'awisniewski', role: 'administrator', isActive: true }
         ];
       } finally {
         loading.value = false;
@@ -206,25 +270,6 @@ export default {
       showConfirmModal.value = true;
     };
 
-    // Usuwanie wszystkich pracowników z potwierdzeniem
-    const removeAllEmployees = () => {
-      confirmMessage.value = `Czy na pewno chcesz usunąć wszystkich pracowników? Ta operacja jest nieodwracalna!`;
-      pendingAction.value = async () => {
-        try {
-          // Usuwamy pracowników jeden po drugim
-          for (const employee of employees.value) {
-            await userService.deleteUser(employee.id);
-          }
-          // Odśwież listę
-          fetchEmployees();
-        } catch (err) {
-          console.error('Błąd podczas usuwania wszystkich pracowników:', err);
-          error.value = `Nie udało się usunąć wszystkich pracowników: ${err.message}`;
-        }
-      };
-      showConfirmModal.value = true;
-    };
-
     // Funkcja potwierdzająca akcję z modala
     const confirmAction = async () => {
       if (pendingAction.value) {
@@ -239,7 +284,9 @@ export default {
       const roleMap = {
         'employee': 'Pracownik',
         'manager': 'Kierownik',
-        'admin': 'Administrator'
+        'admin': 'Administrator',
+        'administrator': 'Administrator',
+        'ADMIN': 'Administrator'
       };
       return roleMap[role] || role;
     };
@@ -255,12 +302,15 @@ export default {
       error,
       showConfirmModal,
       confirmMessage,
+      isAdmin,
+      isManager,
+      canEditUser,
+      canDeleteUser,
       fetchEmployees,
       editEmployee,
       deactivateEmployee,
       activateEmployee,
       removeEmployee,
-      removeAllEmployees,
       confirmAction,
       getRoleName
     };
