@@ -36,7 +36,12 @@
 6. Poczekaj, aż Launch4j zakończy konwersję JAR do EXE
 7. Sprawdź, czy plik EXE został poprawnie wygenerowany w lokalizacji, którą określiłeś w pliku konfiguracyjnym
 
-## 3. Budowanie frontendu
+## 3. Dodanie jre do folderu tools
+
+1. Pobierz odpowiednią wersję JRE (Java Runtime Environment) w formacie .zip [AdoptOpenJDK](https://adoptium.net/temurin/releases/?os=windows&package=jre)
+2. Rozpakuj pobrany plik ZIP do folderu `tools/jre` w katalogu projektu
+
+## 4. Budowanie frontendu
 
 1. Przejdź do folderu frontendu:
    ```
@@ -54,11 +59,11 @@
 5. Poczekaj na zakończenie procesu budowania
 6. Pliki wynikowe znajdziesz w katalogu `dist` (lub innym, w zależności od konfiguracji projektu)
 
-## 4. Dodanie pliku instalacyjnego `mariadb-installer.msi` do folderu tools (potrzebna zmiana nazwy)
+## 5. Dodanie pliku instalacyjnego `mariadb-installer.msi` do folderu tools (potrzebna zmiana nazwy)
 
 link do pobrania [mariadb-installer.msi](https://mariadb.org/download/?t=mariadb&p=mariadb&r=11.7.2&os=windows&cpu=x86_64&pkg=msi&mirror=icm)
 
-## 5. Tworzenie instalatora za pomocą Inno Setup
+## 6. Tworzenie instalatora za pomocą Inno Setup
 
 1. Upewnij się, że masz zainstalowany Inno Setup na swoim komputerze
 2. Znajdź swój plik konfiguracyjny `installer.iss`
