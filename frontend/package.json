@@ -54,7 +54,7 @@
         "filter": ["*.exe"]
       },
       {
-        "from": "../backend/build/libs/jre",
+        "from": "../BuildTask-installer/tools/jre",
         "to": "backend/jre"
       }
     ],
