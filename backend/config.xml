@@ -1,0 +1,72 @@
+<launch4jConfig>
+    <!-- Plik JAR do spakowania -->
+    <jar>backend-0.0.1-SNAPSHOT.jar</jar>
+
+    <!-- Nazwa pliku wynikowego .exe -->
+    <outfile>backend.exe</outfile>
+
+    <!-- Konsolowa aplikacja (console) lub GUI (gui) -->
+    <headerType>console</headerType>
+
+    <!-- Nie używamy dodatkowych argumentów -->
+    <cmdLine></cmdLine>
+
+    <!-- Katalog roboczy - bieżący -->
+    <chdir>.</chdir>
+
+    <!-- Priorytet procesu -->
+    <priority>normal</priority>
+
+    <!-- Ikona aplikacji .ico (opcjonalnie) -->
+    <icon></icon>
+
+    <!-- Czy wrapper ma zostawać przy życiu (false = kończy się wraz z jar) -->
+    <stayAlive>false</stayAlive>
+
+    <!-- Czy zawijać jar wewnątrz .exe -->
+    <dontWrapJar>false</dontWrapJar>
+
+    <!-- Informacje o JRE -->
+    <jre>
+        <!-- Minimalna wersja JRE -->
+        <minVersion>17</minVersion>
+
+        <!-- Ścieżka względna do dołączonego JRE -->
+        <bundledJrePath>jre</bundledJrePath>
+
+        <!-- Czy wymusić 64-bit -->
+        <jdkPreference>preferJre</jdkPreference>
+    </jre>
+
+    <!-- Zmienne środowiskowe -->
+    <environmentVars>
+        <var>
+            <name>MYSQL_ROOT_PASSWORD</name>
+            <value>root</value>
+        </var>
+        <var>
+            <name>MYSQL_DATABASE</name>
+            <value>buildtask_db</value>
+        </var>
+        <var>
+            <name>MYSQL_USER</name>
+            <value>buildtask_user</value>
+        </var>
+        <var>
+            <name>MYSQL_PASSWORD</name>
+            <value>buildtask_password</value>
+        </var>
+        <var>
+            <name>MYSQL_CONNECTION_STRING</name>
+            <value>jdbc:mariadb://127.0.0.1:3306</value>
+        </var>
+        <var>
+            <name>SPRING_PROFILES_ACTIVE</name>
+            <value>development</value>
+        </var>
+        <var>
+            <name>REPORTS_STORAGE_PATH</name>
+            <value>.\reports</value>
+        </var>
+    </environmentVars>
+</launch4jConfig>
