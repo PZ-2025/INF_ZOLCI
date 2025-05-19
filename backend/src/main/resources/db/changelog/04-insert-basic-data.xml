@@ -5,20 +5,6 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
                       http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.5.xsd">
 
-    <!-- Podstawowy użytkownik admin -->
-    <changeSet id="12-insert-admin-user" author="your-name">
-        <insert tableName="users">
-            <column name="username" value="admin"/>
-            <!-- Hasło: admin123 (zahaszowane) -->
-            <column name="password" value="$2a$10$rJLq2nt5H1ot.ZQfzwQ.e.TY7ABh2stNesvTRWh2UDpaVzM9JL.yC"/>
-            <column name="email" value="admin@example.com"/>
-            <column name="first_name" value="System"/>
-            <column name="last_name" value="Administrator"/>
-            <column name="role" value="administrator"/>
-            <column name="is_active" valueBoolean="true"/>
-        </insert>
-    </changeSet>
-
     <!-- Podstawowe priorytety -->
     <changeSet id="13-insert-priorities" author="your-name">
         <insert tableName="priorities">
