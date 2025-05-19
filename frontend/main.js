@@ -2,6 +2,7 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
 import dotenv from "dotenv";
 dotenv.config();
 
@@ -14,31 +15,43 @@ const createWindow = () => {
         width: 1200,
         height: 800,
         resizable: false, // Block resizing
-        icon: path.join(__dirname, "src/assets/buildtask_logo.ico"), // Set custom icon
+        autoHideMenuBar: true,
+        icon: path.join(__dirname, "src/assets/buildtask_logo.ico"),
         webPreferences: {
-            preload: path.join(__dirname, "preload.js"), // Setting the preload.js file
-            contextIsolation: true, // Must be true for contextBridge
-            nodeIntegration: false // Disables access to Node.js in the renderer
+            preload: path.join(__dirname, "preload.js"),
+            contextIsolation: true,
+            nodeIntegration: false
         }
     });
 
     win.loadFile(path.join(__dirname, 'dist/index.html'));
 
-    // Open DevTools (optional, for debugging)
+    // Optional: open DevTools for debugging
     // win.webContents.openDevTools();
 };
 
+// START backend/backend.exe on app start
+const startBackend = () => {
+    const backendPath = path.join(__dirname,'..', '..', 'backend', 'backend.exe');
+
+    const child = spawn(backendPath, {
+        detached: true,
+        stdio: 'ignore', // Ignore stdio to fully detach
+        windowsHide: true // Hide console window
+    });
+
+    child.unref(); // Allow Electron to exit independently of backend
+};
+
 app.whenReady().then(() => {
+    startBackend();
     createWindow();
 
     app.on('activate', () => {
-        // On macOS it's common to re-create a window in the app when the
-        // dock icon is clicked and there are no other windows open.
         if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
 });
 
-// Quit when all windows are closed, except on macOS
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
 });
