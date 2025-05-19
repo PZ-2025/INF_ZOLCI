@@ -2,8 +2,8 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>C:\GITHUB\INF_ZOLCI\backend\build\libs\backend-0.0.1-SNAPSHOT.jar</jar>
-  <outfile>C:\GITHUB\INF_ZOLCI\backend\build\libs\backend.exe</outfile>
+  <jar>C:\INF_ZOLCI\backend\build\libs\backend-0.0.1-SNAPSHOT.jar</jar>
+  <outfile>C:\INF_ZOLCI\backend\build\libs\backend.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>
@@ -13,7 +13,7 @@
   <stayAlive>false</stayAlive>
   <restartOnCrash>false</restartOnCrash>
   <manifest></manifest>
-  <icon>C:\GITHUB\INF_ZOLCI\frontend\src\assets\buildtask_logo.ico</icon>
+  <icon>C:\INF_ZOLCI\frontend\src\assets\buildtask_logo.ico</icon>
   <var>MYSQL_ROOT_PASSWORD=root</var>
   <var>MYSQL_DATABASE=buildtask_db</var>
   <var>MYSQL_USER=buildtask_user</var>
@@ -22,9 +22,9 @@
   <var>SPRING_PROFILES_ACTIVE=production</var>
   <var>REPORTS_STORAGE_PATH=./reports</var>
   <jre>
-    <path>%JAVA_HOME%;%PATH%</path>
+    <path>jre</path>
     <requiresJdk>false</requiresJdk>
-    <requires64Bit>false</requires64Bit>
+    <requires64Bit>true</requires64Bit>
     <minVersion>17</minVersion>
     <maxVersion></maxVersion>
     <initialHeapSize>256</initialHeapSize>
