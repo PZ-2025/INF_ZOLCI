@@ -65,7 +65,7 @@
 
         <!-- Nadchodzące Zadania -->
         <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
-          <h2 class="text-xl font-bold text-primary mb-4">Nadchodzące Zadania</h2>
+          <h2 class="text-xl font-bold text-primary mb-4">Zadania</h2>
           <div v-if="upcomingTasks.length === 0" class="text-muted text-center">
             Brak nadchodzących zadań
           </div>
