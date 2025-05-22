@@ -34,11 +34,12 @@
           class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
         Zarządzanie użytkownikami
       </router-link>
-      <router-link
+      <!-- Usunięcie ustawień użytkownika - edycja tylko kierownik/admin -->
+      <!-- <router-link
           to="/settings"
           class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
         Ustawienia użytkownika
-      </router-link>
+      </router-link> -->
       <router-link
           v-if="isAdmin"
           to="/systemconf"
