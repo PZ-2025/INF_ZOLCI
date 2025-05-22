@@ -46,7 +46,7 @@
             <p class="text-xs text-muted">Plik: {{ report.fileName || "Raport PDF" }}</p>
           </div>
           <div class="mt-4 flex space-x-3">
-            <button @click="openReportDetails(report)" class="border border-primary text-primary px-4 py-2 rounded-md hover:bg-primary hover:text-white transition">
+            <button @click="openReportDetails(report)" class="border border-primary text-primary px-4 py-2 rounded-md bg-primary text-white transition">
               Szczegóły
             </button>
           </div>
