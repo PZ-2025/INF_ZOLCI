@@ -150,7 +150,8 @@ export default {
     const fetchEmployees = async () => {
       try {
         const users = await userService.getActiveUsers();
-        employees.value = users;
+        // Filtrowanie tylko pracowników (bez administratora i kierownika)
+        employees.value = users.filter(user => user.role === 'pracownik');
         console.log('Pobrano pracowników:', employees.value);
       } catch (err) {
         console.error('Błąd podczas pobierania pracowników:', err);
