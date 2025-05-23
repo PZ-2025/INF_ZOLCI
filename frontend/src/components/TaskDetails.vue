@@ -85,7 +85,7 @@
 
         <!-- Przycisk "Pokaż więcej" gdy liczba komentarzy > 3 -->
         <div v-if="taskComments.length > 3" class="text-center pt-2">
-          <button @click="toggleComments" class="text-primary hover:text-secondary text-sm">
+          <button @click="toggleComments" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition">
             {{ showAllComments ? 'Pokaż mniej' : 'Pokaż wszystkie' }}
           </button>
         </div>
