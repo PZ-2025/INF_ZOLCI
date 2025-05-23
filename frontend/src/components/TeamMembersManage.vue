@@ -142,11 +142,14 @@ const fetchData = async () => {
     
     // Fetch all active users
     const users = await userService.getActiveUsers();
-    employees.value = users.map(user => ({
-      id: user.id,
-      name: `${user.firstName} ${user.lastName}`,
-      email: user.email
-    }));
+    // Filtrowanie tylko pracowników
+    employees.value = users
+      .filter(user => user.role === 'pracownik')
+      .map(user => ({
+        id: user.id,
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email
+      }));
 
     // Fetch current team members using validated teamId
     const teamMembers = await teamService.getTeamMembers(teamId.value);
