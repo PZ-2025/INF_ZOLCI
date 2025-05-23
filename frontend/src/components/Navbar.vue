@@ -85,7 +85,12 @@ export default {
     },
     goBack() {
       if (authState.isAuthenticated) {
-        this.$router.go(-1);
+        if (window.history.length > 1) {
+          this.$router.go(-1);
+        } else {
+          // Przekieruj na domyślną stronę po zalogowaniu 
+          this.$router.push('/teams');
+        }
       } else {
         this.$router.push('/');
       }
