@@ -91,9 +91,9 @@
         <div
             v-for="task in filteredTasks"
             :key="task.id"
-            class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm transition hover:shadow-lg"
+            class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm transition hover:shadow-lg flex flex-col h-full"
         >
-          <div>
+          <div class="flex-grow flex flex-col">
             <h3 class="text-xl font-semibold text-primary">{{ task.title || task.name }}</h3>
             <p class="text-sm text-muted">{{ task.description }}</p>
             <div class="mt-2 flex flex-wrap gap-2">
@@ -118,7 +118,7 @@
             </p>
           </div>
           <button @click="openTaskDetails(task)"
-                  class="mt-4 bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition w-full"
+                  class="mt-auto bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition w-full"
           >
             Szczegóły
           </button>
