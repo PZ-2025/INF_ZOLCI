@@ -21,6 +21,10 @@
       <button @click="fetchTeams" class="bg-warning mt-2 px-4 py-2 rounded-md">Spróbuj ponownie</button>
     </div>
 
+    <div v-else-if="teams.length === 0" class="flex justify-center items-center h-64">
+      <p class="text-primary text-xl">Nie należysz do żadnego zespołu.</p>
+    </div>
+
     <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <div
           v-for="team in teams"

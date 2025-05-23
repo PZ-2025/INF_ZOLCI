@@ -20,7 +20,6 @@
         Raporty
       </router-link>
       <router-link
-          v-if="canAccessManagerFeatures"
           to="/tasks"
           :class="navLinkClass('tasks')"
           @click.native="setActiveTab('tasks')">
