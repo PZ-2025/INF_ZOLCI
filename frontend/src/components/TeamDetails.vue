@@ -22,6 +22,7 @@
           </div>
         </div>
         <button
+          v-if="canManageMembers"
           @click="navigateToManageMembers"
           class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
         >
@@ -65,7 +66,7 @@
 
         <!-- Nadchodzące Zadania -->
         <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
-          <h2 class="text-xl font-bold text-primary mb-4">Nadchodzące Zadania</h2>
+          <h2 class="text-xl font-bold text-primary mb-4">Zadania</h2>
           <div v-if="upcomingTasks.length === 0" class="text-muted text-center">
             Brak nadchodzących zadań
           </div>
@@ -166,9 +167,10 @@
 
 
 <script>
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import apiService from '../services/api.js';
+import authService from '../services/authService.js'; 
 
 export default {
   name: 'TeamDetails',
@@ -446,6 +448,20 @@ export default {
       }
     };
 
+    // Sprawdzenie czy użytkownik może zarządzać członkami zespołu
+    const canManageMembers = computed(() => {
+      const user = authService?.authState?.user;
+      if (!user) return false;
+      // Admin ma zawsze dostęp
+      if (user.role === 'administrator') return true;
+      // Kierownik tylko jeśli jest kierownikiem tego zespołu
+      // Załóżmy, że currentTeam.value.managerId to id kierownika zespołu
+      if (user.role === 'kierownik' && currentTeam.value.managerId && user.id === currentTeam.value.managerId) {
+        return true;
+      }
+      return false;
+    });
+
     // Monitorowanie parametru ID
     onMounted(() => {
       console.log("TeamDetails component mounted, pobieranie danych...");
@@ -478,7 +494,8 @@ export default {
       navigateToManageMembers,  // potrzebne do nawigacji
       navigateToTaskDetails,
       getPriorityName,
-      getPriorityText
+      getPriorityText,
+      canManageMembers
     };
   }
 };

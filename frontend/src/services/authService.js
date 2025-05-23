@@ -101,4 +101,5 @@ const authService = {
   }
 };
 
+export { authState }; 
 export default authService;

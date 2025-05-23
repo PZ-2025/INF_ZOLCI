@@ -62,12 +62,19 @@
             </button>
             <!-- Przyciski aktywacji/dezaktywacji - pokazane tylko wtedy, gdy użytkownik ma uprawnienia -->
             <button
-                v-if="canEditUser(employee) && employee.isActive"
+                v-if="canEditUser(employee) && employee.isActive && !isUserAdmin(employee)"
                 @click="deactivateEmployee(employee.id)"
                 class="text-xs bg-yellow-500 text-white px-2 py-1 rounded-md hover:bg-yellow-600 transition"
             >
               Dezaktywuj
             </button>
+            <!-- Informacja o braku możliwości dezaktywacji administratora -->
+            <span
+                v-if="canEditUser(employee) && employee.isActive && isUserAdmin(employee)"
+                class="text-xs text-gray-500 italic"
+            >
+              Nie można dezaktywować administratora
+            </span>
             <button
                 v-if="canEditUser(employee) && !employee.isActive"
                 @click="activateEmployee(employee.id)"
@@ -157,8 +164,7 @@ export default {
     // Czy użytkownik jest administratorem (na podstawie jego roli)
     const isUserAdmin = (user) => {
       return user.role === 'admin' ||
-          user.role === 'administrator' ||
-          user.role === 'ADMIN';
+          user.role === 'administrator';
     };
 
     // Czy użytkownik jest pracownikiem (na podstawie jego roli)
@@ -312,7 +318,8 @@ export default {
       activateEmployee,
       removeEmployee,
       confirmAction,
-      getRoleName
+      getRoleName,
+      isUserAdmin
     };
   }
 };

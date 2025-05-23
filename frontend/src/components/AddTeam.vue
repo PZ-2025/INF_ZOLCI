@@ -126,7 +126,7 @@ export default {
     const fetchManagers = async () => {
       try {
         const users = await userService.getActiveUsers();
-        managers.value = users.filter(user => user.role === 'kierownik' || user.role === 'administrator');
+        managers.value = users.filter(user => user.role === 'kierownik');
         console.log('Pobrano kierowników:', managers.value);
       } catch (err) {
         console.error('Błąd podczas pobierania kierowników:', err);
@@ -150,7 +150,8 @@ export default {
     const fetchEmployees = async () => {
       try {
         const users = await userService.getActiveUsers();
-        employees.value = users;
+        // Filtrowanie tylko pracowników (bez administratora i kierownika)
+        employees.value = users.filter(user => user.role === 'pracownik');
         console.log('Pobrano pracowników:', employees.value);
       } catch (err) {
         console.error('Błąd podczas pobierania pracowników:', err);

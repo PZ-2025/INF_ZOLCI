@@ -1,119 +1,142 @@
 <template>
-  <div class="min-h-screen bg-background flex items-center justify-center px-4 py-10">
-    <div v-if="loading" class="text-center">
-      <p class="text-xl text-primary">Ładowanie zadania...</p>
-    </div>
+  <div class="min-h-screen bg-background flex flex-col items-start justify-start px-10 py-10 space-y-8">
+    <!-- Nagłówek -->
+    <h1 class="text-3xl font-bold text-primary">Edytuj zadanie</h1>
 
-    <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4">
+    <!-- Loader -->
+    <div v-if="loading" class="text-primary text-xl">Ładowanie zadania...</div>
+
+    <!-- Błąd -->
+    <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 w-full max-w-3xl">
       <p>{{ error }}</p>
       <button @click="fetchTaskDetails" class="mt-2 bg-primary text-white px-4 py-1 rounded-md">
         Spróbuj ponownie
       </button>
     </div>
 
-    <div v-else class="w-full max-w-2xl bg-surface border border-gray-200 rounded-2xl shadow-xl p-8 space-y-6">
-      <h2 class="text-3xl font-bold text-primary text-center">Edytuj Zadanie</h2>
+    <!-- Formularz -->
+    <form
+      v-else
+      @submit.prevent="updateTask"
+      class="space-y-5 w-full max-w-3xl"
+    >
+      <!-- Tytuł -->
+      <div class="flex items-center space-x-4">
+        <label for="title" class="w-48 text-black text-lg font-medium">Tytuł zadania</label>
+        <input
+          v-model="task.title"
+          id="title"
+          type="text"
+          required
+          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+          placeholder="np. Remont mieszkania ul. Załęska 76"
+        />
+      </div>
 
-      <form @submit.prevent="updateTask" class="space-y-4">
-        <div>
-          <label class="block text-lg font-medium mb-2">Tytuł</label>
-          <input
-              v-model="task.title"
-              type="text"
-              placeholder="Wprowadź tytuł zadania"
-              class="p-2 border border-gray-300 rounded-md w-full bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              required
-          />
-        </div>
+      <!-- Opis -->
+      <div class="flex items-start space-x-4">
+        <label for="description" class="w-48 text-black text-lg font-medium pt-2">Opis zadania</label>
+        <textarea
+          v-model="task.description"
+          id="description"
+          rows="4"
+          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+          placeholder="np. Klient ma problemy z wilgocią..."
+        ></textarea>
+      </div>
 
-        <div>
-          <label class="block text-lg font-medium mb-2">Opis</label>
-          <textarea
-              v-model="task.description"
-              placeholder="Wprowadź opis zadania"
-              class="p-2 border border-gray-300 rounded-md w-full bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-              rows="4"
-          ></textarea>
-        </div>
+      <!-- Zespół -->
+      <div class="flex items-center space-x-4">
+        <label for="teamId" class="w-48 text-black text-lg font-medium">Zespół</label>
+        <select
+          v-model.number="task.teamId"
+          id="teamId"
+          required
+          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+        >
+          <option disabled value="">Wybierz zespół</option>
+          <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
+        </select>
+      </div>
 
-        <div>
-          <label class="block text-lg font-medium mb-2">Zespół</label>
+      <!-- Priorytet i Status -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex items-center space-x-4">
+          <label for="priorityId" class="w-48 text-black text-lg font-medium">Priorytet</label>
           <select
-              v-model="task.teamId"
-              required
-              class="p-2 border border-gray-300 rounded-md w-full bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option disabled value="">Wybierz zespół</option>
-            <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
-          </select>
-        </div>
-
-        <div>
-          <label class="block text-lg font-medium mb-2">Priorytet</label>
-          <select
-              v-model="task.priorityId"
-              required
-              class="p-2 border border-gray-300 rounded-md w-full bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            v-model.number="task.priorityId"
+            id="priorityId"
+            required
+            class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
           >
             <option disabled value="">Wybierz priorytet</option>
             <option v-for="priority in priorities" :key="priority.id" :value="priority.id">{{ priority.name }}</option>
           </select>
         </div>
-
-        <div>
-          <label class="block text-lg font-medium mb-2">Status</label>
+        <div class="flex items-center space-x-4">
+          <label for="statusId" class="w-48 text-black text-lg font-medium">Status</label>
           <select
-              v-model="task.statusId"
-              required
-              class="p-2 border border-gray-300 rounded-md w-full bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+            v-model.number="task.statusId"
+            id="statusId"
+            required
+            class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
           >
             <option disabled value="">Wybierz status</option>
             <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
           </select>
         </div>
+      </div>
 
-        <div class="flex flex-col md:flex-row gap-4">
-          <div class="flex-1">
-            <label class="block text-lg font-medium mb-2">Data rozpoczęcia</label>
-            <input
-                type="date"
-                v-model="task.startDate"
-                class="p-2 border border-gray-300 rounded-md w-full bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-          <div class="flex-1">
-            <label class="block text-lg font-medium mb-2">Deadline</label>
-            <input
-                type="date"
-                v-model="task.deadline"
-                class="p-2 border border-gray-300 rounded-md w-full bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+      <!-- Daty -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex items-center space-x-4">
+          <label for="startDate" class="w-48 text-black text-lg font-medium">Data rozpoczęcia</label>
+          <div class="flex-1 datepicker-wrapper">
+            <Datepicker
+              v-model="task.startDate"
+              :input-class="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none datepicker-input'"
+              :format="'yyyy-MM-dd'"
+              :id="'startDate'"
+              required
             />
           </div>
         </div>
-
-        <div class="flex justify-between mt-6">
-          <button
-              type="button"
-              @click="goBack"
-              class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-md transition"
-          >
-            Anuluj
-          </button>
-          <button
-              type="submit"
-              class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition w-1/2"
-              :disabled="isSaving"
-          >
-            <span v-if="isSaving">Zapisywanie...</span>
-            <span v-else>Zapisz zmiany</span>
-          </button>
+        <div class="flex items-center space-x-4">
+          <label for="deadline" class="w-48 text-black text-lg font-medium">Deadline</label>
+          <div class="flex-1 datepicker-wrapper">
+            <Datepicker
+              v-model="task.deadline"
+              :input-class="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none datepicker-input'"
+              :format="'yyyy-MM-dd'"
+              :id="'deadline'"
+              required
+            />
+          </div>
         </div>
-      </form>
-    </div>
-  </div>
+      </div>
 
-  <!-- Status Modal -->
-  <StatusModal
+      <!-- Przyciski -->
+      <div class="flex justify-end gap-4 pt-4">
+        <button
+          type="button"
+          @click="goBack"
+          class="px-5 py-2 rounded-md bg-gray-500 text-white text-sm hover:bg-gray-600 transition"
+        >
+          Anuluj
+        </button>
+        <button
+          type="submit"
+          class="px-6 py-2 rounded-md bg-primary hover:bg-secondary text-white text-sm font-semibold transition"
+          :disabled="isSaving"
+        >
+          <span v-if="isSaving">Zapisywanie...</span>
+          <span v-else>Zapisz zmiany</span>
+        </button>
+      </div>
+    </form>
+
+    <!-- Status Modal -->
+    <StatusModal
       :show="showModal"
       :type="modalConfig.type"
       :title="modalConfig.title"
@@ -122,7 +145,8 @@
       :auto-close="modalConfig.autoClose"
       :auto-close-delay="modalConfig.autoCloseDelay"
       @close="hideModal"
-  />
+    />
+  </div>
 </template>
 
 <script>
@@ -135,11 +159,13 @@ import taskStatusService from '../services/taskStatusService';
 import { authState } from '../../router/router.js';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
+import Datepicker from 'vue3-datepicker';
 
 export default {
   name: 'TaskEdit',
   components: {
-    StatusModal
+    StatusModal,
+    Datepicker
   },
   props: {
     id: {
@@ -167,8 +193,8 @@ export default {
       teamId: null,
       priorityId: null,
       statusId: null,
-      startDate: '',
-      deadline: '',
+      startDate: null,
+      deadline: null,
       createdById: null
     });
 
@@ -208,8 +234,8 @@ export default {
           teamId: taskData.teamId || (taskData.team?.id) || null,
           priorityId: taskData.priorityId || (taskData.priority?.id) || null,
           statusId: taskData.statusId || (taskData.status?.id) || null,
-          startDate: taskData.startDate ? taskData.startDate.split('T')[0] : '',
-          deadline: taskData.deadline ? taskData.deadline.split('T')[0] : '',
+          startDate: taskData.startDate ? new Date(taskData.startDate) : null,
+          deadline: taskData.deadline ? new Date(taskData.deadline) : null,
           createdById: taskData.createdById || (taskData.createdBy?.id) || null
         };
 
@@ -315,6 +341,15 @@ export default {
           }
         }
 
+        // Formatowanie dat do yyyy-MM-dd (lokalnie, nie UTC)
+        const formatDate = (date) => {
+          if (!date) return '';
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+
         // Przygotuj dane zadania do wysłania (upewnij się o poprawnych typach)
         const taskData = {
           title: task.value.title,
@@ -322,8 +357,8 @@ export default {
           teamId: parseInt(task.value.teamId),
           priorityId: parseInt(task.value.priorityId),
           statusId: parseInt(task.value.statusId),
-          startDate: task.value.startDate,
-          deadline: task.value.deadline
+          startDate: formatDate(task.value.startDate),
+          deadline: formatDate(task.value.deadline)
         };
 
         console.log('Wysyłanie aktualizacji zadania:', taskData);

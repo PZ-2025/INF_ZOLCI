@@ -8,46 +8,37 @@
       </button>
       <router-link
           to="/teams"
-          class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
+          :class="navLinkClass('teams')"
+          @click.native="setActiveTab('teams')">
         Zespoły
       </router-link>
       <router-link
           v-if="canAccessManagerFeatures"
-          to="/raportgenerate"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Generowanie Raportów
+          to="/raport"
+          :class="navLinkClass('raport')"
+          @click.native="setActiveTab('raport')">
+        Raporty
       </router-link>
       <router-link
           v-if="canAccessManagerFeatures"
-          to="/raporthistory"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Historia Raportów
-      </router-link>
-      <router-link
-          to="/taskshistory"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Historia zadań
-      </router-link>
-      <router-link
-          v-if="canAccessManagerFeatures"
-          to="/allusers"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Zarządzanie użytkownikami
-      </router-link>
-      <router-link
-          to="/settings"
-          class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Ustawienia użytkownika
+          to="/tasks"
+          :class="navLinkClass('tasks')"
+          @click.native="setActiveTab('tasks')">
+        Zadania
       </router-link>
       <router-link
           v-if="isAdmin"
-          to="/systemconf"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Ustawienia systemu
+          to="/adminpanel"
+          :class="navLinkClass('adminpanel')"
+          @click.native="setActiveTab('adminpanel')">
+        Panel administratora
       </router-link>
     </div>
 
     <div class="p-4">
+      <div v-if="userFullName" class="mb-2 font-semibold text-center">
+        Użytkownik: {{ userFullName }}
+      </div>
       <button
           @click="logout"
           class="w-full bg-warning hover:bg-warningHover text-white px-4 py-2 rounded transition mb-2">
@@ -62,15 +53,36 @@ import { authState } from '../../router/router.js';
 import authService from '../services/authService';
 
 export default {
+  data() {
+    return {
+      activeTab: null
+    };
+  },
   computed: {
     canAccessManagerFeatures() {
       return authService.hasRoleAtLeast('kierownik');
     },
     isAdmin() {
       return authState.user?.role === 'administrator';
+    },
+    userFullName() {
+      const user = authState.user;
+      if (user && user.firstName && user.lastName) {
+        return `${user.firstName} ${user.lastName}`;
+      }
+      return '';
     }
   },
   methods: {
+    setActiveTab(tab) {
+      this.activeTab = tab;
+    },
+    navLinkClass(tab) {
+      return [
+        'block bg-secondary hover:bg-accent p-3 rounded mb-3 transition !text-white',
+        this.activeTab === tab ? 'ring-2 ring-accent font-bold' : ''
+      ];
+    },
     goBack() {
       if (authState.isAuthenticated) {
         this.$router.go(-1);

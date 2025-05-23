@@ -1,0 +1,103 @@
+.datepicker-container {
+  position: relative;
+}
+datepicker-input-custom {
+  background-color: white !important;
+  color: black !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  padding: 0.5rem 1rem !important; /* px-4 py-2 w Tailwind */
+  height: 2.75rem !important; /* Standardowa wysokość inputów Tailwind */
+  line-height: 1.25rem !important;
+  box-shadow: none !important;
+}
+
+.datepicker-input-custom:focus {
+  outline: none !important;
+  border-color: #3F51B5 !important;
+  box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2) !important;
+  background-color: white !important;
+}
+
+.datepicker-input-custom:hover {
+  border-color: #9ca3af !important;
+}
+
+/* Dodatkowe style dla kalendarza */
+.datepicker-calendar {
+  background-color: white !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Wymuszenie białego tła i odpowiedniej wysokości dla wszystkich inputów datepicker */
+.v3dp__input_wrapper input {
+  background-color: white !important;
+  color: black !important;
+  padding: 0.5rem 1rem !important;
+  height: 2.75rem !important;
+  line-height: 1.25rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  box-shadow: none !important;
+}
+
+.v3dp__input_wrapper input:focus {
+  background-color: white !important;
+  color: black !important;
+  border-color: #3F51B5 !important;
+  box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2) !important;
+}
+
+.v3dp__input_wrapper input:hover {
+  border-color: #9ca3af !important;
+}
+
+/* Alternatywne selektory dla różnych wersji Vue3 Datepicker */
+input[type="text"] {
+  background-color: white !important;
+  color: black !important;
+  min-height: 2.75rem !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+}
+
+.datepicker input {
+  background-color: white !important;
+  color: black !important;
+  padding: 0.5rem 1rem !important;
+  height: 2.75rem !important;
+  box-sizing: border-box !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  box-shadow: none !important;
+}
+
+/* Dodatkowe wymuszenie wysokości dla wszystkich możliwych selektorów */
+.datepicker-container input,
+.datepicker-wrapper input,
+[data-datepicker] input {
+  background-color: white !important;
+  color: black !important;
+  padding: 0.5rem 1rem !important;
+  height: 2.75rem !important;
+  line-height: 1.25rem !important;
+  box-sizing: border-box !important;
+  border: 1px solid #d1d5db !important;
+  border-radius: 0.5rem !important;
+  box-shadow: none !important;
+}
+
+.datepicker-container input:focus,
+.datepicker-wrapper input:focus,
+[data-datepicker] input:focus {
+  border-color: #3F51B5 !important;
+  box-shadow: 0 0 0 2px rgba(63, 81, 181, 0.2) !important;
+}
+
+.datepicker-container input:hover,
+.datepicker-wrapper input:hover,
+[data-datepicker] input:hover {
+  border-color: #9ca3af !important;
+}
