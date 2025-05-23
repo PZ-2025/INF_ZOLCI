@@ -1,6 +1,7 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import router from '../router/router.js'; // Import the router
+import './assets/datepicker.css' // Import the datepicker CSS
 
 import './style.css';
 
