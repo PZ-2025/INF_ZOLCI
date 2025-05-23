@@ -3,12 +3,6 @@
     <div class="rounded-lg p-6 w-full space-y-8">
       <div class="flex justify-between items-center">
         <h1 class="text-3xl font-bold text-primary">Historia Zadań</h1>
-        <router-link
-            to="/addtask"
-            class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-md transition"
-        >
-          Dodaj Zadanie
-        </router-link>
       </div>
 
       <!-- Filtry -->
