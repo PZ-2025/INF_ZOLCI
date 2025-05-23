@@ -8,25 +8,29 @@
       </button>
       <router-link
           to="/teams"
-          class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
+          :class="navLinkClass('teams')"
+          @click.native="setActiveTab('teams')">
         Zespoły
       </router-link>
       <router-link
           v-if="canAccessManagerFeatures"
           to="/raport"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
+          :class="navLinkClass('raport')"
+          @click.native="setActiveTab('raport')">
         Raporty
       </router-link>
       <router-link
           v-if="canAccessManagerFeatures"
           to="/tasks"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
+          :class="navLinkClass('tasks')"
+          @click.native="setActiveTab('tasks')">
         Zadania
       </router-link>
       <router-link
           v-if="isAdmin"
           to="/adminpanel"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
+          :class="navLinkClass('adminpanel')"
+          @click.native="setActiveTab('adminpanel')">
         Panel administratora
       </router-link>
     </div>
@@ -49,6 +53,11 @@ import { authState } from '../../router/router.js';
 import authService from '../services/authService';
 
 export default {
+  data() {
+    return {
+      activeTab: null
+    };
+  },
   computed: {
     canAccessManagerFeatures() {
       return authService.hasRoleAtLeast('kierownik');
@@ -65,6 +74,15 @@ export default {
     }
   },
   methods: {
+    setActiveTab(tab) {
+      this.activeTab = tab;
+    },
+    navLinkClass(tab) {
+      return [
+        'block bg-secondary hover:bg-accent p-3 rounded mb-3 transition !text-white',
+        this.activeTab === tab ? 'ring-2 ring-accent font-bold' : ''
+      ];
+    },
     goBack() {
       if (authState.isAuthenticated) {
         this.$router.go(-1);
