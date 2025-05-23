@@ -102,9 +102,9 @@
             class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             required
         >
-          <option value="employee">Pracownik</option>
-          <option value="manager">Kierownik</option>
-          <option value="admin">Administrator</option>
+          <option value="pracownik">Pracownik</option>
+          <option value="kierownik">Kierownik</option>
+          <option value="administrator">Administrator</option>
         </select>
       </div>
 
@@ -159,7 +159,7 @@ export default {
       username: '',
       password: '',
       phone: '', 
-      role: 'employee',
+      role: 'pracownik',
       isActive: true
     });
 
@@ -235,7 +235,7 @@ export default {
           username: '',
           password: '',
           phone: '', // reset phone
-          role: 'employee',
+          role: 'pracownik',
           isActive: true
         };
 
