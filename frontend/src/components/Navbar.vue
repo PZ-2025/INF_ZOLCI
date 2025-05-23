@@ -29,7 +29,7 @@
         Historia zadań
       </router-link>
       <router-link
-          v-if="canAccessManagerFeatures"
+          v-if="isAdmin"
           to="/allusers"
           class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
         Zarządzanie użytkownikami
