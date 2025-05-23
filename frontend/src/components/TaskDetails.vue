@@ -65,9 +65,9 @@
                 <div class="text-sm text-gray-600 mb-1">
                   {{ comment.userFullName || comment.username || 'Użytkownik' }} — {{ formatDate(comment.createdAt) }}
                 </div>
-                <!-- Przycisk usuwania komentarza - widoczny tylko dla managera lub admina -->
+                <!-- Przycisk usuwania komentarza - widoczny tylko dla uprawnionych -->
                 <button
-                    v-if="canDeleteComments"
+                    v-if="canDeleteComment(comment)"
                     @click="deleteComment(comment.id)"
                     class="bg-red-600 hover:bg-red-700 text-white p-2 transition-colors duration-200"
                     :disabled="isDeletingComment"
@@ -113,10 +113,11 @@
       </div>
 
       <div class="flex justify-between">
-        <button @click="toggleDebug"
+        <!-- schowanie przycisku do debugu -->
+        <!-- <button @click="toggleDebug"
                 class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition">
           {{ debugMode ? 'Ukryj debug' : 'Debug' }}
-        </button>
+        </button> -->
 
         <div class="space-x-4">
           <button @click="editTask"
@@ -183,6 +184,31 @@ export default {
     const canDeleteComments = computed(() => {
       return authService.hasRoleAtLeast('manager');
     });
+
+    // Nowa funkcja sprawdzająca uprawnienia do usuwania pojedynczego komentarza
+    const canDeleteComment = (comment) => {
+      const user = authState.user;
+      if (!user) return false;
+
+      // 1. Administrator systemu
+      if (user.role === 'administrator') return true;
+
+      // 2. Autor komentarza
+      if (comment.userId && user.id === comment.userId) return true;
+
+      // 3. Kierownik zespołu przypisanego do zadania
+      // Zakładamy, że task.value.team.managerId to id kierownika
+      if (
+        user.role === 'kierownik' &&
+        task.value.team &&
+        task.value.team.managerId &&
+        user.id === task.value.team.managerId
+      ) {
+        return true;
+      }
+
+      return false;
+    };
 
     // Computed property do obsługi komentarzy
     const taskComments = computed(() => {
@@ -581,6 +607,7 @@ export default {
       debugMode,
       toggleDebug,
       canDeleteComments,
+      canDeleteComment,
       addComment,
       deleteComment,
       editTask,
