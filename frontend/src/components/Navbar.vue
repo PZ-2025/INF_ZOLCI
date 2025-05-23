@@ -13,38 +13,21 @@
       </router-link>
       <router-link
           v-if="canAccessManagerFeatures"
-          to="/raportgenerate"
+          to="/raport"
           class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Generowanie Raportów
+        Raporty
       </router-link>
       <router-link
           v-if="canAccessManagerFeatures"
-          to="/raporthistory"
+          to="/tasks"
           class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Historia Raportów
-      </router-link>
-      <router-link
-          to="/taskshistory"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Historia zadań
+        Zadania
       </router-link>
       <router-link
           v-if="isAdmin"
-          to="/allusers"
+          to="/adminpanel"
           class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Zarządzanie użytkownikami
-      </router-link>
-      <!-- Usunięcie ustawień użytkownika - edycja tylko kierownik/admin -->
-      <!-- <router-link
-          to="/settings"
-          class="text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Ustawienia użytkownika
-      </router-link> -->
-      <router-link
-          v-if="isAdmin"
-          to="/systemconf"
-          class="!text-white block bg-secondary hover:bg-accent p-3 rounded mb-3 transition">
-        Ustawienia systemu
+        Panel administratora
       </router-link>
     </div>
 
