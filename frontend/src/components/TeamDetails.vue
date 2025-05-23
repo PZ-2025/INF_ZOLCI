@@ -21,13 +21,22 @@
             <p class="text-muted text-sm">{{ getTeamMembersCount() }} członków</p>
           </div>
         </div>
-        <button
-          v-if="canManageMembers"
-          @click="navigateToManageMembers"
-          class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
-        >
-          Zarządzaj członkami
-        </button>
+        <div class="flex gap-2">
+          <button
+            v-if="canManageMembers"
+            @click="navigateToManageMembers"
+            class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
+          >
+            Zarządzaj członkami
+          </button>
+          <button
+            v-if="canManageMembers"
+            @click="navigateToAddTask"
+            class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
+          >
+            Dodaj zadanie
+          </button>
+        </div>
       </div>
 
       <!-- Główna siatka -->
@@ -187,6 +196,17 @@ export default {
     // Navigate to TaskDetails view
     const navigateToTaskDetails = (taskId) => {
       router.push({ name: 'taskDetails', params: { id: taskId } });
+    };
+
+    // Nawigacja do dodawania zadania
+    const navigateToAddTask = () => {
+      const teamId = route.params.id;
+      if (teamId) {
+        // Przekieruj do widoku dodawania zadania z id zespołu jako query param
+        router.push({ name: 'addTask', query: { teamId } });
+      } else {
+        router.push({ name: 'addTask' });
+      }
     };
 
     // Metoda pozyskiwania ID zespołu
@@ -475,7 +495,8 @@ export default {
       navigateToTaskDetails,
       getPriorityName,
       getPriorityText,
-      canManageMembers
+      canManageMembers,
+      navigateToAddTask
     };
   }
 };
