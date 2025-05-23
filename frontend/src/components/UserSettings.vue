@@ -21,7 +21,19 @@
         {{ successMessage }}
       </div>
 
-      <!-- Pole formularza -->
+      <!-- Pole formularza: Username -->
+      <div class="flex items-center mb-4">
+        <label class="w-40 font-semibold">Nazwa użytkownika</label>
+        <input
+          type="text"
+          v-model="user.username"
+          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+          placeholder="Wpisz nazwę użytkownika"
+          required
+        />
+      </div>
+
+      <!-- Pole formularza: Imię -->
       <div class="flex items-center mb-4">
         <label class="w-40 font-semibold">Imię</label>
         <input
