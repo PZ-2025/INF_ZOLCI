@@ -32,6 +32,9 @@
     </div>
 
     <div class="p-4">
+      <div v-if="userFullName" class="mb-2 font-semibold text-center">
+        Użytkownik: {{ userFullName }}
+      </div>
       <button
           @click="logout"
           class="w-full bg-warning hover:bg-warningHover text-white px-4 py-2 rounded transition mb-2">
@@ -52,6 +55,13 @@ export default {
     },
     isAdmin() {
       return authState.user?.role === 'administrator';
+    },
+    userFullName() {
+      const user = authState.user;
+      if (user && user.firstName && user.lastName) {
+        return `${user.firstName} ${user.lastName}`;
+      }
+      return '';
     }
   },
   methods: {
