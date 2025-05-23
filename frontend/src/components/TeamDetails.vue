@@ -101,66 +101,46 @@
             </div>
           </div>
         </div>
+      </div>
 
-        <div class="lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <!-- Zakończone Zadania -->
-          <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
-            <h2 class="text-xl font-bold text-primary mb-4">Zakończone Zadania</h2>
-            <div v-if="completedTasks.length === 0" class="text-muted text-center">
-              Brak zakończonych zadań
+      <!-- Zakończone Zadania na całą szerokość -->
+      <div class="bg-surface rounded-xl p-6 shadow border border-gray-200 mt-6">
+        <h2 class="text-xl font-bold text-primary mb-4">Zakończone Zadania</h2>
+        <div v-if="completedTasks.length === 0" class="text-muted text-center">
+          Brak zakończonych zadań
+        </div>
+        <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
+          <div
+            v-for="task in completedTasks"
+            :key="task.id"
+            class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
+          >
+            <div>
+              <h3 class="font-semibold text-text">{{ task.title }}</h3>
+              <p class="text-sm text-muted">{{ task.assignedTo }}</p>
             </div>
-            <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
-              <div
-                v-for="task in completedTasks"
-                :key="task.id"
-                class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
+            <div class="flex items-center space-x-2">
+              <span
+                class="px-2 py-1 rounded-md text-xs font-bold text-white"
+                :class="{
+                  'bg-red-500': getPriorityName(task.priority) === 'high',
+                  'bg-yellow-500': getPriorityName(task.priority) === 'medium',
+                  'bg-blue-500': getPriorityName(task.priority) === 'low'
+                }"
               >
-                <div>
-                  <h3 class="font-semibold text-text">{{ task.title }}</h3>
-                  <p class="text-sm text-muted">{{ task.assignedTo }}</p>
-                </div>
-                <div class="flex items-center space-x-2">
-                  <span
-                    class="px-2 py-1 rounded-md text-xs font-bold text-white"
-                    :class="{
-                      'bg-red-500': getPriorityName(task.priority) === 'high',
-                      'bg-yellow-500': getPriorityName(task.priority) === 'medium',
-                      'bg-blue-500': getPriorityName(task.priority) === 'low'
-                    }"
-                  >
-                    {{ getPriorityText(getPriorityName(task.priority)) }}
-                  </span>
-                  <button
-                    @click="navigateToTaskDetails(task.id)"
-                    class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition"
-                  >
-                    Szczegóły
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Ostatnie Aktywności -->
-          <div class="bg-surface rounded-xl p-6 shadow border border-gray-200">
-            <h2 class="text-xl font-bold text-primary mb-4">Ostatnie Aktywności</h2>
-            <div v-if="teamActivities.length === 0" class="text-muted text-center">
-              Brak aktywności
-            </div>
-            <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
-              <div
-                v-for="activity in teamActivities"
-                :key="activity.id"
-                class="bg-gray-50 p-3 rounded-lg"
+                {{ getPriorityText(getPriorityName(task.priority)) }}
+              </span>
+              <button
+                @click="navigateToTaskDetails(task.id)"
+                class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition"
               >
-                <h3 class="font-semibold text-text">{{ activity.title }}</h3>
-                <p class="text-sm text-muted">{{ activity.description }}</p>
-                <p class="text-xs text-muted">{{ activity.timestamp }}</p>
-              </div>
+                Szczegóły
+              </button>
             </div>
           </div>
         </div>
       </div>
+      <!-- Koniec zakończonych zadań -->
     </div>
   </div>
 </template>
@@ -170,6 +150,7 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import apiService from '../services/api.js';
+import { authState } from '../../router/router.js';
 import authService from '../services/authService.js'; 
 
 export default {
@@ -450,12 +431,11 @@ export default {
 
     // Sprawdzenie czy użytkownik może zarządzać członkami zespołu
     const canManageMembers = computed(() => {
-      const user = authService?.authState?.user;
+      const user = authState.user;
       if (!user) return false;
       // Admin ma zawsze dostęp
       if (user.role === 'administrator') return true;
       // Kierownik tylko jeśli jest kierownikiem tego zespołu
-      // Załóżmy, że currentTeam.value.managerId to id kierownika zespołu
       if (user.role === 'kierownik' && currentTeam.value.managerId && user.id === currentTeam.value.managerId) {
         return true;
       }
@@ -491,7 +471,7 @@ export default {
       getTeamMembersCount,
       getMemberInitials,
       getMemberColor,
-      navigateToManageMembers,  // potrzebne do nawigacji
+      navigateToManageMembers,  
       navigateToTaskDetails,
       getPriorityName,
       getPriorityText,
