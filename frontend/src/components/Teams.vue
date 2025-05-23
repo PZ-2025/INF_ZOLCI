@@ -4,6 +4,7 @@
       <h1 class="text-3xl font-bold text-primary">Zespoły</h1>
 
       <router-link
+          v-if="canAddTeam"
           to="/addteam"
           class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition flex items-center"
       >
@@ -72,6 +73,12 @@ export default {
         team.managerId === currentUser.value.id ||
         (team.members && team.members.some(m => m.userId === currentUser.value.id))
       );
+    });
+
+    // Możliwość dodawania zespołów (administrator, kierownik)
+    const canAddTeam = computed(() => {
+      const role = authState.user?.role;
+      return role === 'administrator' || role === 'admin' || role === 'kierownik' || role === 'manager' || role === 'ADMIN';
     });
 
     // Pobierz zespoły z API
@@ -181,7 +188,8 @@ export default {
       fetchTeams,
       selectTeam,
       getTeamShortName,
-      getTeamColor
+      getTeamColor,
+      canAddTeam
     };
   }
 };
