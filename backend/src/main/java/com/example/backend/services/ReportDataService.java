@@ -48,7 +48,7 @@ public class ReportDataService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new RuntimeException("Team not found"));
 
-        // Fetch tasks for the team within the date range, excluding administrator tasks
+        // ✅ NOWA LOGIKA: Fetch ALL tasks for the team within the date range
         List<Task> tasks = taskRepository.findByTeam(team).stream()
                 .filter(task -> {
                     LocalDate taskDate = task.getStartDate();
@@ -56,38 +56,52 @@ public class ReportDataService {
                             !taskDate.isBefore(startDate) &&
                             !taskDate.isAfter(endDate);
                 })
-                // Exclude tasks created by administrators
-                .filter(task -> task.getCreatedBy() != null &&
-                        !"administrator".equalsIgnoreCase(task.getCreatedBy().getRole()))
+                // ✅ USUNIĘTO: Filtr wykluczający administratorów - bierzemy WSZYSTKIE zadania zespołu
                 .collect(Collectors.toList());
 
-        // Count completed tasks
+        // ✅ Count completed tasks - sprawdź completed_date oraz status "Zakończone"
         long completedCount = tasks.stream()
-                .filter(task -> task.getCompletedDate() != null)
+                .filter(task -> {
+                    // Zadanie ukończone jeśli ma completed_date lub status "Zakończone"
+                    if (task.getCompletedDate() != null) {
+                        return true;
+                    }
+                    if (task.getStatus() != null) {
+                        return "zakończone".equalsIgnoreCase(task.getStatus().getName());
+                    }
+                    return false;
+                })
                 .count();
 
-        // Count delayed tasks
+        // ✅ Count delayed tasks
         long delayedCount = tasks.stream()
                 .filter(task -> {
                     if (task.getDeadline() == null) {
                         return false;
                     }
+
+                    // Sprawdź czy zadanie jest opóźnione
                     if (task.getCompletedDate() == null) {
+                        // Zadanie nie ukończone - sprawdź czy deadline minął
                         return currentDate.isAfter(task.getDeadline());
                     } else {
+                        // Zadanie ukończone - sprawdź czy ukończono po deadline
                         return task.getCompletedDate().isAfter(task.getDeadline());
                     }
                 })
                 .count();
 
-        // Calculate actual completed percentage based on task completion
+        // ✅ Calculate actual completed percentage based on task completion
         int totalCompletionSum = 0;
         for (Task task : tasks) {
             int taskCompletion;
-            if (task.getCompletedDate() != null) {
+
+            // Sprawdź czy zadanie ukończone
+            if (task.getCompletedDate() != null ||
+                    (task.getStatus() != null && "zakończone".equalsIgnoreCase(task.getStatus().getName()))) {
                 taskCompletion = 100;
             } else if (task.getStatus() != null) {
-                // Use progressMin for consistency
+                // Użyj progressMin ze statusu
                 taskCompletion = task.getStatus().getProgressMin();
             } else {
                 taskCompletion = 0;
@@ -96,10 +110,9 @@ public class ReportDataService {
         }
 
         // Calculate average completion
-        int completedPercentage = tasks.isEmpty() ? 0 :
-                totalCompletionSum / tasks.size();
+        int completedPercentage = tasks.isEmpty() ? 0 : totalCompletionSum / tasks.size();
 
-        // Count tasks by status
+        // ✅ Count tasks by status
         Map<String, Long> tasksByStatus = tasks.stream()
                 .filter(task -> task.getStatus() != null)
                 .collect(Collectors.groupingBy(
@@ -107,7 +120,7 @@ public class ReportDataService {
                         Collectors.counting()
                 ));
 
-        // Create data items
+        // ✅ Create data items for table
         List<ConstructionProgressItemDTO> items = tasks.stream()
                 .map(task -> {
                     ConstructionProgressItemDTO item = new ConstructionProgressItemDTO();
@@ -116,7 +129,7 @@ public class ReportDataService {
                     item.setPlannedEnd(task.getDeadline());
                     item.setActualEnd(task.getCompletedDate());
 
-                    // Calculate delay information
+                    // ✅ Calculate delay information
                     boolean isDelayed = false;
                     int delayInDays = 0;
 
@@ -139,12 +152,13 @@ public class ReportDataService {
                     item.setDelayed(isDelayed);
                     item.setDelayInDays(delayInDays);
 
-                    // Calculate completion percentage using ONLY progressMin
+                    // Calculate completion percentage
                     int completionPercentage;
-                    if (task.getCompletedDate() != null) {
+                    if (task.getCompletedDate() != null ||
+                            (task.getStatus() != null && "zakończone".equalsIgnoreCase(task.getStatus().getName()))) {
                         completionPercentage = 100;
                     } else if (task.getStatus() != null) {
-                        // Use ONLY the minimum progress value for the status
+                        // Use progressMin for consistency
                         completionPercentage = task.getStatus().getProgressMin();
                     } else {
                         completionPercentage = 0;
@@ -167,6 +181,7 @@ public class ReportDataService {
 
         return reportDTO;
     }
+
     public EmployeeLoadReportDTO collectEmployeeLoadData(Integer userId, String dateFrom, String dateTo) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate startDate = LocalDate.parse(dateFrom, formatter);
@@ -200,24 +215,10 @@ public class ReportDataService {
         if (workingDays < 1) workingDays = 1;
 
         for (User user : users) {
-            // Get tasks created by or assigned to the user
-            List<Task> userTasks = taskRepository.findByCreatedBy(user).stream()
-                    .filter(task -> {
-                        // Check if task is in the date range
-                        LocalDate taskStartDate = task.getStartDate();
-                        LocalDate taskEndDate = task.getCompletedDate() != null ?
-                                task.getCompletedDate() : currentDate;
+            // Get tasks from user's teams instead of created by user
+            List<Task> userTasks = getUserTeamTasks(user, startDate, endDate, currentDate);
 
-                        // Task is relevant if it overlaps with the date range
-                        return (taskStartDate == null || !taskStartDate.isAfter(endDate)) &&
-                                (taskEndDate == null || !taskEndDate.isBefore(startDate));
-                    })
-                    .collect(Collectors.toList());
-
-            // Skip if user has no tasks
-            if (userTasks.isEmpty()) continue;
-
-            // Calculate total task hours based on priority and duration
+            // Always create item for user (even without tasks)
             double totalHours = 0.0;
             Map<String, Integer> tasksByStatus = new HashMap<>();
             List<TaskDetailDTO> taskDetails = new ArrayList<>();
@@ -235,7 +236,8 @@ public class ReportDataService {
                 }
 
                 // Calculate task duration in days
-                LocalDate taskStart = task.getStartDate() != null ? task.getStartDate() : startDate;
+                LocalDate taskStart = task.getStartDate() != null ? task.getStartDate() :
+                        task.getCreatedAt().toLocalDate();
                 LocalDate taskEnd = task.getCompletedDate() != null ? task.getCompletedDate() :
                         (task.getDeadline() != null ? task.getDeadline() : endDate);
 
@@ -282,7 +284,7 @@ public class ReportDataService {
 
             // Ensure we have status data - if not, create a default
             if (tasksByStatus.isEmpty()) {
-                tasksByStatus.put("W toku", userTasks.size());
+                tasksByStatus.put("Brak zadań", 0);
             }
 
             // Calculate FTE equivalent (based on 8-hour workday)
@@ -298,7 +300,7 @@ public class ReportDataService {
 
             // Guard against NaN or infinity
             if (Double.isNaN(fteEquivalent) || Double.isInfinite(fteEquivalent)) {
-                fteEquivalent = totalHours / 160.0;
+                fteEquivalent = 0.0;
             }
 
             // Create and add the employee load item
@@ -323,7 +325,6 @@ public class ReportDataService {
 
         return reportDTO;
     }
-
 
     public TeamEfficiencyReportDTO collectTeamEfficiencyData(String dateFrom, String dateTo) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -504,5 +505,45 @@ public class ReportDataService {
         reportDTO.setSummaryParameters(summaryParameters);
 
         return reportDTO;
+    }
+
+    /**
+     * Pobiera wszystkie zadania zespołów w których użytkownik jest członkiem
+     */
+    private List<Task> getUserTeamTasks(User user, LocalDate startDate, LocalDate endDate, LocalDate currentDate) {
+        List<Task> allUserTasks = new ArrayList<>();
+
+        // Znajdź wszystkie zespoły użytkownika
+        List<TeamMember> userTeamMemberships = teamMemberRepository.findByUser(user);
+
+        for (TeamMember membership : userTeamMemberships) {
+            if (membership.getIsActive()) {
+                // Pobierz wszystkie zadania zespołu
+                List<Task> teamTasks = taskRepository.findByTeam(membership.getTeam());
+
+                // Filtruj zadania według dat
+                List<Task> filteredTasks = teamTasks.stream()
+                        .filter(task -> {
+                            // Task is relevant if it overlaps with the date range
+                            LocalDate taskStartDate = task.getStartDate() != null ?
+                                    task.getStartDate() :
+                                    task.getCreatedAt().toLocalDate();
+                            LocalDate taskEndDate = task.getCompletedDate() != null ?
+                                    task.getCompletedDate() : currentDate;
+
+                            // Task is relevant if it overlaps with the date range
+                            return (taskStartDate == null || !taskStartDate.isAfter(endDate)) &&
+                                    (taskEndDate == null || !taskEndDate.isBefore(startDate));
+                        })
+                        .collect(Collectors.toList());
+
+                allUserTasks.addAll(filteredTasks);
+            }
+        }
+
+        // Usuń duplikaty (jeśli użytkownik jest w wielu zespołach z tym samym zadaniem)
+        return allUserTasks.stream()
+                .distinct()
+                .collect(Collectors.toList());
     }
 }
