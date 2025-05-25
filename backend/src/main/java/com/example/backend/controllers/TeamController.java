@@ -1,6 +1,8 @@
 package com.example.backend.controllers;
 
 import com.example.backend.dto.TeamDTO;
+import com.example.backend.dto.UserDTO;
+import com.example.backend.dto.UserResponseDTO;
 import com.example.backend.services.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -168,5 +170,18 @@ public class TeamController {
         return teamService.deactivateTeam(id)
                 .map(team -> new ResponseEntity<>(team, HttpStatus.OK))
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    /**
+     * Pobiera dane kierownika zespołu o podanym ID.
+     *
+     * @param id Identyfikator zespołu
+     * @return Dane kierownika zespołu lub status 404, jeśli zespół nie istnieje
+     */
+    @GetMapping("/{id}/manager")
+    public ResponseEntity<UserResponseDTO> getTeamManager(@PathVariable Integer id) {
+        return teamService.getTeamManager(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 }
