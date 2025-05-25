@@ -48,7 +48,7 @@ public class ReportDataService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new RuntimeException("Team not found"));
 
-        // Fetch tasks for the team within the date range, excluding administrator tasks
+        // ✅ NOWA LOGIKA: Fetch ALL tasks for the team within the date range
         List<Task> tasks = taskRepository.findByTeam(team).stream()
                 .filter(task -> {
                     LocalDate taskDate = task.getStartDate();
@@ -56,38 +56,52 @@ public class ReportDataService {
                             !taskDate.isBefore(startDate) &&
                             !taskDate.isAfter(endDate);
                 })
-                // Exclude tasks created by administrators
-                .filter(task -> task.getCreatedBy() != null &&
-                        !"administrator".equalsIgnoreCase(task.getCreatedBy().getRole()))
+                // ✅ USUNIĘTO: Filtr wykluczający administratorów - bierzemy WSZYSTKIE zadania zespołu
                 .collect(Collectors.toList());
 
-        // Count completed tasks
+        // ✅ Count completed tasks - sprawdź completed_date oraz status "Zakończone"
         long completedCount = tasks.stream()
-                .filter(task -> task.getCompletedDate() != null)
+                .filter(task -> {
+                    // Zadanie ukończone jeśli ma completed_date lub status "Zakończone"
+                    if (task.getCompletedDate() != null) {
+                        return true;
+                    }
+                    if (task.getStatus() != null) {
+                        return "zakończone".equalsIgnoreCase(task.getStatus().getName());
+                    }
+                    return false;
+                })
                 .count();
 
-        // Count delayed tasks
+        // ✅ Count delayed tasks
         long delayedCount = tasks.stream()
                 .filter(task -> {
                     if (task.getDeadline() == null) {
                         return false;
                     }
+
+                    // Sprawdź czy zadanie jest opóźnione
                     if (task.getCompletedDate() == null) {
+                        // Zadanie nie ukończone - sprawdź czy deadline minął
                         return currentDate.isAfter(task.getDeadline());
                     } else {
+                        // Zadanie ukończone - sprawdź czy ukończono po deadline
                         return task.getCompletedDate().isAfter(task.getDeadline());
                     }
                 })
                 .count();
 
-        // Calculate actual completed percentage based on task completion
+        // ✅ Calculate actual completed percentage based on task completion
         int totalCompletionSum = 0;
         for (Task task : tasks) {
             int taskCompletion;
-            if (task.getCompletedDate() != null) {
+
+            // Sprawdź czy zadanie ukończone
+            if (task.getCompletedDate() != null ||
+                    (task.getStatus() != null && "zakończone".equalsIgnoreCase(task.getStatus().getName()))) {
                 taskCompletion = 100;
             } else if (task.getStatus() != null) {
-                // Use progressMin for consistency
+                // Użyj progressMin ze statusu
                 taskCompletion = task.getStatus().getProgressMin();
             } else {
                 taskCompletion = 0;
@@ -96,10 +110,9 @@ public class ReportDataService {
         }
 
         // Calculate average completion
-        int completedPercentage = tasks.isEmpty() ? 0 :
-                totalCompletionSum / tasks.size();
+        int completedPercentage = tasks.isEmpty() ? 0 : totalCompletionSum / tasks.size();
 
-        // Count tasks by status
+        // ✅ Count tasks by status
         Map<String, Long> tasksByStatus = tasks.stream()
                 .filter(task -> task.getStatus() != null)
                 .collect(Collectors.groupingBy(
@@ -107,7 +120,7 @@ public class ReportDataService {
                         Collectors.counting()
                 ));
 
-        // Create data items
+        // ✅ Create data items for table
         List<ConstructionProgressItemDTO> items = tasks.stream()
                 .map(task -> {
                     ConstructionProgressItemDTO item = new ConstructionProgressItemDTO();
@@ -116,7 +129,7 @@ public class ReportDataService {
                     item.setPlannedEnd(task.getDeadline());
                     item.setActualEnd(task.getCompletedDate());
 
-                    // Calculate delay information
+                    // ✅ Calculate delay information
                     boolean isDelayed = false;
                     int delayInDays = 0;
 
@@ -139,12 +152,13 @@ public class ReportDataService {
                     item.setDelayed(isDelayed);
                     item.setDelayInDays(delayInDays);
 
-                    // Calculate completion percentage using ONLY progressMin
+                    // Calculate completion percentage
                     int completionPercentage;
-                    if (task.getCompletedDate() != null) {
+                    if (task.getCompletedDate() != null ||
+                            (task.getStatus() != null && "zakończone".equalsIgnoreCase(task.getStatus().getName()))) {
                         completionPercentage = 100;
                     } else if (task.getStatus() != null) {
-                        // Use ONLY the minimum progress value for the status
+                        // Use progressMin for consistency
                         completionPercentage = task.getStatus().getProgressMin();
                     } else {
                         completionPercentage = 0;
@@ -201,10 +215,10 @@ public class ReportDataService {
         if (workingDays < 1) workingDays = 1;
 
         for (User user : users) {
-            // ✅ NOWA LOGIKA: Get tasks from user's teams instead of created by user
+            // Get tasks from user's teams instead of created by user
             List<Task> userTasks = getUserTeamTasks(user, startDate, endDate, currentDate);
 
-            // ✅ ZMIANA: Always create item for user (even without tasks)
+            // Always create item for user (even without tasks)
             double totalHours = 0.0;
             Map<String, Integer> tasksByStatus = new HashMap<>();
             List<TaskDetailDTO> taskDetails = new ArrayList<>();
