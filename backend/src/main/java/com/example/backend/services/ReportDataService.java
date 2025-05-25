@@ -167,6 +167,7 @@ public class ReportDataService {
 
         return reportDTO;
     }
+
     public EmployeeLoadReportDTO collectEmployeeLoadData(Integer userId, String dateFrom, String dateTo) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
         LocalDate startDate = LocalDate.parse(dateFrom, formatter);
@@ -200,24 +201,10 @@ public class ReportDataService {
         if (workingDays < 1) workingDays = 1;
 
         for (User user : users) {
-            // Get tasks created by or assigned to the user
-            List<Task> userTasks = taskRepository.findByCreatedBy(user).stream()
-                    .filter(task -> {
-                        // Check if task is in the date range
-                        LocalDate taskStartDate = task.getStartDate();
-                        LocalDate taskEndDate = task.getCompletedDate() != null ?
-                                task.getCompletedDate() : currentDate;
+            // ✅ NOWA LOGIKA: Get tasks from user's teams instead of created by user
+            List<Task> userTasks = getUserTeamTasks(user, startDate, endDate, currentDate);
 
-                        // Task is relevant if it overlaps with the date range
-                        return (taskStartDate == null || !taskStartDate.isAfter(endDate)) &&
-                                (taskEndDate == null || !taskEndDate.isBefore(startDate));
-                    })
-                    .collect(Collectors.toList());
-
-            // Skip if user has no tasks
-            if (userTasks.isEmpty()) continue;
-
-            // Calculate total task hours based on priority and duration
+            // ✅ ZMIANA: Always create item for user (even without tasks)
             double totalHours = 0.0;
             Map<String, Integer> tasksByStatus = new HashMap<>();
             List<TaskDetailDTO> taskDetails = new ArrayList<>();
@@ -235,7 +222,8 @@ public class ReportDataService {
                 }
 
                 // Calculate task duration in days
-                LocalDate taskStart = task.getStartDate() != null ? task.getStartDate() : startDate;
+                LocalDate taskStart = task.getStartDate() != null ? task.getStartDate() :
+                        task.getCreatedAt().toLocalDate();
                 LocalDate taskEnd = task.getCompletedDate() != null ? task.getCompletedDate() :
                         (task.getDeadline() != null ? task.getDeadline() : endDate);
 
@@ -282,7 +270,7 @@ public class ReportDataService {
 
             // Ensure we have status data - if not, create a default
             if (tasksByStatus.isEmpty()) {
-                tasksByStatus.put("W toku", userTasks.size());
+                tasksByStatus.put("Brak zadań", 0);
             }
 
             // Calculate FTE equivalent (based on 8-hour workday)
@@ -298,7 +286,7 @@ public class ReportDataService {
 
             // Guard against NaN or infinity
             if (Double.isNaN(fteEquivalent) || Double.isInfinite(fteEquivalent)) {
-                fteEquivalent = totalHours / 160.0;
+                fteEquivalent = 0.0;
             }
 
             // Create and add the employee load item
@@ -323,7 +311,6 @@ public class ReportDataService {
 
         return reportDTO;
     }
-
 
     public TeamEfficiencyReportDTO collectTeamEfficiencyData(String dateFrom, String dateTo) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -504,5 +491,45 @@ public class ReportDataService {
         reportDTO.setSummaryParameters(summaryParameters);
 
         return reportDTO;
+    }
+
+    /**
+     * Pobiera wszystkie zadania zespołów w których użytkownik jest członkiem
+     */
+    private List<Task> getUserTeamTasks(User user, LocalDate startDate, LocalDate endDate, LocalDate currentDate) {
+        List<Task> allUserTasks = new ArrayList<>();
+
+        // Znajdź wszystkie zespoły użytkownika
+        List<TeamMember> userTeamMemberships = teamMemberRepository.findByUser(user);
+
+        for (TeamMember membership : userTeamMemberships) {
+            if (membership.getIsActive()) {
+                // Pobierz wszystkie zadania zespołu
+                List<Task> teamTasks = taskRepository.findByTeam(membership.getTeam());
+
+                // Filtruj zadania według dat
+                List<Task> filteredTasks = teamTasks.stream()
+                        .filter(task -> {
+                            // Task is relevant if it overlaps with the date range
+                            LocalDate taskStartDate = task.getStartDate() != null ?
+                                    task.getStartDate() :
+                                    task.getCreatedAt().toLocalDate();
+                            LocalDate taskEndDate = task.getCompletedDate() != null ?
+                                    task.getCompletedDate() : currentDate;
+
+                            // Task is relevant if it overlaps with the date range
+                            return (taskStartDate == null || !taskStartDate.isAfter(endDate)) &&
+                                    (taskEndDate == null || !taskEndDate.isBefore(startDate));
+                        })
+                        .collect(Collectors.toList());
+
+                allUserTasks.addAll(filteredTasks);
+            }
+        }
+
+        // Usuń duplikaty (jeśli użytkownik jest w wielu zespołach z tym samym zadaniem)
+        return allUserTasks.stream()
+                .distinct()
+                .collect(Collectors.toList());
     }
 }
