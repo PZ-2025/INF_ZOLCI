@@ -115,6 +115,26 @@
         </div>
       </div>
 
+      <!-- Zakończone zadanie -->
+      <div class="flex items-center space-x-4">
+        <input
+          id="completedCheckbox"
+          type="checkbox"
+          v-model="completedChecked"
+          class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
+        />
+        <label for="completedCheckbox" class="text-black text-lg font-medium">Zadanie zakończone</label>
+        <div v-if="completedChecked" class="flex-1 datepicker-wrapper">
+          <Datepicker
+            v-model="task.completedDate"
+            :input-class="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none datepicker-input'"
+            :format="'yyyy-MM-dd'"
+            :id="'completedDate'"
+            placeholder="Data zakończenia"
+          />
+        </div>
+      </div>
+
       <!-- Przyciski -->
       <div class="flex justify-end gap-4 pt-4">
         <button
@@ -150,7 +170,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import taskService from '../services/taskService';
 import teamService from '../services/teamService';
@@ -194,8 +214,12 @@ export default {
       statusId: null,
       startDate: null,
       deadline: null,
+      completedDate: null, // dodane pole
       createdById: null
     });
+
+    // Checkbox do sterowania completedDate
+    const completedChecked = ref(false);
 
     const teams = ref([]);
     const priorities = ref([]);
@@ -286,9 +310,10 @@ export default {
           statusId: taskData.statusId || (taskData.status?.id) || null,
           startDate: taskData.startDate ? new Date(taskData.startDate) : null,
           deadline: taskData.deadline ? new Date(taskData.deadline) : null,
+          completedDate: taskData.completedDate ? new Date(taskData.completedDate) : null, // dodane
           createdById: taskData.createdById || (taskData.createdBy?.id) || null
         };
-
+        completedChecked.value = !!task.value.completedDate;
       } catch (err) {
         console.error('Błąd podczas ładowania zadania:', err);
         error.value = `Nie udało się załadować zadania: ${err.message}`;
@@ -347,7 +372,8 @@ export default {
           priorityId: parseInt(task.value.priorityId),
           statusId: parseInt(task.value.statusId),
           startDate: formatDate(task.value.startDate),
-          deadline: formatDate(task.value.deadline)
+          deadline: formatDate(task.value.deadline),
+          completedDate: completedChecked.value && task.value.completedDate ? formatDate(task.value.completedDate) : null
         };
 
         console.log('Wysyłanie aktualizacji zadania:', taskData);
@@ -391,6 +417,32 @@ export default {
       fetchTaskDetails();
     });
 
+    // Zapamiętaj ostatni nie-zakończony status
+    const lastNonCompletedStatusId = ref(null);
+
+    // Watcher: automatyczna zmiana statusu na "Zakończone" po ustawieniu daty zakończenia
+    watch([() => task.value.completedDate, completedChecked, statuses], ([completedDate, checked, statusesVal]) => {
+      if (checked && completedDate) {
+        // Znajdź status "Zakończone"
+        const completedStatus = statusesVal.find(
+          s => s.name?.toLowerCase().includes('zakończ')
+        );
+        if (completedStatus && task.value.statusId !== completedStatus.id) {
+          // Zapamiętaj ostatni nie-zakończony status
+          if (task.value.statusId && !lastNonCompletedStatusId.value && (!completedStatus || task.value.statusId !== completedStatus.id)) {
+            lastNonCompletedStatusId.value = task.value.statusId;
+          }
+          task.value.statusId = completedStatus.id;
+        }
+      } else if (!checked || !completedDate) {
+        // Jeśli odznaczono zakończenie, przywróć poprzedni status jeśli był zapamiętany
+        if (lastNonCompletedStatusId.value) {
+          task.value.statusId = lastNonCompletedStatusId.value;
+          lastNonCompletedStatusId.value = null;
+        }
+      }
+    });
+
     return {
       task,
       teams,
@@ -404,7 +456,8 @@ export default {
       goBack,
       showModal,
       modalConfig,
-      hideModal
+      hideModal,
+      completedChecked
     };
   }
 };

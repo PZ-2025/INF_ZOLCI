@@ -17,12 +17,24 @@
       <div class="space-y-4">
         <p><span class="font-semibold text-black">Tytuł: </span> <span class="text-black">{{ task.title }}</span></p>
         <p><span class="font-semibold text-black">Opis: </span> <span class="text-black">{{ task.description }}</span></p>
-        <p>
-          <span class="font-semibold text-black">Status: </span>
-          <span :class="getStatusClass(task.statusId || task.status?.id)">
-            {{ getStatusText(task.statusId || task.status?.id) }}
-          </span>
-        </p>
+        
+        <!-- Status z przyciskiem do zmiany -->
+        <div class="flex items-center justify-between">
+          <p class="flex-grow">
+            <span class="font-semibold text-black">Status: </span>
+            <span :class="getStatusClass(task.statusId || task.status?.id)">
+              {{ getStatusText(task.statusId || task.status?.id) }}
+            </span>
+          </p>
+          <button 
+            v-if="canShowChangeStatusButton"
+            @click="openStatusModal"
+            class="ml-4 px-3 py-1 bg-primary hover:bg-secondary text-white text-xs rounded-md transition-colors"
+          >
+            Zmień
+          </button>
+        </div>
+        
         <p>
           <span class="font-semibold text-black">Priorytet: </span>
           <span :class="getPriorityClass(task.priorityId || task.priority?.id)">
@@ -36,6 +48,10 @@
         <p>
           <span class="font-semibold text-black">Data rozpoczęcia: </span>
           <span class="text-black">{{ formatDate(task.startDate) }}</span>
+        </p>
+        <p v-if="task.completedDate">
+          <span class="font-semibold text-black">Data zakończenia: </span>
+          <span class="text-black">{{ formatDate(task.completedDate) }}</span>
         </p>
         <p><span class="font-semibold text-black">Zespół: </span> <span class="text-black">{{ teamName }}</span></p>
       </div>
@@ -133,6 +149,75 @@
     </div>
   </div>
 
+  <!-- Modal do zmiany statusu -->
+  <div 
+    v-if="showStatusChangeModal" 
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    @click="closeStatusModal"
+  >
+    <div 
+      class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all"
+      @click.stop
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Zmień status zadania</h3>
+        <button 
+          @click="closeStatusModal"
+          class="text-white bg-primary hover:text-secondary transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="mb-4">
+        <p class="text-sm text-gray-600 mb-2">Aktualny status:</p>
+        <div class="flex items-center justify-center">
+          <span :class="getStatusClass(task.statusId || task.status?.id)" class="font-semibold">
+            {{ getStatusText(task.statusId || task.status?.id) }}
+          </span>
+        </div>
+      </div>
+      
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Nowy status:
+        </label>
+        <select
+          v-model="selectedStatusId"
+          class="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="" disabled>Wybierz nowy status</option>
+          <option
+            v-for="status in availableStatuses"
+            :key="status.id"
+            :value="status.id"
+            class="text-gray-900"
+          >
+            {{ status.name }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="flex space-x-3 justify-end">
+        <button
+          @click="closeStatusModal"
+          class="text-white bg-primary hover:text-secondary transition-colors"
+        >
+          Anuluj
+        </button>
+        <button
+          @click="confirmStatusChange"
+          :disabled="!selectedStatusId || isUpdatingStatus"
+          class="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+        >
+          {{ isUpdatingStatus ? 'Zapisywanie...' : 'Zapisz' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Status Modal -->
   <StatusModal
       :show="showModal"
@@ -145,6 +230,7 @@
       @close="hideModal"
   />
 </template>
+
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -175,6 +261,11 @@ export default {
     const showAllComments = ref(false);
     const statuses = ref([]);
     const priorities = ref([]);
+    const selectedStatusId = ref(null);
+    
+    // Modal state
+    const showStatusChangeModal = ref(false);
+    const isUpdatingStatus = ref(false);
 
     // Modal setup
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
@@ -197,8 +288,6 @@ export default {
       // 2. Autor komentarza
       if (comment.userId && user.id === comment.userId) return true;
 
-
-
       return false;
     };
 
@@ -217,6 +306,108 @@ export default {
       }
       return [];
     });
+
+    // Ustal uprawnienia
+    const userRole = computed(() => authState.user?.role || '');
+    const isManager = computed(() => userRole.value === 'kierownik' || userRole.value === 'administrator');
+    const isEmployee = computed(() => userRole.value === 'pracownik');
+
+    // Czy zadanie jest zakończone
+    const isTaskCompleted = computed(() => {
+      const statusId = task.value.statusId || task.value.status?.id;
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      if (foundStatus) {
+        const name = foundStatus.name.toLowerCase();
+        return name.includes('zakończ') || name.includes('completed') || name.includes('done');
+      }
+      return statusId === 3;
+    });
+
+    // Widoczność przycisku zmiany statusu
+    const canShowChangeStatusButton = computed(() => {
+      if (!authState.user) return false;
+      if (!isTaskCompleted.value) return canEditStatus.value; // dowolny uprawniony
+      // Jeśli zakończone, tylko kierownik/administrator
+      return isManager.value;
+    });
+
+    // Czy użytkownik może edytować status
+    const canEditStatus = computed(() => {
+      if (!authState.user) return false;
+      // Kierownik lub administrator może zawsze
+      if (isManager.value) return true;
+      // Pracownik może, ale nie na "Zakończone"
+      if (isEmployee.value) return true;
+      return false;
+    });
+
+    // Lista statusów dostępnych do wyboru
+    const availableStatuses = computed(() => {
+      if (isManager.value) {
+        return statuses.value;
+      }
+      // Pracownik - bez statusu "Zakończone"
+      return statuses.value.filter(s => !s.name?.toLowerCase().includes('zakończ'));
+    });
+
+    // Funkcje modala
+    const openStatusModal = () => {
+      selectedStatusId.value = task.value.statusId || task.value.status?.id;
+      showStatusChangeModal.value = true;
+    };
+
+    const closeStatusModal = () => {
+      showStatusChangeModal.value = false;
+      selectedStatusId.value = null;
+      isUpdatingStatus.value = false;
+    };
+
+    const confirmStatusChange = async () => {
+      if (!selectedStatusId.value || !task.value.id) return;
+      
+      isUpdatingStatus.value = true;
+      
+      try {
+        // Pobierz aktualne dane zadania
+        const currentTask = await taskService.getTaskById(task.value.id);
+
+        // Przygotuj dane do aktualizacji
+        const updatedTask = {
+          ...currentTask,
+          statusId: Number(selectedStatusId.value)
+        };
+
+        await taskService.updateTask(task.value.id, updatedTask);
+        
+        // Zaktualizuj lokalny stan
+        task.value.statusId = Number(selectedStatusId.value);
+        
+        // Zamknij modal
+        closeStatusModal();
+        
+        // Pokaż komunikat sukcesu
+        showStatus({
+          type: 'success',
+          title: 'Sukces',
+          message: 'Status zadania został zaktualizowany',
+          buttonText: 'OK',
+          autoClose: true,
+          autoCloseDelay: 1200
+        });
+        
+      } catch (err) {
+        console.error('Błąd podczas aktualizacji statusu:', err);
+        let msg = 'Nie udało się zaktualizować statusu: ' + (err.response?.data?.message || err.message);
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: msg,
+          buttonText: 'Zamknij'
+        });
+      } finally {
+        isUpdatingStatus.value = false;
+      }
+    };
 
     const toggleDebug = () => {
       debugMode.value = !debugMode.value;
@@ -610,7 +801,17 @@ export default {
       fetchTaskDetails,
       showModal,
       modalConfig,
-      hideModal
+      hideModal,
+      selectedStatusId,
+      canEditStatus,
+      availableStatuses,
+      showStatusChangeModal,
+      isUpdatingStatus,
+      openStatusModal,
+      closeStatusModal,
+      confirmStatusChange,
+      isTaskCompleted,
+      canShowChangeStatusButton
     };
   }
 };
