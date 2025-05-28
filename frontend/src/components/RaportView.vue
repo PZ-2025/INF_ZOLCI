@@ -125,7 +125,14 @@ export default {
         }
 
         const downloadUrl = await pdfReportService.downloadReport(reportId);
-        window.open(downloadUrl, '_blank');
+
+        // Utwórz ukryty link i kliknij go
+        const link = document.createElement('a');
+        link.href = downloadUrl;
+        link.download = report.value.fileName || `raport_${reportId}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       } catch (err) {
         console.error('Błąd podczas pobierania raportu:', err);
         showStatus({

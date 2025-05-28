@@ -251,6 +251,10 @@ public class UserService {
     public Optional<UserDTO> partialUpdateUser(Integer id, Map<String, Object> updates) {
         return userRepository.findById(id)
                 .map(user -> {
+
+                    if(updates.containsKey("username")) {
+                       user.setUsername((String) updates.get("username"));
+                    }
                     // Aktualizacja imienia
                     if (updates.containsKey("firstName")) {
                         user.setFirstName((String) updates.get("firstName"));
