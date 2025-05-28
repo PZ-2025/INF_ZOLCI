@@ -262,6 +262,7 @@ export default {
     const statuses = ref([]);
     const priorities = ref([]);
     const selectedStatusId = ref(null);
+    const teams = ref([]);
     
     // Modal state
     const showStatusChangeModal = ref(false);
@@ -503,10 +504,26 @@ export default {
       }
     };
 
+    // Pobierz zespoły
+    const fetchTeams = async () => {
+      try {
+        teams.value = await teamService.getAllTeams();
+      } catch (err) {
+        teams.value = [];
+      }
+    };
+
+    // Poprawione computed teamName
     const teamName = computed(() => {
       if (!task.value) return 'Nieznany zespół';
       if (task.value.team?.name) return task.value.team.name;
-      return `Zespół #${task.value.teamId}`;
+      // Szukaj po teamId w liście zespołów
+      const teamId = task.value.teamId || task.value.team?.id;
+      if (teamId && teams.value.length > 0) {
+        const found = teams.value.find(t => t.id === teamId);
+        if (found) return found.name;
+      }
+      return `Zespół #${teamId || ''}`;
     });
 
     const addComment = async () => {
@@ -751,6 +768,8 @@ export default {
       await fetchReferenceData();
       // Pobierz szczegóły zadania
       await fetchTaskDetails();
+      // Pobierz zespoły
+      await fetchTeams();
 
       // Dodanie stylów dla niestandardowego scrollbara
       const style = document.createElement('style');
@@ -811,7 +830,8 @@ export default {
       closeStatusModal,
       confirmStatusChange,
       isTaskCompleted,
-      canShowChangeStatusButton
+      canShowChangeStatusButton,
+      teams
     };
   }
 };
