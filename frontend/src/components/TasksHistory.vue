@@ -181,6 +181,67 @@ export default {
 
     const sortBy = ref('');
 
+    // Pobieranie danych referencyjnych
+    const fetchReferenceData = async () => {
+      try {
+        // Pobierz zespoły
+        const teamsResponse = await teamService.getAllTeams();
+
+        // Filtruj zespoły według uprawnień
+        if (authState.user) {
+          const userRole = authState.user.role;
+
+          if (userRole === 'administrator' || userRole === 'admin') {
+            // Administrator widzi wszystkie zespoły
+            teams.value = teamsResponse;
+          } else {
+            // Inni widzą tylko swoje zespoły (użyj już pobranych userTeams)
+            teams.value = userTeams.value;
+          }
+        } else {
+          teams.value = [];
+        }
+
+        // Pobierz priorytety
+        try {
+          const prioritiesResponse = await priorityService.getAllPriorities();
+          priorities.value = prioritiesResponse;
+          console.log('Pobrane priorytety:', priorities.value);
+        } catch (err) {
+          console.error('Błąd podczas pobierania priorytetów:', err);
+          // Dane awaryjne
+          priorities.value = [
+            { id: 1, name: 'Niski' },
+            { id: 2, name: 'Średni' },
+            { id: 3, name: 'Wysoki' }
+          ];
+        }
+
+        // Pobierz statusy - NOWA FUNKCJONALNOŚĆ
+        try {
+          const statusesResponse = await taskStatusService.getAllTaskStatuses();
+          statuses.value = statusesResponse;
+          console.log('Pobrane statusy:', statuses.value);
+        } catch (err) {
+          console.error('Błąd podczas pobierania statusów:', err);
+          // Dane awaryjne
+          statuses.value = [
+            { id: 1, name: 'Rozpoczęte' },
+            { id: 2, name: 'W toku' },
+            { id: 3, name: 'Zakończone' }
+          ];
+        }
+      } catch (err) {
+        console.error('Błąd podczas pobierania danych referencyjnych:', err);
+        // Dane awaryjne
+        teams.value = [
+          { id: 1, name: 'Zespół A' },
+          { id: 2, name: 'Zespół B' },
+          { id: 3, name: 'Zespół C' }
+        ];
+      }
+    };
+
     // Pobieranie zadań z API
     const fetchTasks = async () => {
       loading.value = true;
@@ -255,65 +316,6 @@ export default {
       }
     };
 
-    // Pobieranie danych referencyjnych
-    const fetchReferenceData = async () => {
-      try {
-        // Pobierz zespoły
-        const teamsResponse = await teamService.getAllTeams();
-
-        // Filtruj zespoły według uprawnień
-        if (authState.user) {
-          const userRole = authState.user.role;
-
-          if (userRole === 'administrator' || userRole === 'admin') {
-            // Administrator widzi wszystkie zespoły
-            teams.value = teamsResponse;
-          } else {
-            // Inni widzą tylko swoje zespoły (użyj już pobranych userTeams)
-            teams.value = userTeams.value;
-          }
-        } else {
-          teams.value = [];
-        }
-
-        // Pobierz priorytety
-        try {
-          const prioritiesResponse = await priorityService.getAllPriorities();
-          priorities.value = prioritiesResponse;
-        } catch (err) {
-          console.error('Błąd podczas pobierania priorytetów:', err);
-          // Dane awaryjne
-          priorities.value = [
-            { id: 1, name: 'Niski' },
-            { id: 2, name: 'Średni' },
-            { id: 3, name: 'Wysoki' }
-          ];
-        }
-
-        // Pobierz statusy
-        try {
-          const statusesResponse = await taskStatusService.getAllTaskStatuses();
-          statuses.value = statusesResponse;
-        } catch (err) {
-          console.error('Błąd podczas pobierania statusów:', err);
-          // Dane awaryjne
-          statuses.value = [
-            { id: 1, name: 'Rozpoczęte' },
-            { id: 2, name: 'W toku' },
-            { id: 3, name: 'Zakończone' }
-          ];
-        }
-      } catch (err) {
-        console.error('Błąd podczas pobierania danych referencyjnych:', err);
-        // Dane awaryjne
-        teams.value = [
-          { id: 1, name: 'Zespół A' },
-          { id: 2, name: 'Zespół B' },
-          { id: 3, name: 'Zespół C' }
-        ];
-      }
-    };
-
     // Filtrowanie zadań na podstawie wybranych filtrów
     const filteredTasks = computed(() => {
       let filtered = tasks.value.filter(task => {
@@ -358,9 +360,9 @@ export default {
               today.setHours(0, 0, 0, 0);
 
               const aOverdue = a.deadline && new Date(a.deadline) < today &&
-                  (a.statusId !== 3 && a.status?.id !== 3); // nie zakończone
+                  !isTaskCompleted(a); // Sprawdź czy zadanie nie jest zakończone
               const bOverdue = b.deadline && new Date(b.deadline) < today &&
-                  (b.statusId !== 3 && b.status?.id !== 3); // nie zakończone
+                  !isTaskCompleted(b); // Sprawdź czy zadanie nie jest zakończone
 
               if (aOverdue && !bOverdue) return -1;
               if (!aOverdue && bOverdue) return 1;
@@ -480,7 +482,7 @@ export default {
     const getPriorityText = (priorityId) => {
       if (priorityId === null || priorityId === undefined) return 'Średni';
 
-      // Znajdź priorytet po ID
+      // Znajdź priorytet po ID w dynamicznie pobranych danych
       const foundPriority = priorities.value.find(p => p.id === Number(priorityId));
       if (foundPriority) return foundPriority.name;
 
@@ -508,11 +510,11 @@ export default {
       return priorityClasses[priorityId] || 'bg-yellow-500';
     };
 
-    // Tekstowa reprezentacja statusu
+    // Tekstowa reprezentacja statusu - POPRAWIONA FUNKCJA
     const getStatusText = (statusId) => {
-      if (statusId === null || statusId === undefined) return 'Rozpoczęte';
+      if (statusId === null || statusId === undefined) return 'Nieznany';
 
-      // Znajdź status po ID
+      // Znajdź status po ID w dynamicznie pobranych danych
       const foundStatus = statuses.value.find(s => s.id === Number(statusId));
       if (foundStatus) return foundStatus.name;
 
@@ -523,21 +525,56 @@ export default {
         3: 'Zakończone'
       };
 
-      return statusMap[statusId] || 'Rozpoczęte';
+      return statusMap[statusId] || 'Nieznany';
     };
 
-    // Klasa CSS dla statusu
+    // Klasa CSS dla statusu - POPRAWIONA FUNKCJA
     const getStatusClass = (statusId) => {
-      if (statusId === null || statusId === undefined) return 'bg-blue-100 text-blue-800'; // Domyślny
+      if (statusId === null || statusId === undefined) return 'bg-gray-100 text-gray-800'; // Domyślny
 
-      // Mapowanie ID statusów na klasy CSS
+      // Znajdź status po ID w dynamicznie pobranych danych
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      
+      if (foundStatus) {
+        // Mapowanie na podstawie nazwy statusu
+        const statusName = foundStatus.name.toLowerCase();
+        
+        if (statusName.includes('rozpoczęt') || statusName.includes('start')) {
+          return 'bg-blue-100 text-blue-800';
+        } else if (statusName.includes('toku') || statusName.includes('progress') || statusName.includes('w realizacji')) {
+          return 'bg-yellow-100 text-yellow-800';
+        } else if (statusName.includes('zakończ') || statusName.includes('completed') || statusName.includes('done')) {
+          return 'bg-green-100 text-green-800';
+        } else if (statusName.includes('wstrzyman') || statusName.includes('pause') || statusName.includes('hold')) {
+          return 'bg-orange-100 text-orange-800';
+        } else if (statusName.includes('anulowa') || statusName.includes('cancel')) {
+          return 'bg-red-100 text-red-800';
+        }
+      }
+
+      // Awaryjne mapowanie na podstawie ID jeśli nie znaleziono
       const statusClasses = {
         1: 'bg-blue-100 text-blue-800',      // Rozpoczęte
         2: 'bg-yellow-100 text-yellow-800',  // W toku
         3: 'bg-green-100 text-green-800'     // Zakończone
       };
 
-      return statusClasses[statusId] || 'bg-blue-100 text-blue-800';
+      return statusClasses[statusId] || 'bg-gray-100 text-gray-800';
+    };
+
+    // Sprawdź czy zadanie jest zakończone - NOWA FUNKCJA
+    const isTaskCompleted = (task) => {
+      const statusId = task.statusId || task.status?.id;
+      
+      // Sprawdź w dynamicznie pobranych statusach
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      if (foundStatus) {
+        const statusName = foundStatus.name.toLowerCase();
+        return statusName.includes('zakończ') || statusName.includes('completed') || statusName.includes('done');
+      }
+      
+      // Awaryjne sprawdzenie - status 3 to zwykle "Zakończone"
+      return statusId === 3;
     };
 
     const formatDate = (dateString) => {
@@ -551,13 +588,12 @@ export default {
       }
     };
 
-    // Sprawdź czy zadanie jest opóźnione
+    // Sprawdź czy zadanie jest opóźnione - POPRAWIONA FUNKCJA
     const isOverdue = (task) => {
       if (!task.deadline) return false;
 
       // Zadanie zakończone nie jest opóźnione
-      const statusId = task.statusId || task.status?.id;
-      if (statusId === 3) return false; // Status "Zakończone"
+      if (isTaskCompleted(task)) return false;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);

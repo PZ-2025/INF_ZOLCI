@@ -95,13 +95,9 @@
               <div class="flex items-center space-x-2">
                 <span
                     class="px-2 py-1 rounded-md text-xs font-bold text-white"
-                    :class="{
-                    'bg-red-500': getPriorityName(task.priority) === 'high',
-                    'bg-yellow-500': getPriorityName(task.priority) === 'medium',
-                    'bg-blue-500': getPriorityName(task.priority) === 'low'
-                  }"
+                    :class="getPriorityClass(task.priority)"
                 >
-                  {{ getPriorityText(getPriorityName(task.priority)) }}
+                  {{ getPriorityText(task.priority) }}
                 </span>
                 <button
                     @click="navigateToTaskDetails(task.id)"
@@ -134,13 +130,9 @@
             <div class="flex items-center space-x-2">
               <span
                 class="px-2 py-1 rounded-md text-xs font-bold text-white"
-                :class="{
-                  'bg-red-500': getPriorityName(task.priority) === 'high',
-                  'bg-yellow-500': getPriorityName(task.priority) === 'medium',
-                  'bg-blue-500': getPriorityName(task.priority) === 'low'
-                }"
+                :class="getPriorityClass(task.priority)"
               >
-                {{ getPriorityText(getPriorityName(task.priority)) }}
+                {{ getPriorityText(task.priority) }}
               </span>
               <button
                 @click="navigateToTaskDetails(task.id)"
@@ -162,6 +154,8 @@
 import { ref, onMounted, watch, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import apiService from '../services/api.js';
+import priorityService from '../services/priorityService';
+import taskStatusService from '../services/taskStatusService';
 import { authState } from '../../router/router.js';
 import authService from '../services/authService.js'; 
 
@@ -184,6 +178,10 @@ export default {
     const completedTasks = ref([]);
     const loading = ref(true);
     const error = ref(null);
+
+    // Dane referencyjne
+    const priorities = ref([]);
+    const statuses = ref([]);
 
     // Nawigacja do zarządzania członkami zespołu
     const navigateToManageMembers = () => {
@@ -219,6 +217,35 @@ export default {
       return teamId ? teamId.toString() : null;
     };
 
+    // Pobieranie danych referencyjnych
+    const fetchReferenceData = async () => {
+      try {
+        // Pobierz priorytety
+        const prioritiesResponse = await priorityService.getAllPriorities();
+        priorities.value = prioritiesResponse;
+        console.log('Pobrane priorytety:', priorities.value);
+
+        // Pobierz statusy
+        const statusesResponse = await taskStatusService.getAllTaskStatuses();
+        statuses.value = statusesResponse;
+        console.log('Pobrane statusy:', statuses.value);
+      } catch (err) {
+        console.error('Błąd podczas pobierania danych referencyjnych:', err);
+        // Dane awaryjne
+        priorities.value = [
+          { id: 1, name: 'Niski' },
+          { id: 2, name: 'Średni' },
+          { id: 3, name: 'Wysoki' }
+        ];
+
+        statuses.value = [
+          { id: 1, name: 'Rozpoczęte' },
+          { id: 2, name: 'W toku' },
+          { id: 3, name: 'Zakończone' }
+        ];
+      }
+    };
+
     // Funkcja pobierająca szczegóły zespołu
     const fetchTeamDetails = async () => {
       const teamId = getTeamId();
@@ -235,6 +262,9 @@ export default {
       error.value = null;
 
       try {
+        // Pobierz dane referencyjne równolegle
+        await fetchReferenceData();
+
         // Pobierz szczegóły zespołu
         currentTeam.value = await apiService.get(`/database/teams/${teamId}`);
         console.log("Pobrano szczegóły zespołu:", currentTeam.value);
@@ -292,12 +322,15 @@ export default {
           }));
           console.log("Pobrano zadania zespołu:", teamTasks.value);
 
-          // Podziel zadania na nadchodzące i zakończone
-          upcomingTasks.value = teamTasks.value.filter(task => task.status === 1 || task.status === 2); // Rozpoczęte, W toku
-          completedTasks.value = teamTasks.value.filter(task => task.status === 3); // Zakończone
+          // Podziel zadania na nadchodzące i zakończone - używając dynamicznych statusów
+          upcomingTasks.value = teamTasks.value.filter(task => !isTaskCompleted(task.status));
+          completedTasks.value = teamTasks.value.filter(task => isTaskCompleted(task.status));
         } catch (err) {
           console.error('Error fetching team tasks:', err);
           teamTasks.value = generateDemoTasks(teamId); // Dane demonstracyjne
+          // Podziel dane demonstracyjne
+          upcomingTasks.value = teamTasks.value.filter(task => !isTaskCompleted(task.status));
+          completedTasks.value = teamTasks.value.filter(task => isTaskCompleted(task.status));
         }
 
         // Pobierz historię zadań jako aktywności
@@ -333,6 +366,10 @@ export default {
         teamMembers.value = generateDemoMembers(teamId);
         teamTasks.value = generateDemoTasks(teamId);
         teamActivities.value = generateDemoActivities(teamId);
+        
+        // Podziel dane awaryjne
+        upcomingTasks.value = teamTasks.value.filter(task => !isTaskCompleted(task.status));
+        completedTasks.value = teamTasks.value.filter(task => isTaskCompleted(task.status));
       } finally {
         loading.value = false;
       }
@@ -371,22 +408,22 @@ export default {
           id: teamId * 100 + 1,
           title: 'Remont mieszkania',
           assignedTo: 'Jan Kowalski',
-          priority: 'high',
-          status: 1
+          priority: 3, // Wysoki priorytet
+          status: 1    // Rozpoczęte
         },
         {
           id: teamId * 100 + 2,
           title: 'Budowa werandy',
           assignedTo: 'Anna Nowak',
-          priority: 'medium',
-          status: 3
+          priority: 2, // Średni priorytet
+          status: 3    // Zakończone
         },
         {
           id: teamId * 100 + 3,
           title: 'Naprawa dachu',
           assignedTo: 'Piotr Zieliński',
-          priority: 'low',
-          status: 2
+          priority: 1, // Niski priorytet
+          status: 2    // W toku
         }
       ];
     };
@@ -445,24 +482,69 @@ export default {
       return member.id ? colors[member.id % colors.length] : colors[0];
     };
 
-    const getPriorityName = (priority) => {
-      if (priority === null || priority === undefined) return 'medium';
-
-      const priorityMap = {
-        1: 'low',
-        2: 'medium',
-        3: 'high'
-      };
-      return priorityMap[priority] || 'medium';
+    // Sprawdź czy zadanie jest zakończone - używając dynamicznych statusów
+    const isTaskCompleted = (statusId) => {
+      if (statusId === null || statusId === undefined) return false;
+      
+      // Sprawdź w dynamicznie pobranych statusach
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      if (foundStatus) {
+        const statusName = foundStatus.name.toLowerCase();
+        return statusName.includes('zakończ') || statusName.includes('completed') || statusName.includes('done');
+      }
+      
+      // Awaryjne sprawdzenie - status 3 to zwykle "Zakończone"
+      return statusId === 3;
     };
 
-    const getPriorityText = (priority) => {
-      const priorityTexts = {
-        'low': 'Niski',
-        'medium': 'Średni',
-        'high': 'Wysoki'
+    // Tekstowa reprezentacja priorytetu - używając dynamicznych priorytetów
+    const getPriorityText = (priorityId) => {
+      if (priorityId === null || priorityId === undefined) return 'Średni';
+
+      // Znajdź priorytet po ID w dynamicznie pobranych danych
+      const foundPriority = priorities.value.find(p => p.id === Number(priorityId));
+      if (foundPriority) return foundPriority.name;
+
+      // Awaryjne mapowanie jeśli nie znaleziono
+      const priorityMap = {
+        1: 'Niski',
+        2: 'Średni',
+        3: 'Wysoki'
       };
-      return priorityTexts[priority] || 'Średni';
+
+      return priorityMap[priorityId] || 'Średni';
+    };
+
+    // Klasa CSS dla priorytetu
+    const getPriorityClass = (priorityId) => {
+      if (priorityId === null || priorityId === undefined) return 'bg-yellow-500'; // Domyślny
+
+      // Znajdź priorytet po ID w dynamicznie pobranych danych
+      const foundPriority = priorities.value.find(p => p.id === Number(priorityId));
+      
+      if (foundPriority) {
+        // Mapowanie na podstawie nazwy priorytetu
+        const priorityName = foundPriority.name.toLowerCase();
+        
+        if (priorityName.includes('niski') || priorityName.includes('low')) {
+          return 'bg-blue-500';
+        } else if (priorityName.includes('średni') || priorityName.includes('medium')) {
+          return 'bg-yellow-500';
+        } else if (priorityName.includes('wysoki') || priorityName.includes('high')) {
+          return 'bg-red-500';
+        } else if (priorityName.includes('krytyczny') || priorityName.includes('critical')) {
+          return 'bg-purple-500';
+        }
+      }
+
+      // Awaryjne mapowanie na podstawie ID jeśli nie znaleziono
+      const priorityClasses = {
+        1: 'bg-blue-500',   // Niski
+        2: 'bg-yellow-500', // Średni
+        3: 'bg-red-500'     // Wysoki
+      };
+
+      return priorityClasses[priorityId] || 'bg-yellow-500';
     };
 
     const formatDate = (dateString) => {
@@ -520,8 +602,8 @@ export default {
       getMemberColor,
       navigateToManageMembers,  
       navigateToTaskDetails,
-      getPriorityName,
       getPriorityText,
+      getPriorityClass,
       canManageMembers,
       navigateToAddTask
     };

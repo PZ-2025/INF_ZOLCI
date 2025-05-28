@@ -179,7 +179,6 @@ export default {
 
     // Pobierz ID zadania z parametrów URL lub props
     const taskId = computed(() => {
-      // Sprawdź różne źródła ID zadania
       const id = props.id || route.params.id || route.query.id;
       console.log('TaskEdit - ID zadania (props, params, query):', props.id, route.params.id, route.query.id);
       return id;
@@ -208,69 +207,6 @@ export default {
     // Status modal
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
-    // Pobieranie szczegółów zadania
-    const fetchTaskDetails = async () => {
-      loading.value = true;
-      error.value = null;
-
-      try {
-        // Sprawdź czy mamy ID zadania
-        if (!taskId.value) {
-          console.error('Brak ID zadania w parametrach URL:', route.params, route.query);
-          throw new Error('ID zadania jest wymagane');
-        }
-
-        console.log('Pobieranie zadania o ID:', taskId.value);
-
-        // Pobierz dane zadania z API
-        const taskData = await taskService.getTaskById(taskId.value);
-        console.log('Pobrane dane zadania:', taskData);
-
-        // Mapuj dane zadania do formularza
-        task.value = {
-          id: taskData.id,
-          title: taskData.title || '',
-          description: taskData.description || '',
-          teamId: taskData.teamId || (taskData.team?.id) || null,
-          priorityId: taskData.priorityId || (taskData.priority?.id) || null,
-          statusId: taskData.statusId || (taskData.status?.id) || null,
-          startDate: taskData.startDate ? new Date(taskData.startDate) : null,
-          deadline: taskData.deadline ? new Date(taskData.deadline) : null,
-          createdById: taskData.createdById || (taskData.createdBy?.id) || null
-        };
-
-        // Pobierz powiązane dane
-        await Promise.all([
-          fetchTeams(),
-          fetchPriorities(),
-          fetchStatuses()
-        ]);
-      } catch (err) {
-        console.error('Błąd podczas ładowania zadania:', err);
-        error.value = `Nie udało się załadować zadania: ${err.message}`;
-
-        // Dane awaryjne
-        teams.value = [
-          { id: 1, name: 'Zespół A' },
-          { id: 2, name: 'Zespół B' }
-        ];
-
-        priorities.value = [
-          { id: 1, name: 'Niski' },
-          { id: 2, name: 'Średni' },
-          { id: 3, name: 'Wysoki' }
-        ];
-
-        statuses.value = [
-          { id: 1, name: 'Rozpoczęte' },
-          { id: 2, name: 'W toku' },
-          { id: 3, name: 'Zakończone' }
-        ];
-      } finally {
-        loading.value = false;
-      }
-    };
-
     // Pobieranie zespołów
     const fetchTeams = async () => {
       try {
@@ -279,8 +215,9 @@ export default {
       } catch (err) {
         console.error('Błąd podczas pobierania zespołów:', err);
         teams.value = [
-          { id: 1, name: 'Zespół A' },
-          { id: 2, name: 'Zespół B' }
+          { id: 1, name: 'Zespół remontowy' },
+          { id: 2, name: 'Zespół instalacyjny' },
+          { id: 3, name: 'Zespół projektowy' }
         ];
       }
     };
@@ -312,6 +249,58 @@ export default {
           { id: 2, name: 'W toku' },
           { id: 3, name: 'Zakończone' }
         ];
+      }
+    };
+
+    // Pobieranie szczegółów zadania
+    const fetchTaskDetails = async () => {
+      loading.value = true;
+      error.value = null;
+
+      try {
+        // Sprawdź czy mamy ID zadania
+        if (!taskId.value) {
+          console.error('Brak ID zadania w parametrach URL:', route.params, route.query);
+          throw new Error('ID zadania jest wymagane');
+        }
+
+        console.log('Pobieranie zadania o ID:', taskId.value);
+
+        // Pobierz dane referencyjne równolegle z danymi zadania
+        const [taskData] = await Promise.all([
+          taskService.getTaskById(taskId.value),
+          fetchTeams(),
+          fetchPriorities(),
+          fetchStatuses()
+        ]);
+
+        console.log('Pobrane dane zadania:', taskData);
+
+        // Mapuj dane zadania do formularza
+        task.value = {
+          id: taskData.id,
+          title: taskData.title || '',
+          description: taskData.description || '',
+          teamId: taskData.teamId || (taskData.team?.id) || null,
+          priorityId: taskData.priorityId || (taskData.priority?.id) || null,
+          statusId: taskData.statusId || (taskData.status?.id) || null,
+          startDate: taskData.startDate ? new Date(taskData.startDate) : null,
+          deadline: taskData.deadline ? new Date(taskData.deadline) : null,
+          createdById: taskData.createdById || (taskData.createdBy?.id) || null
+        };
+
+      } catch (err) {
+        console.error('Błąd podczas ładowania zadania:', err);
+        error.value = `Nie udało się załadować zadania: ${err.message}`;
+
+        // Pobierz dane referencyjne nawet w przypadku błędu
+        await Promise.all([
+          fetchTeams(),
+          fetchPriorities(),
+          fetchStatuses()
+        ]);
+      } finally {
+        loading.value = false;
       }
     };
 
