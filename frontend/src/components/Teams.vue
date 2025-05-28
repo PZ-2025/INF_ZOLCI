@@ -34,6 +34,7 @@
           {{ getTeamShortName(team) }}
         </div>
         <h3 class="font-semibold text-secondary">{{ team.name }}</h3>
+        <p class="text-muted text-sm">{{ getTeamManagerName(team) }}</p>
         <p class="text-muted text-sm">{{ teamMemberCounts[team.id] || 0 }} członków</p>
       </div>
     </div>
@@ -69,8 +70,8 @@ export default {
       // Pracownik/kierownik: tylko zespoły, do których należy
       if (!currentUser.value) return [];
       return teams.value.filter(team =>
-        team.managerId === currentUser.value.id ||
-        (team.members && team.members.some(m => m.userId === currentUser.value.id))
+          team.managerId === currentUser.value.id ||
+          (team.members && team.members.some(m => m.userId === currentUser.value.id))
       );
     });
 
@@ -94,8 +95,19 @@ export default {
         // Weź zespoły z API
         teams.value = await teamService.getAllTeams();
 
-        // Pobierz członków dla każdego zespołu (potrzebne do filtracji)
+        // Pobierz dane kierownika dla każdego zespołu
         for (const team of teams.value) {
+          if (team.managerId) {
+            try {
+              const manager = await userService.getUserById(team.managerId);
+              team.manager = manager;
+            } catch (err) {
+              console.error(`Error fetching manager for team ${team.id}:`, err);
+              team.manager = null;
+            }
+          }
+
+          // Pobierz członków zespołu (potrzebne do filtracji)
           try {
             const members = await teamService.getTeamMembers(team.id);
             team.members = members || [];
@@ -132,13 +144,18 @@ export default {
           const members = await teamService.getTeamMembers(team.id);
 
           if (Array.isArray(members)) {
-            teamMemberCounts[team.id] = members.length;
+            // Liczba członków + kierownik (jeśli jest)
+            let count = members.length;
+            if (team.managerId) {
+              count += 1; // Dodaj kierownika do liczby członków
+            }
+            teamMemberCounts[team.id] = count;
           } else {
-            teamMemberCounts[team.id] = 0;
+            teamMemberCounts[team.id] = team.managerId ? 1 : 0;
           }
         } catch (err) {
           console.error(`Error fetching members for team ${team.id}:`, err);
-          teamMemberCounts[team.id] = 0; 
+          teamMemberCounts[team.id] = team.managerId ? 1 : 0;
         }
       }
     };
@@ -171,6 +188,16 @@ export default {
       return colors[team.id % colors.length];
     };
 
+    // Pobierz nazwę kierownika zespołu
+    const getTeamManagerName = (team) => {
+      if (team.manager) {
+        return `Kierownik: ${team.manager.firstName} ${team.manager.lastName}`;
+      } else if (team.managerId) {
+        return 'Kierownik: Ładowanie...';
+      }
+      return 'Kierownik: Nieprzypisany';
+    };
+
     onMounted(fetchTeams);
 
     return {
@@ -181,7 +208,8 @@ export default {
       fetchTeams,
       selectTeam,
       getTeamShortName,
-      getTeamColor
+      getTeamColor,
+      getTeamManagerName
     };
   }
 };
