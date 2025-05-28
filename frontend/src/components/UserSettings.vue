@@ -25,11 +25,11 @@
       <div class="flex items-center mb-4">
         <label class="w-40 font-semibold">Nazwa użytkownika</label>
         <input
-          type="text"
-          v-model="user.username"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Wpisz nazwę użytkownika"
-          required
+            type="text"
+            v-model="user.username"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz nazwę użytkownika"
+            required
         />
       </div>
 
@@ -37,45 +37,45 @@
       <div class="flex items-center mb-4">
         <label class="w-40 font-semibold">Imię</label>
         <input
-          type="text"
-          v-model="user.firstName"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Wpisz imię"
-          required
+            type="text"
+            v-model="user.firstName"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz imię"
+            required
         />
       </div>
 
       <div class="flex items-center mb-4">
         <label class="w-40 font-semibold">Nazwisko</label>
         <input
-          type="text"
-          v-model="user.lastName"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Wpisz nazwisko"
-          required
+            type="text"
+            v-model="user.lastName"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz nazwisko"
+            required
         />
       </div>
 
       <div class="flex items-center mb-4">
         <label for="email" class="w-40 font-semibold">Adres e-mail</label>
         <input
-          type="email"
-          id="email"
-          v-model="user.email"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Twój adres e-mail"
-          required
+            type="email"
+            id="email"
+            v-model="user.email"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Twój adres e-mail"
+            required
         />
       </div>
 
       <div class="flex items-center mb-4">
         <label for="phone" class="w-40 font-semibold">Telefon</label>
         <input
-          type="text"
-          id="phone"
-          v-model="user.phone"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Numer telefonu"
+            type="text"
+            id="phone"
+            v-model="user.phone"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Numer telefonu"
         />
       </div>
 
@@ -154,17 +154,17 @@
       <div v-if="userId" class="flex items-center mb-6">
         <label for="isActive" class="w-40 font-semibold">Aktywny</label>
         <input
-          type="checkbox"
-          id="isActive"
-          v-model="user.isActive"
-          class="h-5 w-5"
+            type="checkbox"
+            id="isActive"
+            v-model="user.isActive"
+            class="h-5 w-5"
         />
       </div>
 
       <button
-        type="submit"
-        class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
-        :disabled="isSaving"
+          type="submit"
+          class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
+          :disabled="isSaving"
       >
         <span v-if="isSaving">Zapisywanie zmian...</span>
         <span v-else>Zapisz Zmiany</span>
@@ -172,14 +172,14 @@
     </form>
 
     <StatusModal
-      :show="showModal"
-      :type="modalConfig.type"
-      :title="modalConfig.title"
-      :message="modalConfig.message"
-      :button-text="modalConfig.buttonText"
-      :auto-close="modalConfig.autoClose"
-      :auto-close-delay="modalConfig.autoCloseDelay"
-      @close="hideModal"
+        :show="showModal"
+        :type="modalConfig.type"
+        :title="modalConfig.title"
+        :message="modalConfig.message"
+        :button-text="modalConfig.buttonText"
+        :auto-close="modalConfig.autoClose"
+        :auto-close-delay="modalConfig.autoCloseDelay"
+        @close="hideModal"
     />
   </div>
 </template>
@@ -320,6 +320,9 @@ export default {
         const changedFields = {};
 
         // Sprawdź, które pola zostały zmienione
+        if (user.username !== originalUserData.value.username) {
+          changedFields.username = user.username;
+        }
         if (user.firstName !== originalUserData.value.firstName) {
           changedFields.firstName = user.firstName;
         }
@@ -380,7 +383,7 @@ export default {
             if (props.userId) {
               router.push('/allusers');
             }
-          } 
+          }
         });
 
         // Zaktualizuj dane w stanie autoryzacji tylko jeśli edytujemy własne dane

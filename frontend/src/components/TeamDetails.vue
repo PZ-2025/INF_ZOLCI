@@ -55,9 +55,9 @@
           </div>
           <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
             <div
-              v-for="member in teamMembers"
-              :key="member.id"
-              class="flex items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition"
+                v-for="member in teamMembers"
+                :key="member.id"
+                class="flex items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition"
             >
               <div class="w-10 h-10 rounded-xl mr-3 flex items-center justify-center text-white font-bold" :style="{ backgroundColor: getMemberColor(member) }">
                 {{ getMemberInitials(member) }}
@@ -65,6 +65,9 @@
               <div class="flex-grow">
                 <h3 class="font-semibold text-text">{{ member.userFullName || member.username }}</h3>
                 <p class="text-sm text-muted">{{ member.username }}</p>
+                <span v-if="member.isManager" class="text-xs bg-primary text-white px-2 py-0.5 rounded">
+                  Kierownik
+                </span>
               </div>
               <div v-if="member.isActive === false" class="ml-2 px-2 py-1 bg-red-100 text-red-800 rounded text-xs">
                 Nieaktywny
@@ -81,9 +84,9 @@
           </div>
           <div v-else class="space-y-4 max-h-96 overflow-y-auto pr-2">
             <div
-              v-for="task in upcomingTasks"
-              :key="task.id"
-              class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
+                v-for="task in upcomingTasks"
+                :key="task.id"
+                class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
             >
               <div>
                 <h3 class="font-semibold text-text">{{ task.title }}</h3>
@@ -91,8 +94,8 @@
               </div>
               <div class="flex items-center space-x-2">
                 <span
-                  class="px-2 py-1 rounded-md text-xs font-bold text-white"
-                  :class="{
+                    class="px-2 py-1 rounded-md text-xs font-bold text-white"
+                    :class="{
                     'bg-red-500': getPriorityName(task.priority) === 'high',
                     'bg-yellow-500': getPriorityName(task.priority) === 'medium',
                     'bg-blue-500': getPriorityName(task.priority) === 'low'
@@ -101,8 +104,8 @@
                   {{ getPriorityText(getPriorityName(task.priority)) }}
                 </span>
                 <button
-                  @click="navigateToTaskDetails(task.id)"
-                  class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition"
+                    @click="navigateToTaskDetails(task.id)"
+                    class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition"
                 >
                   Szczegóły
                 </button>
@@ -248,6 +251,29 @@ export default {
           } else {
             console.warn("Odpowiedź API nie zawiera poprawnych danych członków zespołu:", members);
             teamMembers.value = generateDemoMembers(teamId);
+          }
+
+          // Dodaj kierownika do listy członków jeśli jest przypisany
+          if (currentTeam.value.managerId) {
+            try {
+              const manager = await apiService.get(`/database/users/${currentTeam.value.managerId}`);
+              const managerMember = {
+                id: 'manager-' + currentTeam.value.managerId,
+                teamId: teamId,
+                userId: currentTeam.value.managerId,
+                joinedAt: currentTeam.value.createdAt || new Date().toISOString(),
+                isActive: true,
+                teamName: currentTeam.value.name,
+                username: manager.username,
+                userFullName: `${manager.firstName} ${manager.lastName}`,
+                isManager: true // Flaga do oznaczenia kierownika
+              };
+
+              // Dodaj kierownika na początek listy
+              teamMembers.value = [managerMember, ...teamMembers.value];
+            } catch (err) {
+              console.error('Error fetching manager details:', err);
+            }
           }
         } catch (err) {
           console.error('Error fetching team members:', err);
@@ -399,6 +425,7 @@ export default {
     };
 
     const getTeamMembersCount = () => {
+      // Zwróć liczbę członków (już zawiera kierownika)
       return teamMembers.value.length;
     };
 

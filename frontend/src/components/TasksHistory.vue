@@ -1,8 +1,20 @@
 <template>
   <div class="min-h-screen bg-background text-text flex justify-center items-start">
     <div class="rounded-lg p-6 w-full space-y-8">
-      <div class="flex justify-between items-center">
+      <div class="flex justify-between items-center mb-4">
         <h1 class="text-3xl font-bold text-primary">Historia Zadań</h1>
+        <div class="flex items-center gap-4">
+          <label class="font-medium text-sm">Sortuj według:</label>
+          <select v-model="sortBy"
+                  class="p-2 border border-gray-300 rounded-md bg-white text-text focus:outline-none focus:ring-2 focus:ring-primary"
+          >
+            <option value="">Domyślnie</option>
+            <option value="deadline">Termin (najbliższe)</option>
+            <option value="overdue">Opóźnione najpierw</option>
+            <option value="priority">Priorytet</option>
+            <option value="status">Status</option>
+          </select>
+        </div>
       </div>
 
       <!-- Filtry -->
@@ -82,6 +94,14 @@
       </div>
 
       <!-- Lista zadań -->
+      <div v-else-if="tasks.length === 0 && !loading" class="text-center py-8 text-muted bg-white rounded-lg shadow-sm">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+        </svg>
+        <p class="text-lg font-medium">Brak zadań</p>
+        <p class="text-sm mt-2">Nie masz jeszcze żadnych przypisanych zadań.</p>
+      </div>
+
       <div v-else-if="filteredTasks.length === 0" class="text-center py-8 text-muted">
         <p>Brak zadań spełniających kryteria filtrowania</p>
         <button @click="isDebugMode = true" class="text-xs text-primary mt-2">Pokaż diagnostykę</button>
@@ -115,6 +135,9 @@
             </div>
             <p v-if="task.deadline" class="text-xs text-muted mt-1">
               Termin: {{ formatDate(task.deadline) }}
+              <span v-if="isOverdue(task)" class="text-red-500 font-semibold ml-1">
+                (Opóźnione!)
+              </span>
             </p>
           </div>
           <button @click="openTaskDetails(task)"
@@ -135,6 +158,7 @@ import taskService from '../services/taskService';
 import teamService from '../services/teamService';
 import priorityService from '../services/priorityService';
 import taskStatusService from '../services/taskStatusService';
+import { authState } from '../../router/router';
 
 export default {
   setup() {
@@ -146,6 +170,7 @@ export default {
     const loading = ref(true);
     const error = ref(null);
     const isDebugMode = ref(false);
+    const userTeams = ref([]); // Zespoły użytkownika
 
     const filters = ref({
       team: "",
@@ -153,6 +178,8 @@ export default {
       status: "",
       deadline: ""
     });
+
+    const sortBy = ref('');
 
     // Pobieranie zadań z API
     const fetchTasks = async () => {
@@ -162,7 +189,27 @@ export default {
       try {
         const response = await taskService.getAllTasks();
         console.log('Otrzymane zadania z API:', response);
-        tasks.value = response;
+
+        // Filtruj zadania według uprawnień użytkownika
+        if (authState.user) {
+          const userRole = authState.user.role;
+
+          if (userRole === 'administrator' || userRole === 'admin') {
+            // Administrator widzi wszystkie zadania
+            tasks.value = response;
+          } else {
+            // Pobierz zespoły użytkownika
+            await fetchUserTeams();
+
+            // Filtruj zadania - tylko te należące do zespołów użytkownika
+            tasks.value = response.filter(task => {
+              const taskTeamId = task.teamId || task.team?.id;
+              return userTeams.value.some(team => team.id === taskTeamId);
+            });
+          }
+        } else {
+          tasks.value = [];
+        }
       } catch (err) {
         console.error('Błąd podczas pobierania zadań:', err);
         error.value = `Nie udało się pobrać zadań: ${err.message}`;
@@ -171,12 +218,63 @@ export default {
       }
     };
 
+    // Pobieranie zespołów użytkownika
+    const fetchUserTeams = async () => {
+      if (!authState.user) return;
+
+      try {
+        const allTeams = await teamService.getAllTeams();
+        const userId = authState.user.id;
+        const userRole = authState.user.role;
+
+        // Filtruj zespoły gdzie użytkownik jest członkiem lub kierownikiem
+        userTeams.value = allTeams.filter(team => {
+          // Sprawdź czy użytkownik jest kierownikiem zespołu
+          if (team.managerId === userId) return true;
+
+          // Sprawdź czy użytkownik jest członkiem zespołu
+          // To wymaga pobrania członków każdego zespołu
+          return false; // Na razie zwracamy false, ale możemy to rozbudować
+        });
+
+        // Pobierz członków dla każdego zespołu i sprawdź czy użytkownik jest członkiem
+        for (const team of allTeams) {
+          try {
+            const members = await teamService.getTeamMembers(team.id);
+            if (members && members.some(member => member.userId === userId)) {
+              if (!userTeams.value.find(t => t.id === team.id)) {
+                userTeams.value.push(team);
+              }
+            }
+          } catch (err) {
+            console.error(`Błąd podczas sprawdzania członków zespołu ${team.id}:`, err);
+          }
+        }
+      } catch (err) {
+        console.error('Błąd podczas pobierania zespołów użytkownika:', err);
+      }
+    };
+
     // Pobieranie danych referencyjnych
     const fetchReferenceData = async () => {
       try {
         // Pobierz zespoły
         const teamsResponse = await teamService.getAllTeams();
-        teams.value = teamsResponse;
+
+        // Filtruj zespoły według uprawnień
+        if (authState.user) {
+          const userRole = authState.user.role;
+
+          if (userRole === 'administrator' || userRole === 'admin') {
+            // Administrator widzi wszystkie zespoły
+            teams.value = teamsResponse;
+          } else {
+            // Inni widzą tylko swoje zespoły (użyj już pobranych userTeams)
+            teams.value = userTeams.value;
+          }
+        } else {
+          teams.value = [];
+        }
 
         // Pobierz priorytety
         try {
@@ -218,7 +316,7 @@ export default {
 
     // Filtrowanie zadań na podstawie wybranych filtrów
     const filteredTasks = computed(() => {
-      return tasks.value.filter(task => {
+      let filtered = tasks.value.filter(task => {
         // Filtrowanie po zespole
         const teamMatch = !filters.value.team ||
             String(task.team?.id) === String(filters.value.team) ||
@@ -243,6 +341,53 @@ export default {
 
         return teamMatch && priorityMatch && statusMatch && deadlineMatch;
       });
+
+      // Sortowanie
+      if (sortBy.value) {
+        filtered = [...filtered].sort((a, b) => {
+          switch (sortBy.value) {
+            case 'deadline':
+              // Sortuj według daty deadline (najbliższe najpierw)
+              if (!a.deadline) return 1;
+              if (!b.deadline) return -1;
+              return new Date(a.deadline) - new Date(b.deadline);
+
+            case 'overdue':
+              // Opóźnione zadania najpierw
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+
+              const aOverdue = a.deadline && new Date(a.deadline) < today &&
+                  (a.statusId !== 3 && a.status?.id !== 3); // nie zakończone
+              const bOverdue = b.deadline && new Date(b.deadline) < today &&
+                  (b.statusId !== 3 && b.status?.id !== 3); // nie zakończone
+
+              if (aOverdue && !bOverdue) return -1;
+              if (!aOverdue && bOverdue) return 1;
+              // Jeśli oba są opóźnione lub nie, sortuj po deadline
+              if (!a.deadline) return 1;
+              if (!b.deadline) return -1;
+              return new Date(a.deadline) - new Date(b.deadline);
+
+            case 'priority':
+              // Sortuj według priorytetu (wysoki najpierw)
+              const aPriority = a.priorityId || a.priority?.id || 0;
+              const bPriority = b.priorityId || b.priority?.id || 0;
+              return bPriority - aPriority;
+
+            case 'status':
+              // Sortuj według statusu
+              const aStatus = a.statusId || a.status?.id || 0;
+              const bStatus = b.statusId || b.status?.id || 0;
+              return aStatus - bStatus;
+
+            default:
+              return 0;
+          }
+        });
+      }
+
+      return filtered;
     });
 
     // Reset filtrów
@@ -253,6 +398,7 @@ export default {
         status: "",
         deadline: ""
       };
+      sortBy.value = '';
     };
 
     // Aplikowanie filtrów z możliwością użycia API
@@ -405,6 +551,22 @@ export default {
       }
     };
 
+    // Sprawdź czy zadanie jest opóźnione
+    const isOverdue = (task) => {
+      if (!task.deadline) return false;
+
+      // Zadanie zakończone nie jest opóźnione
+      const statusId = task.statusId || task.status?.id;
+      if (statusId === 3) return false; // Status "Zakończone"
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const deadline = new Date(task.deadline);
+      deadline.setHours(0, 0, 0, 0);
+
+      return deadline < today;
+    };
+
     // Monitoruj zmiany filtrów dla trybu debugowania
     watch(filters, (newFilters) => {
       console.log('Zmiana filtrów:', newFilters);
@@ -426,6 +588,7 @@ export default {
       loading,
       error,
       filters,
+      sortBy,
       isDebugMode,
       filteredTasks,
       resetFilters,
@@ -437,6 +600,7 @@ export default {
       getPriorityClass,
       getStatusClass,
       formatDate,
+      isOverdue,
       fetchTasks
     };
   }
