@@ -145,7 +145,6 @@
       @close="hideModal"
   />
 </template>
-
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -193,19 +192,12 @@ export default {
       // 1. Administrator systemu
       if (user.role === 'administrator') return true;
 
+      if (user.role === 'kierownik') return true;
+
       // 2. Autor komentarza
       if (comment.userId && user.id === comment.userId) return true;
 
-      // 3. Kierownik zespołu przypisanego do zadania
-      // Zakładamy, że task.value.team.managerId to id kierownika
-      if (
-        user.role === 'kierownik' &&
-        task.value.team &&
-        task.value.team.managerId &&
-        user.id === task.value.team.managerId
-      ) {
-        return true;
-      }
+
 
       return false;
     };
