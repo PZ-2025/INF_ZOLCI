@@ -113,10 +113,13 @@
             :key="task.id"
             class="bg-white border border-gray-200 p-4 rounded-lg shadow-sm transition hover:shadow-lg flex flex-col h-full"
         >
-          <div class="flex-grow flex flex-col">
-            <h3 class="text-xl font-semibold text-primary">{{ task.title || task.name }}</h3>
-            <p class="text-sm text-muted">{{ task.description }}</p>
-            <div class="mt-2 flex flex-wrap gap-2">
+          <!-- Tytuł -->
+          <h3 class="text-xl font-semibold text-primary mb-1">{{ task.title || task.name }}</h3>
+          <!-- Opis z flex-grow -->
+          <p class="text-sm text-muted flex-grow mb-2">{{ task.description }}</p>
+          <!-- Plakietki i termin - zawsze nad przyciskiem -->
+          <div>
+            <div class="flex flex-wrap gap-2 mb-1">
               <span class="text-xs px-2 py-1 rounded bg-gray-100">
                 Zespół: {{ getTeamName(task.team || task.teamId) }}
               </span>
@@ -133,7 +136,7 @@
                   {{ getStatusText(task.statusId || task.status?.id) }}
               </span>
             </div>
-            <p v-if="task.deadline" class="text-xs text-muted mt-1">
+            <p v-if="task.deadline" class="text-xs text-muted mb-3">
               Termin: {{ formatDate(task.deadline) }}
               <span v-if="isOverdue(task)" class="text-red-500 font-semibold ml-1">
                 (Opóźnione!)
