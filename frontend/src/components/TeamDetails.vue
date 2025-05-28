@@ -59,8 +59,21 @@
                 :key="member.id"
                 class="flex items-center bg-gray-50 p-3 rounded-lg hover:bg-gray-100 transition"
             >
-              <div class="w-10 h-10 rounded-xl mr-3 flex items-center justify-center text-white font-bold" :style="{ backgroundColor: getMemberColor(member) }">
+              <div 
+                class="w-10 h-10 rounded-xl mr-3 flex items-center justify-center text-white font-bold relative"
+                :style="{ backgroundColor: getMemberColor(member) }"
+                :class="{ 'ring-2 ring-yellow-400 ring-offset-2': member.isManager }"
+              >
                 {{ getMemberInitials(member) }}
+                <!-- Ikona korony dla kierownika -->
+                <div 
+                  v-if="member.isManager" 
+                  class="absolute -top-1 -right-1 w-4 h-4 bg-yellow-400 rounded-full flex items-center justify-center"
+                >
+                  <svg class="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M5 4a1 1 0 00-.64 1.78L6 7.56V15a1 1 0 001 1h6a1 1 0 001-1V7.56l1.64-1.78A1 1 0 0015 4H5z"/>
+                  </svg>
+                </div>
               </div>
               <div class="flex-grow">
                 <h3 class="font-semibold text-text">{{ member.userFullName || member.username }}</h3>
@@ -86,22 +99,28 @@
             <div
                 v-for="task in upcomingTasks"
                 :key="task.id"
-                class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
+                class="bg-gray-50 p-3 rounded-lg flex justify-between items-start"
             >
-              <div>
+              <div class="flex-grow pr-3">
                 <h3 class="font-semibold text-text">{{ task.title }}</h3>
                 <p class="text-sm text-muted">{{ task.assignedTo }}</p>
               </div>
-              <div class="flex items-center space-x-2">
+              <div class="flex flex-col items-end space-y-2 min-w-max">
                 <span
-                    class="px-2 py-1 rounded-md text-xs font-bold text-white"
+                    class="px-2 py-1 rounded-md text-xs font-bold text-white w-full text-center"
                     :class="getPriorityClass(task.priority)"
                 >
                   {{ getPriorityText(task.priority) }}
                 </span>
+                <span
+                    class="px-2 py-1 rounded-md text-xs font-bold w-full text-center"
+                    :class="getStatusClass(task.status)"
+                >
+                  {{ getStatusText(task.status) }}
+                </span>
                 <button
                     @click="navigateToTaskDetails(task.id)"
-                    class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition"
+                    class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition w-full"
                 >
                   Szczegóły
                 </button>
@@ -121,22 +140,28 @@
           <div
             v-for="task in completedTasks"
             :key="task.id"
-            class="bg-gray-50 p-3 rounded-lg flex justify-between items-center"
+            class="bg-gray-50 p-3 rounded-lg flex justify-between items-start"
           >
-            <div>
+            <div class="flex-grow pr-3">
               <h3 class="font-semibold text-text">{{ task.title }}</h3>
               <p class="text-sm text-muted">{{ task.assignedTo }}</p>
             </div>
-            <div class="flex items-center space-x-2">
+            <div class="flex flex-col items-end space-y-2 min-w-max">
               <span
-                class="px-2 py-1 rounded-md text-xs font-bold text-white"
+                class="px-2 py-1 rounded-md text-xs font-bold text-white w-full text-center"
                 :class="getPriorityClass(task.priority)"
               >
                 {{ getPriorityText(task.priority) }}
               </span>
+              <span
+                class="px-2 py-1 rounded-md text-xs font-bold w-full text-center"
+                :class="getStatusClass(task.status)"
+              >
+                {{ getStatusText(task.status) }}
+              </span>
               <button
                 @click="navigateToTaskDetails(task.id)"
-                class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition"
+                class="bg-primary text-white px-3 py-1 rounded-md text-xs hover:bg-secondary transition w-full"
               >
                 Szczegóły
               </button>
@@ -478,6 +503,12 @@ export default {
     };
 
     const getMemberColor = (member) => {
+      // Specjalny kolor dla kierownika - złoty/pomarańczowy
+      if (member.isManager) {
+        return '#f59e0b'; // Złoty dla kierownika (amber-500)
+      }
+      
+      // Kolory dla zwykłych członków
       const colors = ['#780116', '#DB7C26', '#F7B538', '#C32F27', '#D8572A'];
       return member.id ? colors[member.id % colors.length] : colors[0];
     };
@@ -547,6 +578,58 @@ export default {
       return priorityClasses[priorityId] || 'bg-yellow-500';
     };
 
+    // Tekstowa reprezentacja statusu - używając dynamicznych statusów
+    const getStatusText = (statusId) => {
+      if (statusId === null || statusId === undefined) return 'Nieznany';
+
+      // Znajdź status po ID w dynamicznie pobranych danych
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      if (foundStatus) return foundStatus.name;
+
+      // Awaryjne mapowanie jeśli nie znaleziono
+      const statusMap = {
+        1: 'Rozpoczęte',
+        2: 'W toku',
+        3: 'Zakończone'
+      };
+
+      return statusMap[statusId] || 'Nieznany';
+    };
+
+    // Klasa CSS dla statusu
+    const getStatusClass = (statusId) => {
+      if (statusId === null || statusId === undefined) return 'bg-gray-100 text-gray-800'; // Domyślny
+
+      // Znajdź status po ID w dynamicznie pobranych danych
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      
+      if (foundStatus) {
+        // Mapowanie na podstawie nazwy statusu
+        const statusName = foundStatus.name.toLowerCase();
+        
+        if (statusName.includes('rozpoczęt') || statusName.includes('start')) {
+          return 'bg-blue-100 text-blue-800';
+        } else if (statusName.includes('toku') || statusName.includes('progress') || statusName.includes('w realizacji')) {
+          return 'bg-yellow-100 text-yellow-800';
+        } else if (statusName.includes('zakończ') || statusName.includes('completed') || statusName.includes('done')) {
+          return 'bg-green-100 text-green-800';
+        } else if (statusName.includes('wstrzyman') || statusName.includes('pause') || statusName.includes('hold')) {
+          return 'bg-orange-100 text-orange-800';
+        } else if (statusName.includes('anulowa') || statusName.includes('cancel')) {
+          return 'bg-red-100 text-red-800';
+        }
+      }
+
+      // Awaryjne mapowanie na podstawie ID jeśli nie znaleziono
+      const statusClasses = {
+        1: 'bg-blue-100 text-blue-800',      // Rozpoczęte
+        2: 'bg-yellow-100 text-yellow-800',  // W toku
+        3: 'bg-green-100 text-green-800'     // Zakończone
+      };
+
+      return statusClasses[statusId] || 'bg-gray-100 text-gray-800';
+    };
+
     const formatDate = (dateString) => {
       if (!dateString) return 'Nieznana data';
 
@@ -604,6 +687,8 @@ export default {
       navigateToTaskDetails,
       getPriorityText,
       getPriorityClass,
+      getStatusText,
+      getStatusClass,
       canManageMembers,
       navigateToAddTask
     };
