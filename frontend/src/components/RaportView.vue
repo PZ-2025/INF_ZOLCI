@@ -225,7 +225,6 @@ export default {
         await pdfReportService.downloadAndSaveReport(reportId, fileName);
         
         console.log(`✅ Raport ${fileName} został pobrany`);
-
       } catch (err) {
         console.error('❌ Błąd podczas pobierania raportu:', err);
         showStatus({
