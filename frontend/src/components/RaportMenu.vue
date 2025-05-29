@@ -6,24 +6,24 @@
       </h1>
       <div>
         <button
-          :class="activeTab === 'generate' ? 'bg-accent' : 'bg-secondary'"
-          class="text-white px-4 py-2 rounded mr-2 bg-primary hover:bg-secondary"
-          @click="activeTab = 'generate'"
-        >
-          Generowanie raportów
-        </button>
-        <button
           :class="activeTab === 'history' ? 'bg-accent' : 'bg-secondary'"
-          class="text-white px-4 py-2 rounded bg-primary hover:bg-secondary"
+          class="text-white px-4 py-2 rounded mr-2 bg-primary hover:bg-secondary"
           @click="activeTab = 'history'"
         >
           Historia raportów
         </button>
+        <button
+          :class="activeTab === 'generate' ? 'bg-accent' : 'bg-secondary'"
+          class="text-white px-4 py-2 rounded bg-primary hover:bg-secondary"
+          @click="activeTab = 'generate'"
+        >
+          Generowanie raportów
+        </button>
       </div>
     </div>
     <div>
-      <RaportGenerate v-if="activeTab === 'generate'" />
-      <RaportHistory v-else />
+      <RaportHistory v-if="activeTab === 'history'" />
+      <RaportGenerate v-else />
     </div>
   </div>
 </template>
@@ -39,7 +39,7 @@ export default {
   },
   data() {
     return {
-      activeTab: 'generate',
+      activeTab: 'history',
     };
   },
 };
