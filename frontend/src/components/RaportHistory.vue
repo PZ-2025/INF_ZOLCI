@@ -16,36 +16,24 @@
     <div v-else>
       <!-- Sekcja filtrów -->
       <div class="bg-surface p-4 rounded-lg shadow-md border border-gray-200 mb-6">
-        <!-- FLEX: nagłówek + przyciski w jednej linii -->
         <div class="flex items-center justify-between mb-4">
           <h2 class="text-lg font-semibold">Filtrowanie raportów</h2>
-          <div class="flex gap-2">
-            <button 
-              @click="applyFilters" 
-              class="bg-primary text-white px-4 py-2 rounded-md hover:bg-secondary transition"
-            >
-              Filtruj
-            </button>
-            <button 
-              @click="clearFilters" 
-              class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition"
-            >
-              Wyczyść
-            </button>
-          </div>
         </div>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
           <div>
             <label for="reportDate" class="block text-sm font-medium mb-1">Data raportu:</label>
-            <Datepicker
-              v-model="selectedDate"
-              :input-class="datepickerInputClass"
-              :format="'yyyy-MM-dd'"
-              :id="'reportDate'"
-              :placeholder="'Wybierz datę'"
-              :clearable="true"
-            />
+            <div class="datepicker-container">
+              <Datepicker
+                v-model="selectedDate"
+                :input-class="datepickerInputClass"
+                :format="'yyyy-MM-dd'"
+                :id="'reportDate'"
+                placeholder="Wybierz datę..."
+                :clear-button="true"
+                :close-on-select="true"
+              />
+            </div>
           </div>
 
           <div>
@@ -72,10 +60,21 @@
               type="text" 
               id="searchText"
               v-model="searchText"
-              placeholder="Nazwa pliku lub ID..."
+              placeholder="Nazwa pliku, ID, typ..."
               class="w-full p-2 border border-gray-300 rounded-md bg-white text-text focus:ring-2 focus:ring-primary focus:border-primary" 
             />
           </div>
+        </div>
+
+        <div class="mt-4 flex justify-end">
+          <button 
+            @click="clearFilters" 
+            class="bg-gray-500 text-white px-6 py-2 rounded-md hover:bg-gray-600 transition"
+            :disabled="!hasActiveFilters"
+            :class="{ 'opacity-50 cursor-not-allowed': !hasActiveFilters }"
+          >
+            Wyczyść filtry
+          </button>
         </div>
 
         <!-- Podsumowanie filtrów -->
@@ -170,10 +169,10 @@ export default {
     const reports = ref([]);
     const loading = ref(true);
     const error = ref(null);
-    const availableTypes = ref([]); // Dodajemy listę dostępnych typów
+    const availableTypes = ref([]);
     
-    // Filtry - teraz będą się automatycznie stosować
-    const selectedDate = ref(null); // Zmiana: używamy null dla datepicker
+    // Filtry - automatyczne działanie
+    const selectedDate = ref(null);
     const selectedType = ref('');
     const searchText = ref('');
     
@@ -181,8 +180,6 @@ export default {
     const datepickerInputClass = computed(() => 
       'w-full p-2 border border-gray-300 rounded-md bg-white text-sm text-text focus:ring-2 focus:ring-primary focus:border-primary datepicker-input-custom'
     );
-    
-    // Usuwamy activeFilters - nie są już potrzebne
 
     // Sprawdź czy są aktywne filtry
     const hasActiveFilters = computed(() => {
@@ -243,6 +240,7 @@ export default {
         reports.value = [
           {
             id: 1,
+            name: "Raport obciążenia pracownika",
             fileName: "employee_load_report_2025-05-01.pdf",
             filePath: "/reports/employee_load_report_2025-05-01.pdf",
             createdAt: "2025-05-01T10:30:00",
@@ -250,6 +248,7 @@ export default {
           },
           {
             id: 2,
+            name: "Raport postępu prac na budowie",
             fileName: "construction_progress_report_2025-04-28.pdf",
             filePath: "/reports/construction_progress_report_2025-04-28.pdf",
             createdAt: "2025-04-28T15:45:00",
@@ -257,11 +256,19 @@ export default {
           },
           {
             id: 3,
+            name: "Raport efektywności zespołu",
             fileName: "team_efficiency_report_2025-04-15.pdf",
             filePath: "/reports/team_efficiency_report_2025-04-15.pdf",
             createdAt: "2025-04-15T09:15:00",
             type: "team_efficiency"
           }
+        ];
+        
+        // Ustaw przykładowe typy
+        availableTypes.value = [
+          { value: "Raport obciążenia pracownika", label: "Raport obciążenia pracownika" },
+          { value: "Raport postępu prac na budowie", label: "Raport postępu prac na budowie" },
+          { value: "Raport efektywności zespołu", label: "Raport efektywności zespołu" }
         ];
       } finally {
         loading.value = false;
@@ -337,7 +344,7 @@ export default {
     const clearFilters = () => {
       console.log('🧹 Czyszczenie filtrów...');
       
-      selectedDate.value = null; // Zmiana: null dla datepicker
+      selectedDate.value = null;
       selectedType.value = '';
       searchText.value = '';
 
@@ -473,7 +480,7 @@ export default {
     // Inicjalizacja
     onMounted(async () => {
       await fetchReports();
-      console.log('✅ Komponent załadowany - automatyczne filtrowanie aktywne');
+      console.log('✅ Komponent RaportHistory załadowany - automatyczne filtrowanie aktywne');
     });
 
     return {
