@@ -14,40 +14,122 @@
     </div>
 
     <div v-else>
-      <div class="flex flex-wrap gap-4 justify-between items-center mb-6">
-        <div class="flex items-center">
-          <label for="reportDate" class="mr-2 font-medium">Data Raportu:</label>
-          <input type="date" v-model="selectedDate" class="p-2 border border-gray-300 rounded-md bg-white text-text focus:ring-2 focus:ring-primary" />
+      <!-- Sekcja filtrów -->
+      <div class="bg-surface p-4 rounded-lg shadow-md border border-gray-200 mb-6">
+        <!-- FLEX: nagłówek + przyciski w jednej linii -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">Filtrowanie raportów</h2>
+          <div class="flex gap-2">
+            <button 
+              @click="applyFilters" 
+              class="bg-primary text-white px-4 py-2 rounded-md hover:bg-secondary transition"
+            >
+              Filtruj
+            </button>
+            <button 
+              @click="clearFilters" 
+              class="bg-gray-500 text-white px-4 py-2 rounded-md hover:bg-gray-600 transition"
+            >
+              Wyczyść
+            </button>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 items-end">
+          <div>
+            <label for="reportDate" class="block text-sm font-medium mb-1">Data raportu:</label>
+            <Datepicker
+              v-model="selectedDate"
+              :input-class="datepickerInputClass"
+              :format="'yyyy-MM-dd'"
+              :id="'reportDate'"
+              :placeholder="'Wybierz datę'"
+              :clearable="true"
+            />
+          </div>
+
+          <div>
+            <label for="reportType" class="block text-sm font-medium mb-1">Typ raportu:</label>
+            <select 
+              id="reportType"
+              v-model="selectedType" 
+              class="w-full p-2 border border-gray-300 rounded-md bg-white text-text focus:ring-2 focus:ring-primary focus:border-primary"
+            >
+              <option value="">Wszystkie typy</option>
+              <option 
+                v-for="typeOption in availableTypes" 
+                :key="typeOption.value" 
+                :value="typeOption.value"
+              >
+                {{ typeOption.label }}
+              </option>
+            </select>
+          </div>
+
+          <div>
+            <label for="searchText" class="block text-sm font-medium mb-1">Wyszukiwanie:</label>
+            <input 
+              type="text" 
+              id="searchText"
+              v-model="searchText"
+              placeholder="Nazwa pliku lub ID..."
+              class="w-full p-2 border border-gray-300 rounded-md bg-white text-text focus:ring-2 focus:ring-primary focus:border-primary" 
+            />
+          </div>
         </div>
 
-        <div class="flex items-center">
-          <label for="reportType" class="mr-2 font-medium">Typ Raportu:</label>
-          <select v-model="selectedType" class="p-2 border border-gray-300 rounded-md bg-white text-text focus:ring-2 focus:ring-primary">
-            <option value="">Wszystkie</option>
-            <option value="employee_load">Raport obciążenia pracownika</option>
-            <option value="construction_progress">Raport postępu prac na budowie</option>
-            <option value="team_efficiency">Raport efektywności zespołu</option>
-          </select>
+        <!-- Podsumowanie filtrów -->
+        <div v-if="hasActiveFilters" class="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-700">
+          <p class="text-sm">
+            <strong>Aktywne filtry:</strong>
+            <span v-if="selectedDate" class="ml-2">Data: {{ formatFilterDate(selectedDate) }}</span>
+            <span v-if="selectedType" class="ml-2">Typ: {{ selectedType }}</span>
+            <span v-if="searchText" class="ml-2">Wyszukiwanie: "{{ searchText }}"</span>
+          </p>
+          <p class="text-sm mt-1">Znaleziono {{ filteredReports.length }} z {{ reports.length }} raportów</p>
         </div>
-
-        <button @click="applyFilters" class="bg-primary text-white p-2 rounded-md hover:bg-secondary transition">Filtruj</button>
       </div>
 
       <div v-if="filteredReports.length === 0" class="text-center py-8 text-muted">
-        <p>Brak raportów spełniających kryteria filtrowania</p>
+        <div class="bg-gray-100 p-6 rounded-lg">
+          <p class="text-lg mb-2">Brak raportów spełniających kryteria</p>
+          <p v-if="hasActiveFilters" class="text-sm">Spróbuj zmienić filtry lub wyczyść je aby zobaczyć wszystkie raporty</p>
+          <p v-else class="text-sm">Nie znaleziono żadnych raportów w systemie</p>
+        </div>
       </div>
 
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div v-for="report in filteredReports" :key="report.id" class="bg-surface border border-gray-200 p-4 rounded-lg shadow hover:scale-105 transition">
-          <div>
+        <div 
+          v-for="report in filteredReports" 
+          :key="report.id" 
+          class="bg-surface border border-gray-200 p-4 rounded-lg shadow hover:scale-105 transition cursor-pointer flex flex-col h-full"
+          @click="openReportDetails(report)"
+        >
+          <!-- Górna część karty -->
+          <div class="flex-grow">
             <h3 class="text-xl font-semibold text-primary">{{ getReportName(report) }}</h3>
-            <p class="text-muted">{{ getReportDescription(report) }}</p>
-            <p class="text-xs text-muted mt-1">Utworzony: {{ formatDate(report.createdAt) }}</p>
-            <p class="text-xs text-muted">Plik: {{ report.fileName || "Raport PDF" }}</p>
+            <p class="text-muted text-sm mt-1">{{ getReportDescription(report) }}</p>
+            <div class="mt-2 space-y-1 text-xs text-muted">
+              <p><strong>Utworzony:</strong> {{ formatDate(report.createdAt) }}</p>
+              <p><strong>Plik:</strong> {{ report.fileName || "Raport PDF" }}</p>
+              <p><strong>ID:</strong> {{ report.id }}</p>
+            </div>
           </div>
-          <div class="mt-4 flex space-x-3">
-            <button @click="openReportDetails(report)" class="border border-primary text-primary px-4 py-2 rounded-md bg-primary text-white transition">
-              Szczegóły
+          
+          <!-- Dolna część - przyciski zawsze na dole -->
+          <div class="mt-4 flex space-x-3 flex-shrink-0">
+            <button 
+              @click.stop="openReportDetails(report)" 
+              class="bg-primary text-white px-4 py-2 rounded-md hover:bg-secondary transition flex-1"
+            >
+              Otwórz raport
+            </button>
+            <button 
+              @click.stop="downloadReport(report)" 
+              class="bg-gray-500 text-white px-3 py-2 rounded-md hover:bg-gray-600 transition"
+              title="Pobierz PDF"
+            >
+              📥
             </button>
           </div>
         </div>
@@ -68,16 +150,18 @@
 </template>
 
 <script>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import reportService from '../services/reportService';
 import pdfReportService from '../services/pdfReportService';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
+import Datepicker from 'vue3-datepicker';
 
 export default {
   components: {
-    StatusModal
+    StatusModal,
+    Datepicker
   },
   setup() {
     const router = useRouter();
@@ -86,8 +170,42 @@ export default {
     const reports = ref([]);
     const loading = ref(true);
     const error = ref(null);
-    const selectedDate = ref('');
+    const availableTypes = ref([]); // Dodajemy listę dostępnych typów
+    
+    // Filtry - teraz będą się automatycznie stosować
+    const selectedDate = ref(null); // Zmiana: używamy null dla datepicker
     const selectedType = ref('');
+    const searchText = ref('');
+    
+    // Klasa CSS dla inputów datepicker
+    const datepickerInputClass = computed(() => 
+      'w-full p-2 border border-gray-300 rounded-md bg-white text-sm text-text focus:ring-2 focus:ring-primary focus:border-primary datepicker-input-custom'
+    );
+    
+    // Usuwamy activeFilters - nie są już potrzebne
+
+    // Sprawdź czy są aktywne filtry
+    const hasActiveFilters = computed(() => {
+      return selectedDate.value || selectedType.value || searchText.value;
+    });
+
+    // Formatuj datę z datepicker do formatu YYYY-MM-DD dla porównań
+    const formatDateForComparison = (date) => {
+      if (!date) return '';
+      
+      try {
+        if (date instanceof Date) {
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        }
+        return '';
+      } catch (error) {
+        console.error('Błąd formatowania daty:', error);
+        return '';
+      }
+    };
 
     // Funkcja pobierająca raporty z API
     const fetchReports = async () => {
@@ -95,14 +213,33 @@ export default {
       error.value = null;
 
       try {
+        console.log('🔄 Pobieranie raportów z API...');
         const response = await reportService.getAllReports();
-        console.log('Pobrane raporty:', response);
+        console.log('✅ Pobrane raporty:', response);
+        
+        // Debug: pokaż wszystkie unikalne typy raportów z kolumny 'name'
+        const uniqueTypes = [...new Set(response.map(report => report.name).filter(Boolean))];
+        console.log('🔍 Unikalne typy raportów w bazie (kolumna name):', uniqueTypes);
+        
+        // Sprawdź też kolumnę 'type' dla pewności
+        const uniqueTypeColumn = [...new Set(response.map(report => report.type).filter(Boolean))];
+        console.log('🔍 Unikalne typy raportów w bazie (kolumna type):', uniqueTypeColumn);
+        
+        // Ustaw dostępne typy dla selecta na podstawie kolumny 'name'
+        availableTypes.value = uniqueTypes.map(type => ({
+          value: type,
+          label: type
+        }));
+        
+        console.log('📋 Dostępne typy dla selecta:', availableTypes.value);
+        
         reports.value = response;
       } catch (err) {
-        console.error('Błąd podczas pobierania raportów:', err);
+        console.error('❌ Błąd podczas pobierania raportów:', err);
         error.value = `Nie udało się pobrać raportów: ${err.message || 'Nieznany błąd'}`;
 
         // Przykładowe dane, jeśli API zwróci błąd
+        console.log('📝 Używanie przykładowych danych...');
         reports.value = [
           {
             id: 1,
@@ -131,38 +268,93 @@ export default {
       }
     };
 
-    // Raporty przefiltrowane
+    // Raporty przefiltrowane na podstawie bieżących filtrów (automatycznie)
     const filteredReports = computed(() => {
-      return reports.value.filter(report => {
-        // Filtrowanie po typie raportu
-        const typeMatch = !selectedType.value || report.type === selectedType.value;
+      let filtered = [...reports.value];
 
-        // Filtrowanie po dacie (jeśli podana)
-        let dateMatch = true;
-        if (selectedDate.value && report.createdAt) {
-          const reportDate = new Date(report.createdAt).toISOString().split('T')[0];
-          dateMatch = reportDate === selectedDate.value;
-        }
-
-        return typeMatch && dateMatch;
+      console.log(`🔍 Automatyczne filtrowanie ${filtered.length} raportów...`);
+      console.log('📋 Bieżące filtry:', { 
+        date: selectedDate.value, 
+        type: selectedType.value, 
+        search: searchText.value 
       });
+
+      // Filtrowanie po typie raportu (kolumna 'name')
+      if (selectedType.value) {
+        filtered = filtered.filter(report => {
+          const match = report.name === selectedType.value;
+          if (!match) {
+            console.log(`❌ Raport ${report.id} odfiltrowany przez typ:`);
+            console.log(`   - Nazwa raportu: "${report.name}"`);
+            console.log(`   - Szukany typ: "${selectedType.value}"`);
+          }
+          return match;
+        });
+        console.log(`📊 Po filtrze typu: ${filtered.length} raportów`);
+      }
+
+      // Filtrowanie po dacie
+      if (selectedDate.value) {
+        const selectedDateStr = formatDateForComparison(selectedDate.value);
+        if (selectedDateStr) {
+          filtered = filtered.filter(report => {
+            if (!report.createdAt) return false;
+            
+            const reportDate = new Date(report.createdAt).toISOString().split('T')[0];
+            const match = reportDate === selectedDateStr;
+            if (!match) console.log(`❌ Raport ${report.id} odfiltrowany przez datę: ${reportDate} !== ${selectedDateStr}`);
+            return match;
+          });
+          console.log(`📅 Po filtrze daty: ${filtered.length} raportów`);
+        }
+      }
+
+      // Filtrowanie po tekście wyszukiwania
+      if (searchText.value) {
+        const searchLower = searchText.value.toLowerCase();
+        filtered = filtered.filter(report => {
+          const fileName = (report.fileName || '').toLowerCase();
+          const reportId = report.id.toString();
+          const reportName = getReportName(report).toLowerCase();
+          const reportType = (report.name || '').toLowerCase();
+          
+          const match = fileName.includes(searchLower) || 
+                       reportId.includes(searchLower) || 
+                       reportName.includes(searchLower) ||
+                       reportType.includes(searchLower);
+          
+          if (!match) console.log(`❌ Raport ${report.id} odfiltrowany przez wyszukiwanie: "${searchLower}" nie znalezione`);
+          return match;
+        });
+        console.log(`🔍 Po filtrze wyszukiwania: ${filtered.length} raportów`);
+      }
+
+      console.log(`✅ Końcowy wynik automatycznego filtrowania: ${filtered.length} raportów`);
+      return filtered;
     });
 
-    // Zastosowanie filtrów
-    const applyFilters = () => {
-      console.log('Stosowanie filtrów:', { type: selectedType.value, date: selectedDate.value });
-      // Filtrowanie odbywa się automatycznie przez computed property
+    // Czyszczenie filtrów
+    const clearFilters = () => {
+      console.log('🧹 Czyszczenie filtrów...');
+      
+      selectedDate.value = null; // Zmiana: null dla datepicker
+      selectedType.value = '';
+      searchText.value = '';
+
+      console.log('✅ Filtry wyczyszczone - automatyczne filtrowanie zadziała');
     };
 
     // Pobranie raportu
     const downloadReport = async (report) => {
       try {
-        const downloadUrl = await pdfReportService.downloadReport(report.id);
-
-        // Otwórz link w nowym oknie lub pobierz plik
-        window.open(downloadUrl, '_blank');
+        console.log(`📥 Pobieranie raportu ID: ${report.id}`);
+        
+        const fileName = report.fileName || `raport_${report.id}.pdf`;
+        await pdfReportService.downloadAndSaveReport(report.id, fileName);
+        
+        console.log(`✅ Raport ${fileName} został pobrany`);
       } catch (err) {
-        console.error('Błąd podczas pobierania raportu:', err);
+        console.error('❌ Błąd podczas pobierania raportu:', err);
         showStatus({
           type: 'error',
           title: 'Błąd',
@@ -174,6 +366,7 @@ export default {
 
     // Przejście do szczegółów raportu
     const openReportDetails = (report) => {
+      console.log(`🔍 Otwieranie szczegółów raportu ID: ${report.id}`);
       router.push({ name: 'raportView', params: { id: report.id } });
     };
 
@@ -195,55 +388,113 @@ export default {
       }
     };
 
+    // Formatowanie daty dla filtra (wyświetlanie)
+    const formatFilterDate = (date) => {
+      if (!date) return '';
+      
+      try {
+        if (date instanceof Date) {
+          return date.toLocaleDateString('pl-PL', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+        }
+        // Fallback dla string daty
+        const dateObj = new Date(date + 'T00:00:00');
+        return dateObj.toLocaleDateString('pl-PL', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        });
+      } catch (error) {
+        return date.toString();
+      }
+    };
+
     // Pobierz nazwę raportu
     const getReportName = (report) => {
-      if (report.name) return report.name;
+      if (report.name) {
+        // Jeśli 'name' zawiera typ raportu, użyj go + data
+        const date = formatDate(report.createdAt).split(',')[0];
+        return `${report.name} - ${date}`;
+      }
 
-      // Jeśli brak nazwy, generuj ją na podstawie typu i daty
+      // Fallback - użyj fileName lub ID
+      return report.fileName || `Raport #${report.id}`;
+    };
+
+    // Pobierz nazwę typu raportu
+    const getReportTypeName = (type) => {
+      if (!type) return 'Raport';
+      
+      // Jeśli już jest po polsku, zwróć bez zmian
+      if (type.includes('Raport')) {
+        return type;
+      }
+      
+      // Mapowanie z angielskich kluczy na polskie nazwy
       const reportTypeNames = {
         'employee_load': 'Raport obciążenia pracownika',
-        'construction_progress': 'Raport postępu prac',
+        'construction_progress': 'Raport postępu prac na budowie',
         'team_efficiency': 'Raport efektywności zespołu'
       };
 
-      const typeName = reportTypeNames[report.type] || 'Raport';
-      const date = formatDate(report.createdAt).split(',')[0]; // Tylko data bez godziny
-
-      return `${typeName} - ${date}`;
+      return reportTypeNames[type] || type;
     };
 
     // Pobierz opis raportu
     const getReportDescription = (report) => {
       if (report.description) return report.description;
 
-      // Jeśli brak opisu, generuj go na podstawie typu i daty
+      // Generuj opis na podstawie kolumny 'name'
       const reportDescriptions = {
+        'Raport obciążenia pracownika': 'Podsumowanie obciążenia pracowników i przypisanych zadań',
+        'Raport postępu prac na budowie': 'Analiza postępu prac budowlanych i terminów realizacji',
+        'Raport efektywności zespołu': 'Ocena efektywności zespołów i ich wydajności',
+        // Dodaj też wersje z angielskimi kluczami na wypadek gdyby były potrzebne
         'employee_load': 'Podsumowanie obciążenia pracowników i przypisanych zadań',
         'construction_progress': 'Analiza postępu prac budowlanych i terminów realizacji',
         'team_efficiency': 'Ocena efektywności zespołów i ich wydajności'
       };
 
-      return reportDescriptions[report.type] || 'Szczegóły w raporcie';
+      return reportDescriptions[report.name] || reportDescriptions[report.type] || 'Szczegóły w raporcie';
     };
 
+    // Watchers dla automatycznego filtrowania
+    watch([selectedDate, selectedType, searchText], ([newDate, newType, newSearch], [oldDate, oldType, oldSearch]) => {
+      console.log('🔄 Zmiana filtrów - automatyczne przefiltrowanie:', {
+        date: { old: oldDate, new: newDate },
+        type: { old: oldType, new: newType },
+        search: { old: oldSearch, new: newSearch }
+      });
+    });
+
     // Inicjalizacja
-    onMounted(() => {
-      fetchReports();
+    onMounted(async () => {
+      await fetchReports();
+      console.log('✅ Komponent załadowany - automatyczne filtrowanie aktywne');
     });
 
     return {
       reports,
       loading,
       error,
+      availableTypes,
       selectedDate,
       selectedType,
+      searchText,
+      datepickerInputClass,
+      hasActiveFilters,
       filteredReports,
       fetchReports,
-      applyFilters,
+      clearFilters,
       downloadReport,
       openReportDetails,
       formatDate,
+      formatFilterDate,
       getReportName,
+      getReportTypeName,
       getReportDescription,
       showModal,
       modalConfig,
@@ -252,3 +503,9 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+.transition {
+  transition: all 0.2s ease-in-out;
+}
+</style>
