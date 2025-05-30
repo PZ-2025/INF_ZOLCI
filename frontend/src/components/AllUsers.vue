@@ -52,29 +52,32 @@
           </div>
 
           <div class="flex space-x-2">
-            <!-- Przycisk edycji - pokazany tylko wtedy, gdy użytkownik ma uprawnienia -->
+            <!-- Przycisk edycji - zablokowany dla głównego admina -->
             <button
                 v-if="canEditUser(employee)"
+                :disabled="isMainAdmin(employee)"
                 @click="editEmployee(employee.id)"
                 class="text-xs bg-primary text-white px-2 py-1 rounded-md hover:bg-secondary transition"
+                :class="{ 'opacity-50 cursor-not-allowed': isMainAdmin(employee) }"
             >
               Edytuj
             </button>
-            <!-- Przyciski aktywacji/dezaktywacji - pokazane tylko wtedy, gdy użytkownik ma uprawnienia -->
+            <!-- Przycisk dezaktywacji - admin może dezaktywować adminów poza głównym adminem -->
             <button
-                v-if="canEditUser(employee) && employee.isActive && !isUserAdmin(employee)"
+                v-if="canDeactivateUser(employee)"
                 @click="deactivateEmployee(employee.id)"
                 class="text-xs bg-yellow-500 text-white px-2 py-1 rounded-md hover:bg-yellow-600 transition"
             >
               Dezaktywuj
             </button>
-            <!-- Informacja o braku możliwości dezaktywacji administratora -->
+            <!-- Informacja o braku możliwości dezaktywacji głównego admina -->
             <span
-                v-if="canEditUser(employee) && employee.isActive && isUserAdmin(employee)"
+                v-if="isMainAdmin(employee) && isAdmin"
                 class="text-xs text-gray-500 italic"
             >
-              Nie można dezaktywować administratora
+              Nie można dezaktywować głównego administratora
             </span>
+            <!-- Przycisk aktywacji -->
             <button
                 v-if="canEditUser(employee) && !employee.isActive"
                 @click="activateEmployee(employee.id)"
@@ -82,7 +85,7 @@
             >
               Aktywuj
             </button>
-            <!-- Przycisk usuwania - pokazany tylko wtedy, gdy użytkownik ma uprawnienia -->
+            <!-- Przycisk usuwania - admin może usuwać adminów poza głównym adminem -->
             <button
                 v-if="canDeleteUser(employee)"
                 @click="removeEmployee(employee.id, employee.firstName, employee.lastName)"
@@ -90,12 +93,12 @@
             >
               Usuń
             </button>
-            <!-- Informacja o braku uprawnień do usunięcia -->
+            <!-- Informacja o braku możliwości usunięcia głównego admina -->
             <span
-                v-if="!canDeleteUser(employee) && isAdmin"
+                v-if="isMainAdmin(employee) && isAdmin"
                 class="text-xs text-gray-500 italic"
             >
-              Nie można usunąć administratora
+              Nie można usunąć głównego administratora
             </span>
           </div>
         </div>
@@ -173,9 +176,17 @@ export default {
           user.role === 'pracownik';
     };
 
+    // Czy użytkownik to główny administrator
+    const isMainAdmin = (user) => {
+      return isUserAdmin(user) && user.username === 'admin';
+    };
+
     // Czy bieżący użytkownik może edytować wskazanego użytkownika
     const canEditUser = (user) => {
-      // Administrator może edytować wszystkich
+      // Zablokuj edycję głównego admina
+      if (isMainAdmin(user)) return false;
+
+      // Administrator może edytować wszystkich poza głównym adminem
       if (isAdmin.value) {
         return true;
       }
@@ -189,19 +200,30 @@ export default {
       return false;
     };
 
+    // Czy bieżący użytkownik może dezaktywować wskazanego użytkownika
+    const canDeactivateUser = (user) => {
+      // Nie można dezaktywować głównego admina
+      if (isMainAdmin(user)) return false;
+      // Tylko aktywnych można dezaktywować
+      if (!user.isActive) return false;
+      // Admin może dezaktywować innych adminów (poza głównym)
+      if (isAdmin.value && isUserAdmin(user)) return true;
+      // Admin może dezaktywować pracowników i kierowników
+      if (isAdmin.value && !isUserAdmin(user)) return true;
+      // Kierownik może dezaktywować tylko pracowników
+      if (isManager.value) return isUserEmployee(user);
+      return false;
+    };
+
     // Czy bieżący użytkownik może usunąć wskazanego użytkownika
     const canDeleteUser = (user) => {
-      // Administrator może usuwać wszystkich oprócz innych administratorów
-      if (isAdmin.value) {
-        return !isUserAdmin(user);
-      }
-
+      // Nie można usunąć głównego admina
+      if (isMainAdmin(user)) return false;
+      // Admin może usuwać innych adminów (poza głównym) oraz pozostałych
+      if (isAdmin.value && isUserAdmin(user)) return true;
+      if (isAdmin.value && !isUserAdmin(user)) return true;
       // Kierownik może usuwać tylko pracowników
-      if (isManager.value) {
-        return isUserEmployee(user);
-      }
-
-      // Domyślnie - brak uprawnień
+      if (isManager.value) return isUserEmployee(user);
       return false;
     };
 
@@ -310,8 +332,10 @@ export default {
       confirmMessage,
       isAdmin,
       isManager,
+      isMainAdmin,
       canEditUser,
       canDeleteUser,
+      canDeactivateUser,
       fetchEmployees,
       editEmployee,
       deactivateEmployee,

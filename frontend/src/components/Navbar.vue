@@ -20,7 +20,6 @@
         Raporty
       </router-link>
       <router-link
-          v-if="canAccessManagerFeatures"
           to="/tasks"
           :class="navLinkClass('tasks')"
           @click.native="setActiveTab('tasks')">
@@ -85,7 +84,12 @@ export default {
     },
     goBack() {
       if (authState.isAuthenticated) {
-        this.$router.go(-1);
+        if (window.history.length > 1) {
+          this.$router.go(-1);
+        } else {
+          // Przekieruj na domyślną stronę po zalogowaniu 
+          this.$router.push('/teams');
+        }
       } else {
         this.$router.push('/');
       }

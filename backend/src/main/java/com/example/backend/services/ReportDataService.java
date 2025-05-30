@@ -48,7 +48,8 @@ public class ReportDataService {
         Team team = teamRepository.findById(teamId)
                 .orElseThrow(() -> new RuntimeException("Team not found"));
 
-        // ✅ NOWA LOGIKA: Fetch ALL tasks for the team within the date range
+
+        // Fetch ALL tasks for the team within the date range
         List<Task> tasks = taskRepository.findByTeam(team).stream()
                 .filter(task -> {
                     LocalDate taskDate = task.getStartDate();
@@ -56,10 +57,10 @@ public class ReportDataService {
                             !taskDate.isBefore(startDate) &&
                             !taskDate.isAfter(endDate);
                 })
-                // ✅ USUNIĘTO: Filtr wykluczający administratorów - bierzemy WSZYSTKIE zadania zespołu
                 .collect(Collectors.toList());
 
-        // ✅ Count completed tasks - sprawdź completed_date oraz status "Zakończone"
+        //  Count completed tasks - sprawdź completed_date oraz status "Zakończone"
+
         long completedCount = tasks.stream()
                 .filter(task -> {
                     // Zadanie ukończone jeśli ma completed_date lub status "Zakończone"
@@ -73,7 +74,9 @@ public class ReportDataService {
                 })
                 .count();
 
-        // ✅ Count delayed tasks
+
+        //  Count delayed tasks
+
         long delayedCount = tasks.stream()
                 .filter(task -> {
                     if (task.getDeadline() == null) {
@@ -91,7 +94,8 @@ public class ReportDataService {
                 })
                 .count();
 
-        // ✅ Calculate actual completed percentage based on task completion
+        //  Calculate actual completed percentage based on task completion
+
         int totalCompletionSum = 0;
         for (Task task : tasks) {
             int taskCompletion;
@@ -112,7 +116,7 @@ public class ReportDataService {
         // Calculate average completion
         int completedPercentage = tasks.isEmpty() ? 0 : totalCompletionSum / tasks.size();
 
-        // ✅ Count tasks by status
+        //  Count tasks by status
         Map<String, Long> tasksByStatus = tasks.stream()
                 .filter(task -> task.getStatus() != null)
                 .collect(Collectors.groupingBy(
@@ -120,7 +124,7 @@ public class ReportDataService {
                         Collectors.counting()
                 ));
 
-        // ✅ Create data items for table
+        //  Create data items for table
         List<ConstructionProgressItemDTO> items = tasks.stream()
                 .map(task -> {
                     ConstructionProgressItemDTO item = new ConstructionProgressItemDTO();
@@ -129,7 +133,7 @@ public class ReportDataService {
                     item.setPlannedEnd(task.getDeadline());
                     item.setActualEnd(task.getCompletedDate());
 
-                    // ✅ Calculate delay information
+                    //  Calculate delay information
                     boolean isDelayed = false;
                     int delayInDays = 0;
 

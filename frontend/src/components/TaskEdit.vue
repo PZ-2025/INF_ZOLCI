@@ -115,6 +115,26 @@
         </div>
       </div>
 
+      <!-- Zakończone zadanie -->
+      <div class="flex items-center space-x-4">
+        <input
+          id="completedCheckbox"
+          type="checkbox"
+          v-model="completedChecked"
+          class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
+        />
+        <label for="completedCheckbox" class="text-black text-lg font-medium">Zadanie zakończone</label>
+        <div v-if="completedChecked" class="flex-1 datepicker-wrapper">
+          <Datepicker
+            v-model="task.completedDate"
+            :input-class="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none datepicker-input'"
+            :format="'yyyy-MM-dd'"
+            :id="'completedDate'"
+            placeholder="Data zakończenia"
+          />
+        </div>
+      </div>
+
       <!-- Przyciski -->
       <div class="flex justify-end gap-4 pt-4">
         <button
@@ -150,7 +170,7 @@
 </template>
 
 <script>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import taskService from '../services/taskService';
 import teamService from '../services/teamService';
@@ -179,7 +199,6 @@ export default {
 
     // Pobierz ID zadania z parametrów URL lub props
     const taskId = computed(() => {
-      // Sprawdź różne źródła ID zadania
       const id = props.id || route.params.id || route.query.id;
       console.log('TaskEdit - ID zadania (props, params, query):', props.id, route.params.id, route.query.id);
       return id;
@@ -195,8 +214,12 @@ export default {
       statusId: null,
       startDate: null,
       deadline: null,
+      completedDate: null, // dodane pole
       createdById: null
     });
+
+    // Checkbox do sterowania completedDate
+    const completedChecked = ref(false);
 
     const teams = ref([]);
     const priorities = ref([]);
@@ -208,69 +231,6 @@ export default {
     // Status modal
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
-    // Pobieranie szczegółów zadania
-    const fetchTaskDetails = async () => {
-      loading.value = true;
-      error.value = null;
-
-      try {
-        // Sprawdź czy mamy ID zadania
-        if (!taskId.value) {
-          console.error('Brak ID zadania w parametrach URL:', route.params, route.query);
-          throw new Error('ID zadania jest wymagane');
-        }
-
-        console.log('Pobieranie zadania o ID:', taskId.value);
-
-        // Pobierz dane zadania z API
-        const taskData = await taskService.getTaskById(taskId.value);
-        console.log('Pobrane dane zadania:', taskData);
-
-        // Mapuj dane zadania do formularza
-        task.value = {
-          id: taskData.id,
-          title: taskData.title || '',
-          description: taskData.description || '',
-          teamId: taskData.teamId || (taskData.team?.id) || null,
-          priorityId: taskData.priorityId || (taskData.priority?.id) || null,
-          statusId: taskData.statusId || (taskData.status?.id) || null,
-          startDate: taskData.startDate ? new Date(taskData.startDate) : null,
-          deadline: taskData.deadline ? new Date(taskData.deadline) : null,
-          createdById: taskData.createdById || (taskData.createdBy?.id) || null
-        };
-
-        // Pobierz powiązane dane
-        await Promise.all([
-          fetchTeams(),
-          fetchPriorities(),
-          fetchStatuses()
-        ]);
-      } catch (err) {
-        console.error('Błąd podczas ładowania zadania:', err);
-        error.value = `Nie udało się załadować zadania: ${err.message}`;
-
-        // Dane awaryjne
-        teams.value = [
-          { id: 1, name: 'Zespół A' },
-          { id: 2, name: 'Zespół B' }
-        ];
-
-        priorities.value = [
-          { id: 1, name: 'Niski' },
-          { id: 2, name: 'Średni' },
-          { id: 3, name: 'Wysoki' }
-        ];
-
-        statuses.value = [
-          { id: 1, name: 'Rozpoczęte' },
-          { id: 2, name: 'W toku' },
-          { id: 3, name: 'Zakończone' }
-        ];
-      } finally {
-        loading.value = false;
-      }
-    };
-
     // Pobieranie zespołów
     const fetchTeams = async () => {
       try {
@@ -279,8 +239,9 @@ export default {
       } catch (err) {
         console.error('Błąd podczas pobierania zespołów:', err);
         teams.value = [
-          { id: 1, name: 'Zespół A' },
-          { id: 2, name: 'Zespół B' }
+          { id: 1, name: 'Zespół remontowy' },
+          { id: 2, name: 'Zespół instalacyjny' },
+          { id: 3, name: 'Zespół projektowy' }
         ];
       }
     };
@@ -312,6 +273,59 @@ export default {
           { id: 2, name: 'W toku' },
           { id: 3, name: 'Zakończone' }
         ];
+      }
+    };
+
+    // Pobieranie szczegółów zadania
+    const fetchTaskDetails = async () => {
+      loading.value = true;
+      error.value = null;
+
+      try {
+        // Sprawdź czy mamy ID zadania
+        if (!taskId.value) {
+          console.error('Brak ID zadania w parametrach URL:', route.params, route.query);
+          throw new Error('ID zadania jest wymagane');
+        }
+
+        console.log('Pobieranie zadania o ID:', taskId.value);
+
+        // Pobierz dane referencyjne równolegle z danymi zadania
+        const [taskData] = await Promise.all([
+          taskService.getTaskById(taskId.value),
+          fetchTeams(),
+          fetchPriorities(),
+          fetchStatuses()
+        ]);
+
+        console.log('Pobrane dane zadania:', taskData);
+
+        // Mapuj dane zadania do formularza
+        task.value = {
+          id: taskData.id,
+          title: taskData.title || '',
+          description: taskData.description || '',
+          teamId: taskData.teamId || (taskData.team?.id) || null,
+          priorityId: taskData.priorityId || (taskData.priority?.id) || null,
+          statusId: taskData.statusId || (taskData.status?.id) || null,
+          startDate: taskData.startDate ? new Date(taskData.startDate) : null,
+          deadline: taskData.deadline ? new Date(taskData.deadline) : null,
+          completedDate: taskData.completedDate ? new Date(taskData.completedDate) : null, // dodane
+          createdById: taskData.createdById || (taskData.createdBy?.id) || null
+        };
+        completedChecked.value = !!task.value.completedDate;
+      } catch (err) {
+        console.error('Błąd podczas ładowania zadania:', err);
+        error.value = `Nie udało się załadować zadania: ${err.message}`;
+
+        // Pobierz dane referencyjne nawet w przypadku błędu
+        await Promise.all([
+          fetchTeams(),
+          fetchPriorities(),
+          fetchStatuses()
+        ]);
+      } finally {
+        loading.value = false;
       }
     };
 
@@ -358,7 +372,8 @@ export default {
           priorityId: parseInt(task.value.priorityId),
           statusId: parseInt(task.value.statusId),
           startDate: formatDate(task.value.startDate),
-          deadline: formatDate(task.value.deadline)
+          deadline: formatDate(task.value.deadline),
+          completedDate: completedChecked.value && task.value.completedDate ? formatDate(task.value.completedDate) : null
         };
 
         console.log('Wysyłanie aktualizacji zadania:', taskData);
@@ -402,6 +417,32 @@ export default {
       fetchTaskDetails();
     });
 
+    // Zapamiętaj ostatni nie-zakończony status
+    const lastNonCompletedStatusId = ref(null);
+
+    // Watcher: automatyczna zmiana statusu na "Zakończone" po ustawieniu daty zakończenia
+    watch([() => task.value.completedDate, completedChecked, statuses], ([completedDate, checked, statusesVal]) => {
+      if (checked && completedDate) {
+        // Znajdź status "Zakończone"
+        const completedStatus = statusesVal.find(
+          s => s.name?.toLowerCase().includes('zakończ')
+        );
+        if (completedStatus && task.value.statusId !== completedStatus.id) {
+          // Zapamiętaj ostatni nie-zakończony status
+          if (task.value.statusId && !lastNonCompletedStatusId.value && (!completedStatus || task.value.statusId !== completedStatus.id)) {
+            lastNonCompletedStatusId.value = task.value.statusId;
+          }
+          task.value.statusId = completedStatus.id;
+        }
+      } else if (!checked || !completedDate) {
+        // Jeśli odznaczono zakończenie, przywróć poprzedni status jeśli był zapamiętany
+        if (lastNonCompletedStatusId.value) {
+          task.value.statusId = lastNonCompletedStatusId.value;
+          lastNonCompletedStatusId.value = null;
+        }
+      }
+    });
+
     return {
       task,
       teams,
@@ -415,7 +456,8 @@ export default {
       goBack,
       showModal,
       modalConfig,
-      hideModal
+      hideModal,
+      completedChecked
     };
   }
 };

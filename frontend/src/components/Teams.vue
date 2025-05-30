@@ -4,6 +4,7 @@
       <h1 class="text-3xl font-bold text-primary">Zespoły</h1>
 
       <router-link
+          v-if="canAddTeam"
           to="/addteam"
           class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition flex items-center"
       >
@@ -18,6 +19,10 @@
     <div v-else-if="error" class="bg-danger p-4 rounded-xl text-white">
       <p>Błąd podczas ładowania zespołów: {{ error }}</p>
       <button @click="fetchTeams" class="bg-warning mt-2 px-4 py-2 rounded-md">Spróbuj ponownie</button>
+    </div>
+
+    <div v-else-if="teams.length === 0" class="flex justify-center items-center h-64">
+      <p class="text-primary text-xl">Nie należysz do żadnego zespołu.</p>
     </div>
 
     <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -73,6 +78,12 @@ export default {
           team.managerId === currentUser.value.id ||
           (team.members && team.members.some(m => m.userId === currentUser.value.id))
       );
+    });
+
+    // Możliwość dodawania zespołów (administrator, kierownik)
+    const canAddTeam = computed(() => {
+      const role = authState.user?.role;
+      return role === 'administrator' || role === 'admin' || role === 'kierownik' || role === 'manager' || role === 'ADMIN';
     });
 
     // Pobierz zespoły z API
@@ -209,6 +220,7 @@ export default {
       selectTeam,
       getTeamShortName,
       getTeamColor,
+      canAddTeam,
       getTeamManagerName
     };
   }

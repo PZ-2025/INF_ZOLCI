@@ -17,14 +17,26 @@
 
         <div class="mb-4">
           <label for="password" class="block text-text font-semibold mb-2">Hasło</label>
-          <input
-              type="password"
-              id="password"
-              v-model="credentials.password"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-text"
-              placeholder="Wpisz hasło"
-              required
-          >
+          <div class="relative">
+            <input
+                :type="showPassword ? 'text' : 'password'"
+                id="password"
+                v-model="credentials.password"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white text-text"
+                placeholder="Wpisz hasło"
+                required
+            >
+            <button
+              type="button"
+              @click="showPassword = !showPassword"
+              class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
+              tabindex="-1"
+              aria-label="Pokaż/Ukryj hasło"
+            >
+              <span v-if="showPassword">🙈</span>
+              <span v-else>👁️</span>
+            </button>
+          </div>
         </div>
 
         <p v-if="errorMessage" class="text-red-500 text-sm mb-4">{{ errorMessage }}</p>
@@ -55,6 +67,7 @@ export default {
     const errorMessage = ref('');
     const connectionError = ref('');
     const isLoggingIn = ref(false);
+    const showPassword = ref(false);
     let intervalId = null;
 
     const checkBackendConnection = async () => {
@@ -104,7 +117,8 @@ export default {
       errorMessage,
       connectionError,
       isLoggingIn,
-      handleLogin
+      handleLogin,
+      showPassword
     };
   }
 };

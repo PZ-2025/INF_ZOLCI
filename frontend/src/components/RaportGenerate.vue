@@ -90,10 +90,16 @@
       <div class="pt-2">
         <button
             type="submit"
-            class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
-            :disabled="loading"
+            class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            :disabled="loading || isGenerating"
         >
-          <span v-if="loading">Generowanie...</span>
+          <span v-if="loading || isGenerating" class="flex items-center justify-center">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Generowanie...
+          </span>
           <span v-else>Generuj Raport</span>
         </button>
       </div>
@@ -145,6 +151,11 @@ const loading = ref(false);
 const successMessage = ref('');
 const generatedReportId = ref(null);
 
+const isGenerating = ref(false);
+const lastGeneratedParams = ref(null);
+const generationId = ref(0); // Unikalny ID dla każdego generowania
+const generatedFileName = ref('');
+
 const handleReportTypeChange = () => {
   // reset selected values when report type changes
   teamId.value = '';
@@ -180,8 +191,12 @@ onMounted(async () => {
 });
 
 const generateReport = async () => {
+  const currentGenerationId = ++generationId.value;
+  console.log(`🚀 Rozpoczynanie generowania raportu #${currentGenerationId}`);
+
   // Walidacja
   if (!dateFrom.value || !dateTo.value) {
+    console.log(`❌ Błąd walidacji dat #${currentGenerationId}`);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -191,8 +206,8 @@ const generateReport = async () => {
     return;
   }
 
-  // Sprawdź czy data końcowa nie jest wcześniejsza niż początkowa
   if (dateTo.value < dateFrom.value) {
+    console.log(`❌ Błąd walidacji zakresu dat #${currentGenerationId}`);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -202,8 +217,8 @@ const generateReport = async () => {
     return;
   }
 
-  // Dodatkowa walidacja dla typów raportów
   if (reportType.value === 'construction_progress' && !teamId.value) {
+    console.log(`❌ Błąd walidacji zespołu #${currentGenerationId}`);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -213,66 +228,109 @@ const generateReport = async () => {
     return;
   }
 
+  // KLUCZOWE ZABEZPIECZENIE
+  if (isGenerating.value) {
+    console.log(`⏸️ Raport jest już generowany, ignoruję wywołanie #${currentGenerationId}`);
+    return;
+  }
+
+  console.log(`🔒 Ustawianie flagi isGenerating na true #${currentGenerationId}`);
+  isGenerating.value = true;
   loading.value = true;
   successMessage.value = '';
   generatedReportId.value = null;
 
+  // Formatowanie dat
+  const formatDate = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const currentParams = {
+    type: reportType.value,
+    dateFrom: formatDate(dateFrom.value),
+    dateTo: formatDate(dateTo.value),
+    teamId: teamId.value,
+    targetUserId: targetUserId.value,
+    timestamp: Date.now()
+  };
+
+  console.log(`📋 Parametry raportu #${currentGenerationId}:`, currentParams);
+
+  // Sprawdź duplikaty na podstawie parametrów
+  if (lastGeneratedParams.value) {
+    const timeDiff = currentParams.timestamp - lastGeneratedParams.value.timestamp;
+    const paramsEqual = JSON.stringify({...currentParams, timestamp: undefined}) === 
+                       JSON.stringify({...lastGeneratedParams.value, timestamp: undefined});
+    
+    console.log(`🔍 Sprawdzanie duplikatów #${currentGenerationId}: timeDiff=${timeDiff}ms, paramsEqual=${paramsEqual}`);
+    
+    if (paramsEqual && timeDiff < 10000) {
+      console.log(`🚫 Ignoruję duplikat #${currentGenerationId}`);
+      isGenerating.value = false;
+      loading.value = false;
+      return;
+    }
+  }
+
   try {
-    // Potrzebujemy ID zalogowanego użytkownika
     const userId = authState.user?.id;
     if (!userId) {
       throw new Error('Brak zalogowanego użytkownika');
     }
 
-    // Formatowanie dat do yyyy-MM-dd
-    const formatDate = (date) => {
-      if (!date) return '';
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    };
-
+    console.log(`📞 Wywołanie API dla raportu #${currentGenerationId}, userId: ${userId}`);
+    
     let response;
 
-    // Wywołaj odpowiednią metodę w zależności od typu raportu
     switch (reportType.value) {
       case 'construction_progress':
+        console.log(`🏗️ Generowanie raportu postępu budowy #${currentGenerationId}`);
         response = await pdfReportService.generateConstructionProgressReport(
             teamId.value,
-            formatDate(dateFrom.value),
-            formatDate(dateTo.value),
+            currentParams.dateFrom,
+            currentParams.dateTo,
             userId
         );
         break;
       case 'employee_load':
+        console.log(`👥 Generowanie raportu obciążenia pracownika #${currentGenerationId}`);
         response = await pdfReportService.generateEmployeeLoadReport(
             targetUserId.value || null,
-            formatDate(dateFrom.value),
-            formatDate(dateTo.value),
+            currentParams.dateFrom,
+            currentParams.dateTo,
             userId
         );
         break;
       case 'team_efficiency':
+        console.log(`📊 Generowanie raportu efektywności zespołu #${currentGenerationId}`);
         response = await pdfReportService.generateTeamEfficiencyReport(
-            formatDate(dateFrom.value),
-            formatDate(dateTo.value),
+            currentParams.dateFrom,
+            currentParams.dateTo,
             userId
         );
         break;
     }
 
-    console.log('Raport wygenerowany:', response);
+    console.log(`✅ Odpowiedź z API #${currentGenerationId}:`, response);
 
     if (response && response.reportId) {
       generatedReportId.value = response.reportId;
-      successMessage.value = `Raport został wygenerowany pomyślnie! Nazwa pliku: ${response.fileName || 'Raport PDF'}`;
+      generatedFileName.value = response.fileName || `${reportType.value}_${formatDate(dateFrom.value)}_${formatDate(dateTo.value)}.pdf`;
+      successMessage.value = `Raport został wygenerowany pomyślnie! Nazwa pliku: ${generatedFileName.value}`;
+      
+      lastGeneratedParams.value = currentParams;
+      console.log(`💾 Zapisano parametry ostatniego raportu #${currentGenerationId}:`, lastGeneratedParams.value);
     } else {
       successMessage.value = 'Raport został wygenerowany pomyślnie! Możesz go znaleźć w historii raportów.';
+      console.log(`⚠️ Brak reportId w odpowiedzi #${currentGenerationId}`);
     }
 
   } catch (error) {
-    console.error('Błąd podczas generowania raportu:', error);
+    console.error(`❌ Błąd podczas generowania raportu #${currentGenerationId}:`, error);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -280,18 +338,37 @@ const generateReport = async () => {
       buttonText: 'Zamknij'
     });
   } finally {
+    console.log(`🔓 Zwalnianie flagi isGenerating #${currentGenerationId}`);
     loading.value = false;
+    isGenerating.value = false;
   }
 };
 
 const downloadLastReport = async () => {
-  if (!generatedReportId.value) return;
+  console.log(`📥 Próba pobrania raportu. ID: ${generatedReportId.value}, Nazwa: ${generatedFileName.value}`);
+  
+  if (!generatedReportId.value) {
+    console.log(`❌ Brak ID raportu do pobrania`);
+    showStatus({
+      type: 'error',
+      title: 'Błąd',
+      message: 'Brak raportu do pobrania',
+      buttonText: 'OK'
+    });
+    return;
+  }
 
   try {
-    const downloadUrl = await pdfReportService.downloadReport(generatedReportId.value);
-    window.open(downloadUrl, '_blank');
+    console.log(`🔄 Rozpoczynanie pobierania raportu ID: ${generatedReportId.value}`);
+    
+    // Użyj funkcji z pdfReportService do pobierania i zapisywania
+    const fileName = generatedFileName.value || `raport_${generatedReportId.value}.pdf`;
+    await pdfReportService.downloadAndSaveReport(generatedReportId.value, fileName);
+    
+    console.log(`✅ Raport ${fileName} został pobrany pomyślnie`);
+    
   } catch (error) {
-    console.error('Błąd podczas pobierania raportu:', error);
+    console.error('❌ Błąd podczas pobierania raportu:', error);
     showStatus({
       type: 'error',
       title: 'Błąd',

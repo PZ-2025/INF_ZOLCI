@@ -81,37 +81,73 @@
 
       <div class="flex items-center mb-4">
         <label for="currentPassword" class="w-40 font-semibold">Aktualne hasło</label>
-        <input
-            type="password"
+        <div class="flex-1 relative">
+          <input
+            :type="showCurrentPassword ? 'text' : 'password'"
             id="currentPassword"
             v-model="passwordData.currentPassword"
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             placeholder="Wpisz aktualne hasło"
             :required="passwordData.newPassword.length > 0"
-        />
+          />
+          <button
+            type="button"
+            @click="showCurrentPassword = !showCurrentPassword"
+            class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
+            tabindex="-1"
+            aria-label="Pokaż/Ukryj hasło"
+          >
+            <span v-if="showCurrentPassword">🙈</span>
+            <span v-else>👁️</span>
+          </button>
+        </div>
       </div>
 
       <div class="flex items-center mb-4">
         <label for="newPassword" class="w-40 font-semibold">Nowe hasło</label>
-        <input
-            type="password"
+        <div class="flex-1 relative">
+          <input
+            :type="showNewPassword ? 'text' : 'password'"
             id="newPassword"
             v-model="passwordData.newPassword"
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             placeholder="Wpisz nowe hasło"
-        />
+          />
+          <button
+            type="button"
+            @click="showNewPassword = !showNewPassword"
+            class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
+            tabindex="-1"
+            aria-label="Pokaż/Ukryj hasło"
+          >
+            <span v-if="showNewPassword">🙈</span>
+            <span v-else>👁️</span>
+          </button>
+        </div>
       </div>
 
       <div class="flex items-center mb-1">
         <label for="confirmPassword" class="w-40 font-semibold">Potwierdź hasło</label>
-        <input
-            type="password"
+        <div class="flex-1 relative">
+          <input
+            :type="showConfirmPassword ? 'text' : 'password'"
             id="confirmPassword"
             v-model="passwordData.confirmPassword"
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             placeholder="Potwierdź nowe hasło"
-            :required="passwordData.newPassword.length > 0"
-        />
+            :required="passwordData.newPassword.length > 8"
+          />
+          <button
+            type="button"
+            @click="showConfirmPassword = !showConfirmPassword"
+            class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
+            tabindex="-1"
+            aria-label="Pokaż/Ukryj hasło"
+          >
+            <span v-if="showConfirmPassword">🙈</span>
+            <span v-else>👁️</span>
+          </button>
+        </div>
       </div>
       <p v-if="passwordError" class="text-red-500 ml-40 mt-1 text-sm">{{ passwordError }}</p>
 
@@ -170,6 +206,10 @@ export default {
     const router = useRouter();
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
+    const showCurrentPassword = ref(false);
+    const showNewPassword = ref(false);
+    const showConfirmPassword = ref(false);
+
     // Oryginalne dane użytkownika (do wykrywania zmian)
     const originalUserData = ref({});
 
@@ -203,7 +243,7 @@ export default {
         return 'Hasła nie są identyczne';
       }
       if (passwordData.newPassword && passwordData.newPassword.length < 6) {
-        return 'Hasło musi mieć co najmniej 6 znaków';
+        return 'Hasło musi mieć co najmniej 8 znaków';
       }
       return null;
     });
@@ -382,7 +422,10 @@ export default {
       updateSettings,
       showModal,
       modalConfig,
-      hideModal
+      hideModal,
+      showCurrentPassword,
+      showNewPassword,
+      showConfirmPassword
     };
   }
 };
