@@ -208,7 +208,8 @@ export default {
       name: '',
       managerId: null,
       createdAt: null,
-      isActive: true
+      isActive: true,
+      tasks: [] // Zachowaj zadania przypisane do zespołu
     });
 
     // Stan dla członków zespołu
@@ -320,7 +321,8 @@ export default {
           name: teamData.name || '',
           managerId: teamData.managerId || (teamData.manager?.id) || null,
           createdAt: teamData.createdAt ? new Date(teamData.createdAt) : null,
-          isActive: teamData.isActive !== undefined ? teamData.isActive : true
+          isActive: teamData.isActive !== undefined ? teamData.isActive : true,
+          tasks: teamData.tasks || [] // Zachowaj przypisane zadania
         };
       } catch (err) {
         console.error('Błąd podczas ładowania zespołu:', err);
@@ -381,14 +383,17 @@ export default {
           return;
         }
 
-        // 1. Aktualizuj metadane zespołu
+        // 1. Aktualizuj metadane zespołu - zachowaj zadania jeśli backend ich wymaga
         const teamData = {
           name: team.value.name.trim(),
           managerId: team.value.managerId ? parseInt(team.value.managerId) : null,
-          isActive: team.value.isActive
+          isActive: team.value.isActive,
+          // Dodaj zadania tylko jeśli backend używa PUT i ich wymaga
+          ...(team.value.tasks && team.value.tasks.length > 0 ? { tasks: team.value.tasks } : {})
         };
 
-        console.log('Wysyłanie aktualizacji zespołu:', teamData);
+        console.log('Wysyłanie aktualizacji zespołu (BEZ zadań):', teamData);
+        console.log('Oryginalne dane zespołu z zadaniami:', team.value);
         await teamService.updateTeam(teamId.value, teamData);
 
         // 2. Aktualizuj członków zespołu
