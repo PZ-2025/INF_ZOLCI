@@ -7,7 +7,7 @@
     <div v-if="loading" class="text-primary text-xl">Ładowanie zespołu...</div>
 
     <!-- Błąd -->
-    <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 w-full max-w-3xl">
+    <div v-else-if="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 w-full max-w-5xl">
       <p>{{ error }}</p>
       <button @click="fetchTeamDetails" class="mt-2 bg-primary text-white px-4 py-1 rounded-md">
         Spróbuj ponownie
@@ -18,58 +18,123 @@
     <form
       v-else
       @submit.prevent="updateTeam"
-      class="space-y-5 w-full max-w-3xl"
+      class="space-y-8 w-full max-w-5xl"
     >
-      <!-- Nazwa zespołu -->
-      <div class="flex items-center space-x-4">
-        <label for="name" class="w-48 text-black text-lg font-medium">Nazwa zespołu</label>
-        <input
-          v-model="team.name"
-          id="name"
-          type="text"
-          required
-          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
-          placeholder="np. Zespół remontowy"
-        />
+      <!-- Sekcja 1: Podstawowe dane zespołu -->
+      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Podstawowe informacje</h2>
+        
+        <div class="space-y-5">
+          <!-- Nazwa zespołu -->
+          <div class="flex items-center space-x-4">
+            <label for="name" class="w-48 text-black text-lg font-medium">Nazwa zespołu</label>
+            <input
+              v-model="team.name"
+              id="name"
+              type="text"
+              required
+              class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+              placeholder="np. Zespół remontowy"
+            />
+          </div>
+
+          <!-- Manager -->
+          <div class="flex items-center space-x-4">
+            <label for="managerId" class="w-48 text-black text-lg font-medium">Manager zespołu</label>
+            <select
+              v-model.number="team.managerId"
+              id="managerId"
+              class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+            >
+              <option disabled value="">Wybierz managera</option>
+              <option v-for="user in users" :key="user.id" :value="user.id">
+                {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
+              </option>
+            </select>
+          </div>
+
+          <!-- Status aktywności -->
+          <div class="flex items-center space-x-4">
+            <input
+              id="isActiveCheckbox"
+              type="checkbox"
+              v-model="team.isActive"
+              class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
+            />
+            <label for="isActiveCheckbox" class="text-black text-lg font-medium">Zespół aktywny</label>
+          </div>
+
+          <!-- Data utworzenia -->
+          <div class="flex items-center space-x-4">
+            <label for="createdAt" class="w-48 text-black text-lg font-medium">Data utworzenia</label>
+            <input
+              :value="formatDate(team.createdAt)"
+              id="createdAt"
+              type="text"
+              readonly
+              class="flex-1 p-2.5 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-600 cursor-not-allowed"
+              placeholder="Automatycznie ustawiona"
+            />
+          </div>
+        </div>
       </div>
 
-      <!-- Manager -->
-      <div class="flex items-center space-x-4">
-        <label for="managerId" class="w-48 text-black text-lg font-medium">Manager zespołu</label>
-        <select
-          v-model.number="team.managerId"
-          id="managerId"
-          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
-        >
-          <option disabled value="">Wybierz managera</option>
-          <option v-for="user in users" :key="user.id" :value="user.id">
-            {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
-          </option>
-        </select>
-      </div>
+      <!-- Sekcja 2: Członkowie zespołu -->
+      <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-800 mb-4">Członkowie zespołu</h2>
+        
+        <!-- Wyszukiwanie -->
+        <div class="mb-4">
+          <input
+            v-model="search"
+            type="text"
+            placeholder="Szukaj pracownika..."
+            class="w-full p-3 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+          />
+        </div>
 
-      <!-- Status aktywności -->
-      <div class="flex items-center space-x-4">
-        <input
-          id="isActiveCheckbox"
-          type="checkbox"
-          v-model="team.isActive"
-          class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
-        />
-        <label for="isActiveCheckbox" class="text-black text-lg font-medium">Zespół aktywny</label>
-      </div>
+        <!-- Zaznacz wszystkich -->
+        <div class="mb-4">
+          <label class="inline-flex items-center space-x-2 cursor-pointer text-sm">
+            <input
+              type="checkbox"
+              @change="toggleAll"
+              :checked="selectedMembers.length === filteredEmployees.length && filteredEmployees.length > 0"
+              class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+            />
+            <span class="text-gray-700">Zaznacz / odznacz wszystkich widocznych</span>
+          </label>
+        </div>
 
-      <!-- Data utworzenia (tylko do odczytu) -->
-      <div class="flex items-center space-x-4">
-        <label for="createdAt" class="w-48 text-black text-lg font-medium">Data utworzenia</label>
-        <input
-          :value="formatDate(team.createdAt)"
-          id="createdAt"
-          type="text"
-          readonly
-          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-600 cursor-not-allowed"
-          placeholder="Automatycznie ustawiona"
-        />
+        <!-- Lista pracowników -->
+        <div class="space-y-2 max-h-80 overflow-y-auto border border-gray-300 rounded-md p-3 bg-gray-50">
+          <div
+            v-for="employee in filteredEmployees"
+            :key="employee.id"
+            class="flex items-center justify-between bg-white hover:bg-gray-50 p-3 rounded-md transition border border-gray-100"
+          >
+            <div class="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                v-model="selectedMembers"
+                :value="employee.id"
+                class="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <span class="text-black font-medium">{{ employee.name }}</span>
+            </div>
+            <span class="text-sm text-gray-500">{{ employee.email }}</span>
+          </div>
+
+          <div v-if="filteredEmployees.length === 0" class="text-center text-gray-400 py-8">
+            Brak pasujących pracowników.
+          </div>
+        </div>
+
+        <!-- Podsumowanie wybranych -->
+        <div class="mt-4 text-sm text-gray-600">
+          Wybrano: <span class="font-semibold">{{ selectedMembers.length }}</span> 
+          z {{ employees.length }} pracowników
+        </div>
       </div>
 
       <!-- Przyciski -->
@@ -87,7 +152,7 @@
           :disabled="isSaving"
         >
           <span v-if="isSaving">Zapisywanie...</span>
-          <span v-else>Zapisz zmiany</span>
+          <span v-else>Zapisz wszystkie zmiany</span>
         </button>
       </div>
     </form>
@@ -134,7 +199,7 @@ export default {
     const teamId = computed(() => {
       const id = props.id || route.params.id || route.query.id;
       console.log('TeamEdit - ID zespołu (props, params, query):', props.id, route.params.id, route.query.id);
-      return id;
+      return id ? parseInt(id) : null;
     });
 
     // Stan komponentu
@@ -146,6 +211,11 @@ export default {
       isActive: true
     });
 
+    // Stan dla członków zespołu
+    const employees = ref([]);
+    const selectedMembers = ref([]);
+    const search = ref('');
+
     const users = ref([]);
     const loading = ref(true);
     const error = ref(null);
@@ -154,18 +224,70 @@ export default {
     // Status modal
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
+    // Filtrowanie pracowników według wyszukiwarki
+    const filteredEmployees = computed(() =>
+      employees.value.filter(e =>
+        e.name.toLowerCase().includes(search.value.toLowerCase()) ||
+        e.email.toLowerCase().includes(search.value.toLowerCase())
+      )
+    );
+
+    // Zaznacz / Odznacz wszystkich widocznych
+    const toggleAll = (event) => {
+      if (event.target.checked) {
+        // Dodaj wszystkich widocznych pracowników do zaznaczonych
+        const visibleIds = filteredEmployees.value.map(e => e.id);
+        selectedMembers.value = [...new Set([...selectedMembers.value, ...visibleIds])];
+      } else {
+        // Usuń wszystkich widocznych pracowników z zaznaczonych
+        const visibleIds = filteredEmployees.value.map(e => e.id);
+        selectedMembers.value = selectedMembers.value.filter(id => !visibleIds.includes(id));
+      }
+    };
+
     // Pobieranie użytkowników dla wyboru managera
     const fetchUsers = async () => {
       try {
-        users.value = await userService.getAllUsers();
+        const allUsers = await userService.getAllUsers();
+        users.value = allUsers;
+        
+        // Filtruj pracowników dla sekcji członków zespołu
+        employees.value = allUsers
+          .filter(user => user.role === 'pracownik')
+          .map(user => ({
+            id: user.id,
+            name: `${user.firstName} ${user.lastName}`,
+            email: user.email
+          }));
+
         console.log('Pobrani użytkownicy:', users.value);
+        console.log('Pracownicy:', employees.value);
       } catch (err) {
         console.error('Błąd podczas pobierania użytkowników:', err);
-        // Fallback - pusta lista lub przykładowe dane
+        // Fallback - przykładowe dane
         users.value = [
           { id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan.kowalski@example.com' },
           { id: 2, firstName: 'Anna', lastName: 'Nowak', email: 'anna.nowak@example.com' }
         ];
+        employees.value = users.value.map(user => ({
+          id: user.id,
+          name: `${user.firstName} ${user.lastName}`,
+          email: user.email
+        }));
+      }
+    };
+
+    // Pobieranie obecnych członków zespołu
+    const fetchTeamMembers = async () => {
+      try {
+        if (!teamId.value) return;
+        
+        const teamMembers = await teamService.getTeamMembers(teamId.value);
+        selectedMembers.value = teamMembers.map(member => member.userId);
+        console.log('Obecni członkowie zespołu:', selectedMembers.value);
+      } catch (err) {
+        console.error('Błąd podczas pobierania członków zespołu:', err);
+        selectedMembers.value = [];
       }
     };
 
@@ -183,10 +305,11 @@ export default {
 
         console.log('Pobieranie zespołu o ID:', teamId.value);
 
-        // Pobierz dane zespołu i użytkowników równolegle
+        // Pobierz dane zespołu, użytkowników i członków równolegle
         const [teamData] = await Promise.all([
           teamService.getTeamById(teamId.value),
-          fetchUsers()
+          fetchUsers(),
+          fetchTeamMembers()
         ]);
 
         console.log('Pobrane dane zespołu:', teamData);
@@ -210,7 +333,34 @@ export default {
       }
     };
 
-    // Aktualizacja zespołu
+    // Aktualizacja członków zespołu
+    const updateTeamMembers = async () => {
+      try {
+        // Pobierz obecnych członków
+        const currentMembers = await teamService.getTeamMembers(teamId.value);
+        
+        // Usuń członków, którzy nie są już zaznaczeni
+        for (const member of currentMembers) {
+          if (!selectedMembers.value.includes(member.userId)) {
+            await teamService.removeTeamMember(member.id);
+          }
+        }
+        
+        // Dodaj nowych członków
+        for (const userId of selectedMembers.value) {
+          if (!currentMembers.some(m => m.userId === userId)) {
+            await teamService.addTeamMember(teamId.value, userId);
+          }
+        }
+        
+        console.log('Członkowie zespołu zaktualizowani');
+      } catch (err) {
+        console.error('Błąd podczas aktualizacji członków zespołu:', err);
+        throw new Error(`Nie udało się zaktualizować członków zespołu: ${err.message}`);
+      }
+    };
+
+    // Aktualizacja zespołu (metadane + członkowie)
     const updateTeam = async () => {
       isSaving.value = true;
 
@@ -231,7 +381,7 @@ export default {
           return;
         }
 
-        // Przygotuj dane zespołu do wysłania
+        // 1. Aktualizuj metadane zespołu
         const teamData = {
           name: team.value.name.trim(),
           managerId: team.value.managerId ? parseInt(team.value.managerId) : null,
@@ -239,9 +389,12 @@ export default {
         };
 
         console.log('Wysyłanie aktualizacji zespołu:', teamData);
+        await teamService.updateTeam(teamId.value, teamData);
 
-        const updatedTeam = await teamService.updateTeam(teamId.value, teamData);
-        console.log('Zaktualizowany zespół:', updatedTeam);
+        // 2. Aktualizuj członków zespołu
+        await updateTeamMembers();
+
+        console.log('Zespół zaktualizowany pomyślnie');
 
         // Pokaż komunikat powodzenia
         showStatus({
@@ -298,11 +451,16 @@ export default {
     return {
       team,
       users,
+      employees,
+      selectedMembers,
+      search,
+      filteredEmployees,
       loading,
       error,
       isSaving,
       fetchTeamDetails,
       updateTeam,
+      toggleAll,
       formatDate,
       goBack,
       showModal,
