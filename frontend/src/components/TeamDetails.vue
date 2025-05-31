@@ -22,13 +22,13 @@
           </div>
         </div>
         <div class="flex gap-2">
-          <button
+          <!-- <button
             v-if="canManageMembers"
             @click="navigateToManageMembers"
             class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
           >
             Zarządzaj członkami
-          </button>
+          </button> -->
           <button
             v-if="canManageMembers"
             @click="navigateToAddTask"
