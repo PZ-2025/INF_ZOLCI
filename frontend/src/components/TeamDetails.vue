@@ -36,6 +36,13 @@
           >
             Dodaj zadanie
           </button>
+                    <button
+            v-if="canManageMembers"
+            @click="navigateToEditTeam"
+            class="bg-primary text-white px-4 py-2 rounded-md shadow-md hover:bg-secondary transition"
+          >
+            Edytuuj zespół
+          </button>
         </div>
       </div>
 
@@ -232,6 +239,15 @@ export default {
         router.push({ name: 'addTask', query: { teamId } });
       } else {
         router.push({ name: 'addTask' });
+      }
+    };
+
+    const navigateToEditTeam = () => {
+      const teamId = route.params.id;
+      if (teamId) {
+        router.push({ name: 'teamEdit', params: { id: teamId } });
+      } else {
+        console.error('Nie można nawigować - brak ID zespołu');
       }
     };
 
@@ -690,7 +706,8 @@ export default {
       getStatusText,
       getStatusClass,
       canManageMembers,
-      navigateToAddTask
+      navigateToAddTask,
+      navigateToEditTeam
     };
   }
 };

@@ -3,6 +3,7 @@ import { reactive } from 'vue';
 import authService from '@/services/authService';
 
 import Teams from '@/components/Teams.vue';
+import TeamEdit from '@/components/TeamEdit.vue';
 import AllEmployees from '@/components/AllEmployees.vue';
 import LoginForm from '@/components/LoginForm.vue';
 import RaportGenerate from '@/components/RaportGenerate.vue';
@@ -67,6 +68,13 @@ const routes = [
     path: '/raportview/:id',
     name: "raportView",
     component: RaportView,
+    meta: { requiresAuth: true, minRole: 'kierownik' },
+    props: route => ({ id: parseInt(route.params.id) || null })
+  },
+    {
+    path: '/teamedit/:id',
+    name: "teamEdit",
+    component: TeamEdit,
     meta: { requiresAuth: true, minRole: 'kierownik' },
     props: route => ({ id: parseInt(route.params.id) || null })
   },
