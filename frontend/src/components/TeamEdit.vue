@@ -47,8 +47,8 @@
               class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
             >
               <option disabled value="">Wybierz managera</option>
-              <option v-for="user in users" :key="user.id" :value="user.id">
-                {{ user.firstName }} {{ user.lastName }} ({{ user.email }})
+              <option v-for="manager in managers" :key="manager.id" :value="manager.id">
+                {{ manager.firstName }} {{ manager.lastName }} ({{ manager.email }})
               </option>
             </select>
           </div>
@@ -152,7 +152,7 @@
           :disabled="isSaving"
         >
           <span v-if="isSaving">Zapisywanie...</span>
-          <span v-else>Zapisz wszystkie zmiany</span>
+          <span v-else">Zapisz wszystkie zmiany</span>
         </button>
       </div>
     </form>
@@ -217,7 +217,7 @@ export default {
     const selectedMembers = ref([]);
     const search = ref('');
 
-    const users = ref([]);
+    const managers = ref([]); // ZMIENIONE: tylko kierownicy zamiast wszystkich użytkowników
     const loading = ref(true);
     const error = ref(null);
     const isSaving = ref(false);
@@ -246,11 +246,29 @@ export default {
       }
     };
 
-    // Pobieranie użytkowników dla wyboru managera
-    const fetchUsers = async () => {
+    // NOWA FUNKCJA: Pobieranie tylko kierowników dla selecta managera
+    const fetchManagers = async () => {
       try {
         const allUsers = await userService.getAllUsers();
-        users.value = allUsers;
+        // Filtruj tylko użytkowników z rolą "kierownik"
+        managers.value = allUsers.filter(user => 
+          user.role === 'kierownik' || user.role === 'manager'
+        );
+        console.log('Pobrani kierownicy:', managers.value);
+      } catch (err) {
+        console.error('Błąd podczas pobierania kierowników:', err);
+        // Fallback - przykładowe dane kierowników
+        managers.value = [
+          { id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan.kowalski@example.com', role: 'kierownik' },
+          { id: 2, firstName: 'Anna', lastName: 'Nowak', email: 'anna.nowak@example.com', role: 'kierownik' }
+        ];
+      }
+    };
+
+    // ZAKTUALIZOWANA FUNKCJA: Pobieranie pracowników dla sekcji członków zespołu
+    const fetchEmployees = async () => {
+      try {
+        const allUsers = await userService.getAllUsers();
         
         // Filtruj pracowników dla sekcji członków zespołu
         employees.value = allUsers
@@ -261,20 +279,14 @@ export default {
             email: user.email
           }));
 
-        console.log('Pobrani użytkownicy:', users.value);
         console.log('Pracownicy:', employees.value);
       } catch (err) {
-        console.error('Błąd podczas pobierania użytkowników:', err);
-        // Fallback - przykładowe dane
-        users.value = [
-          { id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan.kowalski@example.com' },
-          { id: 2, firstName: 'Anna', lastName: 'Nowak', email: 'anna.nowak@example.com' }
+        console.error('Błąd podczas pobierania pracowników:', err);
+        // Fallback - przykładowe dane pracowników
+        employees.value = [
+          { id: 3, name: 'Piotr Nowacki', email: 'piotr.nowacki@example.com' },
+          { id: 4, name: 'Maria Wiśniewska', email: 'maria.wisniewska@example.com' }
         ];
-        employees.value = users.value.map(user => ({
-          id: user.id,
-          name: `${user.firstName} ${user.lastName}`,
-          email: user.email
-        }));
       }
     };
 
@@ -292,7 +304,7 @@ export default {
       }
     };
 
-    // Pobieranie szczegółów zespołu
+    // ZAKTUALIZOWANA FUNKCJA: Pobieranie szczegółów zespołu
     const fetchTeamDetails = async () => {
       loading.value = true;
       error.value = null;
@@ -306,10 +318,11 @@ export default {
 
         console.log('Pobieranie zespołu o ID:', teamId.value);
 
-        // Pobierz dane zespołu, użytkowników i członków równolegle
+        // Pobierz dane zespołu, kierowników, pracowników i członków równolegle
         const [teamData] = await Promise.all([
           teamService.getTeamById(teamId.value),
-          fetchUsers(),
+          fetchManagers(),    // ZMIENIONE: pobierz kierowników
+          fetchEmployees(),   // ZMIENIONE: pobierz pracowników
           fetchTeamMembers()
         ]);
 
@@ -329,7 +342,10 @@ export default {
         error.value = `Nie udało się załadować zespołu: ${err.message}`;
 
         // Pobierz użytkowników nawet w przypadku błędu
-        await fetchUsers();
+        await Promise.all([
+          fetchManagers(),
+          fetchEmployees()
+        ]);
       } finally {
         loading.value = false;
       }
@@ -455,7 +471,7 @@ export default {
 
     return {
       team,
-      users,
+      managers,        
       employees,
       selectedMembers,
       search,
