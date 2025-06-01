@@ -41,7 +41,7 @@
               <Datepicker
                 v-model="filters.deadline"
                 class="w-full"
-                input-class="w-full p-2 border border-gray-300 rounded-md bg-white text-text focus:ring-2 focus:ring-primary focus:border-primary"
+                inputClass="w-full p-2 border border-gray-300 rounded-md bg-white text-text focus:ring-2 focus:ring-primary focus:border-primary"
                 format="yyyy-MM-dd"
                 id="deadlineFilter"
                 placeholder="Wybierz termin..."
@@ -623,39 +623,10 @@ export default {
 .transition {
   transition: all 0.2s ease-in-out;
 }
-
-/* RESETUJEMY wszystkie style datepicker do prostych */
-.datepicker-container {
-  width: 100%;
-  max-width: 100%;
-}
-
-/* Prosty input jak pozostałe selecty */
-:deep(.v3dp__input_wrapper input) {
+/* Podstawowe style dla vue3-datepicker */
+:deep(.datepicker input) {
   width: 100% !important;
-  max-width: 100% !important;
-  padding: 0.5rem !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 0.375rem !important;
   background-color: white !important;
-  color: #1f2937 !important;
-  font-size: 0.875rem !important;
-  line-height: 1.25rem !important;
-}
-
-:deep(.v3dp__input_wrapper input:focus) {
-  outline: none !important;
-  box-shadow: 0 0 0 2px #3f51b5 !important;
-  border-color: #3f51b5 !important;
-}
-
-/* Kalendarz - proste pozycjonowanie */
-:deep(.v3dp__datepicker) {
-  z-index: 50 !important;
-  background: white !important;
-  border: 1px solid #d1d5db !important;
-  border-radius: 0.5rem !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
-  margin-top: 0.25rem !important;
+  color: black !important;
 }
 </style>

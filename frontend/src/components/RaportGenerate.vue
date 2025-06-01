@@ -35,7 +35,7 @@
           <div class="datepicker-container flex-1">
             <Datepicker
               v-model="dateFrom"
-              :input-class="datepickerInputClass"
+              :inputClass="datepickerInputClass"
               :format="'yyyy-MM-dd'"
               :id="'dateFrom'"
               :calendar-class="'datepicker-calendar'"
@@ -48,7 +48,7 @@
           <div class="datepicker-container flex-1">
             <Datepicker
               v-model="dateTo"
-              :input-class="datepickerInputClass"
+              :inputClass="datepickerInputClass"
               :format="'yyyy-MM-dd'"
               :id="'dateTo'"
               :calendar-class="'datepicker-calendar'"
@@ -378,3 +378,15 @@ const downloadLastReport = async () => {
   }
 };
 </script>
+
+<style scoped>
+.transition {
+  transition: all 0.2s ease-in-out;
+}
+/* Podstawowe style dla vue3-datepicker */
+:deep(.datepicker input) {
+  width: 100% !important;
+  background-color: white !important;
+  color: black !important;
+}
+</style>

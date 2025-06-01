@@ -81,26 +81,26 @@
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="flex items-center space-x-4">
           <label for="startDate" class="w-48 text-black text-lg font-medium">Data rozpoczęcia</label>
-          <div class="flex-1 datepicker-wrapper">
+          <div class="flex-1">
             <Datepicker
               v-model="task.startDate"
-              :input-class="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none datepicker-input'"
               :format="'yyyy-MM-dd'"
-              :id="'startDate'"
-              required
+              :inputClass="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none'"
+              :clearable="true"
+              placeholder="Wybierz datę rozpoczęcia..."
             />
           </div>
         </div>
 
         <div class="flex items-center space-x-4">
           <label for="deadline" class="w-48 text-black text-lg font-medium">Deadline</label>
-          <div class="flex-1 datepicker-wrapper">
+          <div class="flex-1">
             <Datepicker
               v-model="task.deadline"
-              :input-class="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none datepicker-input'"
               :format="'yyyy-MM-dd'"
-              :id="'deadline'"
-              required
+              :inputClass="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none'"
+              :clearable="true"
+              placeholder="Wybierz deadline..."
             />
           </div>
         </div>
@@ -378,3 +378,15 @@ const goBack = () => {
   router.back();
 };
 </script>
+
+<style scoped>
+.transition {
+  transition: all 0.2s ease-in-out;
+}
+/* Podstawowe style dla vue3-datepicker */
+:deep(.datepicker input) {
+  width: 100% !important;
+  background-color: white !important;
+  color: black !important;
+}
+</style>
