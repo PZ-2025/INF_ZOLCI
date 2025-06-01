@@ -129,13 +129,11 @@
       </div>
 
       <div class="flex justify-between">
-        <!-- schowanie przycisku do debugu -->
-        <!-- <button @click="toggleDebug"
-                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition">
-          {{ debugMode ? 'Ukryj debug' : 'Debug' }}
-        </button> -->
+        <!-- Pusta przestrzeń jeśli nie ma uprawnień -->
+        <div></div>
 
-        <div class="space-x-4">
+        <!-- Przyciski tylko dla uprawnionych użytkowników -->
+        <div v-if="canEditAndDeleteTask" class="space-x-4">
           <button @click="editTask"
                   class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm transition">
             Edytuj
@@ -291,6 +289,15 @@ export default {
 
       return false;
     };
+
+    // NOWE: Kontrola uprawnień do edycji i usuwania zadań
+    const canEditAndDeleteTask = computed(() => {
+      const user = authState.user;
+      if (!user) return false;
+      
+      // Tylko kierownik i administrator mogą edytować/usuwać zadania
+      return user.role === 'kierownik' || user.role === 'administrator';
+    });
 
     // Computed property do obsługi komentarzy
     const taskComments = computed(() => {
@@ -856,6 +863,7 @@ const confirmStatusChange = async () => {
       toggleDebug,
       canDeleteComments,
       canDeleteComment,
+      canEditAndDeleteTask,
       addComment,
       deleteComment,
       editTask,
