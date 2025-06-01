@@ -201,7 +201,9 @@ public class TaskController {
                                     }
                                     break;
                                 case "completedDate":
-                                    if (value != null) {
+                                    if (value == null) {
+                                        taskToUpdate.setCompletedDate(null);
+                                    } else {
                                         taskToUpdate.setCompletedDate(LocalDate.parse(value.toString()));
                                     }
                                     break;
