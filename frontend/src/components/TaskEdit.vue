@@ -269,48 +269,6 @@ export default {
     // Status modal
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
-    // NOWE COMPUTED PROPERTIES DLA BLOKADY EDYCJI
-
-    // Sprawdź czy zadanie jest zakończone i ma datę zakończenia
-    const isTaskCompletedAndLocked = computed(() => {
-      // Sprawdź czy zadanie ma ustawioną datę zakończenia
-      const hasCompletedDate = task.value.completedDate !== null && task.value.completedDate !== undefined;
-      
-      // Sprawdź czy status to "Zakończone"
-      const isCompletedStatus = statuses.value.some(status => 
-        status.id === task.value.statusId && 
-        status.name?.toLowerCase().includes('zakończ')
-      );
-      
-      // Zablokuj tylko gdy oba warunki są spełnione
-      return hasCompletedDate && isCompletedStatus;
-    });
-
-    // Sprawdź czy użytkownik może odblokowywać zadania (np. tylko admin/kierownik)
-    const canUnlockCompletedTasks = computed(() => {
-      const user = authState.user;
-      if (!user) return false;
-      
-      // Tylko administrator może odblokowywać zadania
-      return user.role === 'administrator';
-    });
-
-    // Opcjonalnie: możliwość odblokowania dla uprawnionego użytkownika
-    const unlockTask = () => {
-      if (canUnlockCompletedTasks.value) {
-        if (confirm('Czy na pewno chcesz odblokować to zadanie? Umożliwi to dalszą edycję.')) {
-          // Wyczyść datę zakończenia, żeby odblokować edycję
-          task.value.completedDate = null;
-          completedChecked.value = false;
-          
-          // Opcjonalnie zmień status na poprzedni
-          if (lastNonCompletedStatusId.value) {
-            task.value.statusId = lastNonCompletedStatusId.value;
-          }
-        }
-      }
-    };
-
     // Pobieranie zespołów
     const fetchTeams = async () => {
       try {
@@ -416,18 +374,6 @@ export default {
       try {
         if (!taskId.value) {
           throw new Error('ID zadania jest wymagane');
-        }
-
-        // Sprawdź czy próbuje się zmienić status zadania zakończonego
-        if (isTaskCompletedAndLocked.value && !canUnlockCompletedTasks.value) {
-          showStatus({
-            type: 'error',
-            title: 'Błąd',
-            message: 'Nie można edytować zadania zakończonego. Skontaktuj się z kierownikiem lub administratorem.',
-            buttonText: 'Zamknij'
-          });
-          isSaving.value = false;
-          return;
         }
 
         // Walidacja dat
@@ -549,10 +495,7 @@ export default {
       showModal,
       modalConfig,
       hideModal,
-      completedChecked,
-      isTaskCompletedAndLocked,
-      canUnlockCompletedTasks,
-      unlockTask
+      completedChecked
     };
   }
 };
