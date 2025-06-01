@@ -264,25 +264,70 @@ export default {
     // Pobieranie danych referencyjnych
     const fetchReferenceData = async () => {
       try {
-        const teamsResponse = await teamService.getAllTeams();
+        console.log('🔄 Pobieranie danych referencyjnych...');
+        
+        // KROK 1: Zawsze pobierz wszystkie zespoły z API
+        const allTeamsResponse = await teamService.getAllTeams();
+        console.log('📋 Wszystkie zespoły z API:', allTeamsResponse);
 
+        // KROK 2: Określ które zespoły powinien widzieć użytkownik
         if (authState.user) {
           const userRole = authState.user.role;
+          console.log('👤 Rola użytkownika:', userRole);
+          
           if (userRole === 'administrator' || userRole === 'admin') {
-            teams.value = teamsResponse;
+            // Administrator widzi wszystkie zespoły
+            teams.value = allTeamsResponse;
+            console.log('👑 Administrator - pokazuje wszystkie zespoły:', teams.value.length);
           } else {
-            teams.value = userTeams.value;
+            // Kierownik/Pracownik - znajdź zespoły użytkownika
+            console.log('🔍 Wyszukiwanie zespołów dla użytkownika ID:', authState.user.id);
+            
+            const userId = authState.user.id;
+            const userSpecificTeams = [];
+
+            // Sprawdź zespoły gdzie użytkownik jest kierownikiem
+            for (const team of allTeamsResponse) {
+              if (team.managerId === userId) {
+                userSpecificTeams.push(team);
+                console.log(`✅ Znaleziono zespół jako kierownik: ${team.name} (ID: ${team.id})`);
+              }
+            }
+
+            // Sprawdź zespoły gdzie użytkownik jest członkiem
+            for (const team of allTeamsResponse) {
+              try {
+                const members = await teamService.getTeamMembers(team.id);
+                if (members && members.some(member => member.userId === userId)) {
+                  // Sprawdź czy zespół już nie został dodany jako kierownik
+                  if (!userSpecificTeams.find(t => t.id === team.id)) {
+                    userSpecificTeams.push(team);
+                    console.log(`✅ Znaleziono zespół jako członek: ${team.name} (ID: ${team.id})`);
+                  }
+                }
+              } catch (err) {
+                console.error(`❌ Błąd podczas sprawdzania członków zespołu ${team.id}:`, err);
+              }
+            }
+
+            teams.value = userSpecificTeams;
+            userTeams.value = userSpecificTeams; // Zaktualizuj także userTeams dla spójności
+            
+            console.log(`👥 Kierownik/Pracownik - pokazuje ${teams.value.length} zespołów:`, 
+              teams.value.map(t => `${t.name} (ID: ${t.id})`));
           }
         } else {
+          console.log('❌ Brak zalogowanego użytkownika');
           teams.value = [];
         }
 
+        // KROK 3: Pobierz priorytety
         try {
           const prioritiesResponse = await priorityService.getAllPriorities();
           priorities.value = prioritiesResponse;
-          console.log('Pobrane priorytety:', priorities.value);
+          console.log('⚡ Pobrane priorytety:', priorities.value.length);
         } catch (err) {
-          console.error('Błąd podczas pobierania priorytetów:', err);
+          console.error('❌ Błąd podczas pobierania priorytetów:', err);
           priorities.value = [
             { id: 1, name: 'Niski' },
             { id: 2, name: 'Średni' },
@@ -290,24 +335,40 @@ export default {
           ];
         }
 
+        // KROK 4: Pobierz statusy
         try {
           const statusesResponse = await taskStatusService.getAllTaskStatuses();
           statuses.value = statusesResponse;
-          console.log('Pobrane statusy:', statuses.value);
+          console.log('📊 Pobrane statusy:', statuses.value.length);
         } catch (err) {
-          console.error('Błąd podczas pobierania statusów:', err);
+          console.error('❌ Błąd podczas pobierania statusów:', err);
           statuses.value = [
             { id: 1, name: 'Rozpoczęte' },
             { id: 2, name: 'W toku' },
             { id: 3, name: 'Zakończone' }
           ];
         }
+
       } catch (err) {
-        console.error('Błąd podczas pobierania danych referencyjnych:', err);
+        console.error('❌ Błąd podczas pobierania danych referencyjnych:', err);
+        
+        // Dane awaryjne
         teams.value = [
           { id: 1, name: 'Zespół A' },
           { id: 2, name: 'Zespół B' },
           { id: 3, name: 'Zespół C' }
+        ];
+        
+        priorities.value = [
+          { id: 1, name: 'Niski' },
+          { id: 2, name: 'Średni' },
+          { id: 3, name: 'Wysoki' }
+        ];
+        
+        statuses.value = [
+          { id: 1, name: 'Rozpoczęte' },
+          { id: 2, name: 'W toku' },
+          { id: 3, name: 'Zakończone' }
         ];
       }
     };
@@ -320,25 +381,39 @@ export default {
       try {
         console.log('🔄 Pobieranie zadań z API...');
         const response = await taskService.getAllTasks();
-        console.log('✅ Pobrane zadania:', response);
+        console.log('✅ Pobrane zadania:', response.length);
 
         if (authState.user) {
           const userRole = authState.user.role;
+          
           if (userRole === 'administrator' || userRole === 'admin') {
+            // Administrator widzi wszystkie zadania
             tasks.value = response;
+            console.log('👑 Administrator - pokazuje wszystkie zadania:', tasks.value.length);
           } else {
-            await fetchUserTeams();
+            // Kierownik/Pracownik - tylko zadania swoich zespołów
+            const userTeamIds = teams.value.map(team => team.id);
+            console.log('🎯 ID zespołów użytkownika:', userTeamIds);
+            
             tasks.value = response.filter(task => {
               const taskTeamId = task.teamId || task.team?.id;
-              return userTeams.value.some(team => team.id === taskTeamId);
+              const belongs = userTeamIds.includes(taskTeamId);
+              if (!belongs) {
+                console.log(`⏭️ Zadanie ${task.id} (zespół ${taskTeamId}) odfiltrowane`);
+              }
+              return belongs;
             });
+            
+            console.log(`👥 Kierownik/Pracownik - pokazuje ${tasks.value.length} zadań ze swoich zespołów`);
           }
         } else {
+          console.log('❌ Brak zalogowanego użytkownika');
           tasks.value = [];
         }
       } catch (err) {
         console.error('❌ Błąd podczas pobierania zadań:', err);
         error.value = `Nie udało się pobrać zadań: ${err.message}`;
+        tasks.value = [];
       } finally {
         loading.value = false;
       }
@@ -346,32 +421,33 @@ export default {
 
     // Pobieranie zespołów użytkownika
     const fetchUserTeams = async () => {
-      if (!authState.user) return;
+      console.log('ℹ️ fetchUserTeams wywołana - logika przeniesiona do fetchReferenceData');
+      // if (!authState.user) return;
 
-      try {
-        const allTeams = await teamService.getAllTeams();
-        const userId = authState.user.id;
+      // try {
+      //   const allTeams = await teamService.getAllTeams();
+      //   const userId = authState.user.id;
 
-        userTeams.value = allTeams.filter(team => {
-          if (team.managerId === userId) return true;
-          return false;
-        });
+      //   userTeams.value = allTeams.filter(team => {
+      //     if (team.managerId === userId) return true;
+      //     return false;
+      //   });
 
-        for (const team of allTeams) {
-          try {
-            const members = await teamService.getTeamMembers(team.id);
-            if (members && members.some(member => member.userId === userId)) {
-              if (!userTeams.value.find(t => t.id === team.id)) {
-                userTeams.value.push(team);
-              }
-            }
-          } catch (err) {
-            console.error(`Błąd podczas sprawdzania członków zespołu ${team.id}:`, err);
-          }
-        }
-      } catch (err) {
-        console.error('Błąd podczas pobierania zespołów użytkownika:', err);
-      }
+      //   for (const team of allTeams) {
+      //     try {
+      //       const members = await teamService.getTeamMembers(team.id);
+      //       if (members && members.some(member => member.userId === userId)) {
+      //         if (!userTeams.value.find(t => t.id === team.id)) {
+      //           userTeams.value.push(team);
+      //         }
+      //       }
+      //     } catch (err) {
+      //       console.error(`Błąd podczas sprawdzania członków zespołu ${team.id}:`, err);
+      //     }
+      //   }
+      // } catch (err) {
+      //   console.error('Błąd podczas pobierania zespołów użytkownika:', err);
+      // }
     };
 
     // Automatyczne filtrowanie zadań
