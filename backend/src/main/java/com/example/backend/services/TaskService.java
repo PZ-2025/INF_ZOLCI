@@ -121,6 +121,8 @@ public class TaskService {
 
         if (dto.getCompletedDate() != null) {
             task.setCompletedDate(dto.getCompletedDate());
+        } else {
+            task.setCompletedDate(null);
         }
 
         if (dto.getCreatedById() != null) {

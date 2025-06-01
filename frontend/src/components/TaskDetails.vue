@@ -49,9 +49,9 @@
           <span class="font-semibold text-black">Data rozpoczęcia: </span>
           <span class="text-black">{{ formatDate(task.startDate) }}</span>
         </p>
-        <p v-if="task.completedDate">
+        <p v-if="task.completed_date">
           <span class="font-semibold text-black">Data zakończenia: </span>
-          <span class="text-black">{{ formatDate(task.completedDate) }}</span>
+          <span class="text-black">{{ formatDate(task.completed_date) }}</span>
         </p>
         <p><span class="font-semibold text-black">Zespół: </span> <span class="text-black">{{ teamName }}</span></p>
       </div>
@@ -129,13 +129,11 @@
       </div>
 
       <div class="flex justify-between">
-        <!-- schowanie przycisku do debugu -->
-        <!-- <button @click="toggleDebug"
-                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition">
-          {{ debugMode ? 'Ukryj debug' : 'Debug' }}
-        </button> -->
+        <!-- Pusta przestrzeń jeśli nie ma uprawnień -->
+        <div></div>
 
-        <div class="space-x-4">
+        <!-- Przyciski tylko dla uprawnionych użytkowników -->
+        <div v-if="canEditAndDeleteTask" class="space-x-4">
           <button @click="editTask"
                   class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm transition">
             Edytuj
@@ -291,6 +289,15 @@ export default {
       return false;
     };
 
+    // NOWE: Kontrola uprawnień do edycji i usuwania zadań
+    const canEditAndDeleteTask = computed(() => {
+      const user = authState.user;
+      if (!user) return false;
+      
+      // Tylko kierownik i administrator mogą edytować/usuwać zadania
+      return user.role === 'kierownik' || user.role === 'administrator';
+    });
+
     // Computed property do obsługi komentarzy
     const taskComments = computed(() => {
       // Sprawdza różne możliwe struktury komentarzy
@@ -326,9 +333,10 @@ export default {
     // Widoczność przycisku zmiany statusu
     const canShowChangeStatusButton = computed(() => {
       if (!authState.user) return false;
-      if (!isTaskCompleted.value) return canEditStatus.value; // dowolny uprawniony
-      // Jeśli zakończone, tylko kierownik/administrator
-      return isManager.value;
+      // ZABLOKUJ jeśli zadanie zakończone
+      if (isTaskCompleted.value) return false;
+      // dowolny uprawniony
+      return canEditStatus.value;
     });
 
     // Czy użytkownik może edytować status
@@ -352,6 +360,8 @@ export default {
 
     // Funkcje modala
     const openStatusModal = () => {
+      // Nie otwieraj modala jeśli zadanie zakończone
+      if (isTaskCompleted.value) return;
       selectedStatusId.value = task.value.statusId || task.value.status?.id;
       showStatusChangeModal.value = true;
     };
@@ -362,52 +372,97 @@ export default {
       isUpdatingStatus.value = false;
     };
 
-    const confirmStatusChange = async () => {
-      if (!selectedStatusId.value || !task.value.id) return;
-      
-      isUpdatingStatus.value = true;
-      
-      try {
-        // Pobierz aktualne dane zadania
-        const currentTask = await taskService.getTaskById(task.value.id);
+const confirmStatusChange = async () => {
+  if (!selectedStatusId.value || !task.value.id) return;
+  
+  isUpdatingStatus.value = true;
+  
+  try {
+    // Pobierz aktualne dane zadania
+    const currentTask = await taskService.getTaskById(task.value.id);
+    console.log('Aktualne dane zadania:', currentTask);
 
-        // Przygotuj dane do aktualizacji
-        const updatedTask = {
-          ...currentTask,
-          statusId: Number(selectedStatusId.value)
-        };
+    // Sprawdź czy nowy status to "Zakończone"
+    const selectedStatus = statuses.value.find(s => s.id === Number(selectedStatusId.value));
+    const isCompletedStatus = selectedStatus?.name?.toLowerCase().includes('zakończ');
+    
+    console.log('Wybrany status:', selectedStatus);
+    console.log('Czy status zakończony?', isCompletedStatus);
+    console.log('Aktualna completedDate:', currentTask.completedDate);
 
-        await taskService.updateTask(task.value.id, updatedTask);
-        
-        // Zaktualizuj lokalny stan
-        task.value.statusId = Number(selectedStatusId.value);
-        
-        // Zamknij modal
-        closeStatusModal();
-        
-        // Pokaż komunikat sukcesu
-        showStatus({
-          type: 'success',
-          title: 'Sukces',
-          message: 'Status zadania został zaktualizowany',
-          buttonText: 'OK',
-          autoClose: true,
-          autoCloseDelay: 1200
-        });
-        
-      } catch (err) {
-        console.error('Błąd podczas aktualizacji statusu:', err);
-        let msg = 'Nie udało się zaktualizować statusu: ' + (err.response?.data?.message || err.message);
-        showStatus({
-          type: 'error',
-          title: 'Błąd',
-          message: msg,
-          buttonText: 'Zamknij'
-        });
-      } finally {
-        isUpdatingStatus.value = false;
-      }
+    // Formatuj dzisiejszą datę do formatu YYYY-MM-DD
+    const formatDateToString = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     };
+
+    // Przygotuj dane do aktualizacji z PRAWIDŁOWĄ NAZWĄ POLA
+    const updatedTask = {
+      ...currentTask,
+      statusId: Number(selectedStatusId.value)
+    };
+
+    // POPRAWKA: używaj completedDate (camelCase) zamiast completed_date
+    if (isCompletedStatus) {
+      // Ustaw zawsze dzisiejszą datę, gdy status to "Zakończone"
+      updatedTask.completedDate = formatDateToString(new Date());
+    } else {
+      // Jeśli nowy status to NIE "Zakończone", usuń completedDate
+      updatedTask.completedDate = null;
+    }
+
+    console.log('Dane do wysłania:', updatedTask);
+    console.log('completedDate w updatedTask:', updatedTask.completedDate);
+
+    // Użyj taskService.updateTask z poprawionymi danymi
+    const result = await taskService.updateTask(task.value.id, updatedTask);
+    console.log('Odpowiedź z serwera:', result);
+    
+    // Zaktualizuj lokalny stan z odpowiedzi serwera
+    task.value.statusId = result.statusId;
+    task.value.completedDate = result.completedDate;
+    // OBSŁUGA OBU FORMATÓW na wszelki wypadek
+    if (result.completed_date !== undefined) {
+      task.value.completed_date = result.completed_date;
+    }
+    
+    // Zamknij modal
+    closeStatusModal();
+    
+    // Pokaż komunikat sukcesu
+    let message;
+    if (isCompletedStatus && !currentTask.completedDate) {
+      message = 'Status zadania został zaktualizowany i automatycznie ustawiono datę zakończenia';
+    } else if (!isCompletedStatus && currentTask.completedDate) {
+      message = 'Status zadania został zaktualizowany i usunięto datę zakończenia';
+    } else {
+      message = 'Status zadania został zaktualizowany';
+    }
+    
+    showStatus({
+      type: 'success',
+      title: 'Sukces',
+      message: message,
+      buttonText: 'OK',
+      autoClose: true,
+      autoCloseDelay: 1500
+    });
+    
+  } catch (err) {
+    console.error('Błąd podczas aktualizacji statusu:', err);
+    let msg = 'Nie udało się zaktualizować statusu: ' + (err.response?.data?.message || err.message);
+    showStatus({
+      type: 'error',
+      title: 'Błąd',
+      message: msg,
+      buttonText: 'Zamknij'
+    });
+  } finally {
+    isUpdatingStatus.value = false;
+  }
+};
 
     const toggleDebug = () => {
       debugMode.value = !debugMode.value;
@@ -807,6 +862,7 @@ export default {
       toggleDebug,
       canDeleteComments,
       canDeleteComment,
+      canEditAndDeleteTask,
       addComment,
       deleteComment,
       editTask,

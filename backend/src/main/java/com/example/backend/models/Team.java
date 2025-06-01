@@ -69,14 +69,14 @@ public class Team {
      * Zbiór członków zespołu. Każdy członek zespołu jest powiązany z tym zespołem.
      * Powiązane z encją {@link TeamMember}.
      */
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "team", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private Set<TeamMember> members = new HashSet<>();
 
     /**
      * Zbiór zadań przypisanych do tego zespołu.
      * Powiązane z encją {@link Task}.
      */
-    @OneToMany(mappedBy = "team", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "team")
     private Set<Task> tasks = new HashSet<>();
 
     /**

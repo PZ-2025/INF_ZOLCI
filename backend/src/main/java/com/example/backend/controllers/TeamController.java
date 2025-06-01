@@ -184,4 +184,32 @@ public class TeamController {
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
+    /**
+     * Częściowo aktualizuje zespół (PATCH).
+     *
+     * @param id      Identyfikator zespołu
+     * @param teamDTO Dane zespołu do aktualizacji
+     * @return Zaktualizowany zespół lub status 404, jeśli nie istnieje
+     */
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TeamDTO> patchTeam(@PathVariable Integer id, @RequestBody TeamDTO teamDTO) {
+        teamDTO.setId(id);
+        return teamService.getTeamById(id)
+                .map(existingTeam -> {
+                    // Aktualizuj tylko pola które nie są null w teamDTO
+                    if (teamDTO.getName() != null) {
+                        existingTeam.setName(teamDTO.getName());
+                    }
+                    if (teamDTO.getManagerId() != null) {
+                        existingTeam.setManagerId(teamDTO.getManagerId());
+                    }
+                    if (teamDTO.getIsActive() != null) {
+                        existingTeam.setIsActive(teamDTO.getIsActive());
+                    }
+                    
+                    TeamDTO updatedTeam = teamService.updateTeam(existingTeam);
+                    return new ResponseEntity<>(updatedTeam, HttpStatus.OK);
+                })
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
 }

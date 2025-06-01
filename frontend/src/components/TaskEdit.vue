@@ -79,12 +79,48 @@
             v-model.number="task.statusId"
             id="statusId"
             required
-            class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+            :disabled="isTaskCompletedAndLocked"
+            :class="[
+              'flex-1 p-2.5 border border-gray-300 rounded-md text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none',
+              isTaskCompletedAndLocked ? 'bg-gray-200 cursor-not-allowed opacity-50' : 'bg-white'
+            ]"
           >
             <option disabled value="">Wybierz status</option>
             <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
           </select>
+          <!-- Ikona informacyjna dla zablokowanego statusu -->
+          <div 
+            v-if="isTaskCompletedAndLocked" 
+            class="flex items-center text-gray-600 text-sm"
+            title="Nie można zmienić statusu zadania zakończonego"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span>Zablokowane</span>
+          </div>
         </div>
+      </div>
+
+      <!-- Przycisk odblokowania dla zadań zakończonych (tylko dla uprawnionego użytkownika) -->
+      <div v-if="isTaskCompletedAndLocked && canUnlockCompletedTasks" class="flex items-center space-x-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded">
+        <div class="flex">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <div class="flex-1">
+          <p class="text-sm text-yellow-800">
+            <strong>Zadanie zakończone:</strong> To zadanie jest zablokowane do edycji, ponieważ zostało oznaczone jako zakończone.
+          </p>
+        </div>
+        <button
+          @click="unlockTask"
+          type="button"
+          class="px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white text-sm rounded-md transition-colors"
+        >
+          Odblokuj zadanie
+        </button>
       </div>
 
       <!-- Daty -->
@@ -121,6 +157,7 @@
           id="completedCheckbox"
           type="checkbox"
           v-model="completedChecked"
+          :disabled="isTaskCompletedAndLocked && !canUnlockCompletedTasks"
           class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary"
         />
         <label for="completedCheckbox" class="text-black text-lg font-medium">Zadanie zakończone</label>
@@ -131,6 +168,7 @@
             :format="'yyyy-MM-dd'"
             :id="'completedDate'"
             placeholder="Data zakończenia"
+            :disabled="isTaskCompletedAndLocked && !canUnlockCompletedTasks"
           />
         </div>
       </div>
@@ -329,7 +367,7 @@ export default {
       }
     };
 
-    // Aktualizacja zadania
+    // ZMODYFIKOWANA AKTUALIZACJA ZADANIA Z WALIDACJĄ
     const updateTask = async () => {
       isSaving.value = true;
 
