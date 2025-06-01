@@ -109,8 +109,8 @@
                 class="bg-gray-50 p-3 rounded-lg flex justify-between items-start"
             >
               <div class="flex-grow pr-3">
-                <h3 class="font-semibold text-text">{{ task.title }}</h3>
-                <p class="text-sm text-muted">{{ task.assignedTo }}</p>
+                <h3 class="font-semibold text-text mb-1">{{ task.title }}</h3>
+                <p class="text-sm text-muted line-clamp-2">{{ task.description }}</p>
               </div>
               <div class="flex flex-col items-end space-y-2 min-w-max">
                 <span
@@ -150,8 +150,8 @@
             class="bg-gray-50 p-3 rounded-lg flex justify-between items-start"
           >
             <div class="flex-grow pr-3">
-              <h3 class="font-semibold text-text">{{ task.title }}</h3>
-              <p class="text-sm text-muted">{{ task.assignedTo }}</p>
+              <h3 class="font-semibold text-text mb-1">{{ task.title }}</h3>
+              <p class="text-sm text-muted line-clamp-2">{{ task.description }}</p>
             </div>
             <div class="flex flex-col items-end space-y-2 min-w-max">
               <span
@@ -357,7 +357,7 @@ export default {
           teamTasks.value = tasks.map(task => ({
             id: task.id,
             title: task.title,
-            assignedTo: task.createdBy ? `${task.createdBy.firstName} ${task.createdBy.lastName}` : 'Nieprzypisane',
+            description: task.description || 'Brak opisu zadania', // ZMIANA: dodano opis zadania
             priority: task.priorityId,
             status: task.statusId
           }));
@@ -442,27 +442,27 @@ export default {
       ];
     };
 
-    // Dane demonstracyjne - zadania zespołu
+    // ZMIENIONE: Dane demonstracyjne - zadania zespołu z opisami
     const generateDemoTasks = (teamId) => {
       return [
         {
           id: teamId * 100 + 1,
           title: 'Remont mieszkania',
-          assignedTo: 'Jan Kowalski',
+          description: 'Kompleksowy remont mieszkania na ul. Załęskiej 76. Wymiana instalacji elektrycznej, malowanie ścian i wymiana podłóg.',
           priority: 3, // Wysoki priorytet
           status: 1    // Rozpoczęte
         },
         {
           id: teamId * 100 + 2,
           title: 'Budowa werandy',
-          assignedTo: 'Anna Nowak',
+          description: 'Wykonanie werandy drewnianej o wymiarach 4x6m. Fundamenty, konstrukcja drewniana, pokrycie dachowe.',
           priority: 2, // Średni priorytet
           status: 3    // Zakończone
         },
         {
           id: teamId * 100 + 3,
           title: 'Naprawa dachu',
-          assignedTo: 'Piotr Zieliński',
+          description: 'Wymiana uszkodzonych dachówek po burzy. Sprawdzenie całości konstrukcji i naprawa rynien.',
           priority: 1, // Niski priorytet
           status: 2    // W toku
         }
@@ -712,3 +712,16 @@ export default {
   }
 };
 </script>
+
+<style scoped>
+/* Klasa pomocnicza do ograniczenia linii tekstu */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+  max-height: 2.8em; /* 2 linie * 1.4 line-height */
+}
+</style>
