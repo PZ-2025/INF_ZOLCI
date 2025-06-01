@@ -133,6 +133,7 @@
               :format="'yyyy-MM-dd'"
               :inputClass="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none'"
               :clearable="true"
+              :auto-apply="true"
               placeholder="Wybierz datę rozpoczęcia..."
             />
           </div>
@@ -146,6 +147,7 @@
               :format="'yyyy-MM-dd'"
               :inputClass="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none'"
               :clearable="true"
+              :auto-apply="true"
               placeholder="Wybierz deadline..."
             />
           </div>
@@ -168,6 +170,9 @@
             :input-class="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none datepicker-input'"
             :format="'yyyy-MM-dd'"
             :id="'completedDate'"
+            :auto-apply="true"
+            :close-on-select="true"
+            :close-on-auto-apply="true"
             placeholder="Data zakończenia"
             :disabled="isTaskCompletedAndLocked && !canUnlockCompletedTasks"
           />

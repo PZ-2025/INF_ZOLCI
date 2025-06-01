@@ -46,7 +46,9 @@
                 id="deadlineFilter"
                 placeholder="Wybierz termin..."
                 :clear-button="true"
+                :auto-apply="true"
                 :close-on-select="true"
+                :close-on-auto-apply="true"
               />
             </div>
           </div>

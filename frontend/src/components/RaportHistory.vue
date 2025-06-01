@@ -31,7 +31,9 @@
                 :id="'reportDate'"
                 placeholder="Wybierz datę..."
                 :clear-button="true"
+                :auto-apply="true"
                 :close-on-select="true"
+                :close-on-auto-apply="true"
               />
             </div>
           </div>

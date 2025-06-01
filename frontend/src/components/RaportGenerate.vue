@@ -39,6 +39,7 @@
               :format="'yyyy-MM-dd'"
               :id="'dateFrom'"
               :calendar-class="'datepicker-calendar'"
+              :auto-apply="true"
               required
             />
           </div>
@@ -51,6 +52,9 @@
               :inputClass="datepickerInputClass"
               :format="'yyyy-MM-dd'"
               :id="'dateTo'"
+              :auto-apply="true"
+              :close-on-select="true"
+              :close-on-auto-apply="true"
               :calendar-class="'datepicker-calendar'"
               required
             />
