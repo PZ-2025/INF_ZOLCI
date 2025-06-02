@@ -180,9 +180,9 @@ onMounted(async () => {
     const teamsData = await teamService.getAllTeams();
     teams.value = teamsData;
 
-    // Pobierz użytkowników
+    // Pobierz użytkowników i odfiltruj "admin"
     const usersData = await userService.getActiveUsers();
-    users.value = usersData;
+    users.value = usersData.filter(u => u.username !== 'admin');
   } catch (error) {
     console.error('Błąd podczas pobierania danych:', error);
     showStatus({
