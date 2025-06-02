@@ -104,4 +104,36 @@ router.beforeEach((to, from, next) => {
   next();
 });
 
+router.beforeEach((to, from, next) => {
+  // Istniejąca logika autoryzacji...
+  if (to.meta.requiresAuth) {
+    if (!authState.isAuthenticated) {
+      return next('/');
+    }
+
+    if (to.meta.requiredRole && authState.user.role !== to.meta.requiredRole) {
+      alert('Access denied - specific role required');
+      return next(false);
+    }
+
+    if (to.meta.minRole && !authService.hasRoleAtLeast(to.meta.minRole)) {
+      alert('Access denied - insufficient permissions');
+      return next(false);
+    }
+  }
+  
+  // NOWE: Zabezpieczenie przed cofaniem się do logowania gdy użytkownik jest zalogowany
+  if (to.path === '/' && authState.isAuthenticated) {
+    console.log('Przekierowanie zalogowanego użytkownika z / na /teams');
+    return next('/teams');
+  }
+  
+  // NOWE: Zapisz poprzednią trasę dla bezpiecznego cofania się
+  if (from.path && from.path !== '/' && authState.isAuthenticated) {
+    sessionStorage.setItem('previousRoute', from.path);
+  }
+  
+  next();
+});
+
 export default router;

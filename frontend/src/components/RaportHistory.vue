@@ -26,12 +26,14 @@
             <div class="datepicker-container">
               <Datepicker
                 v-model="selectedDate"
-                :input-class="datepickerInputClass"
+                :inputClass="datepickerInputClass"
                 :format="'yyyy-MM-dd'"
                 :id="'reportDate'"
                 placeholder="Wybierz datę..."
                 :clear-button="true"
+                :auto-apply="true"
                 :close-on-select="true"
+                :close-on-auto-apply="true"
               />
             </div>
           </div>
@@ -514,5 +516,11 @@ export default {
 <style scoped>
 .transition {
   transition: all 0.2s ease-in-out;
+}
+/* Podstawowe style dla vue3-datepicker */
+:deep(.datepicker input) {
+  width: 100% !important;
+  background-color: white !important;
+  color: black !important;
 }
 </style>

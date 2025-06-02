@@ -235,7 +235,7 @@ export default {
           buttonText: 'OK',
           autoClose: true,
           autoCloseDelay: 2000,
-          onClose: () => router.push('/allusers')
+          onClose: () => router.push('/adminpanel')
         });
 
         // Wyczyść formularz

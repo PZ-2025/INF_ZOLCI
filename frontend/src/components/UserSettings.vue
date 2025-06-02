@@ -79,7 +79,7 @@
         />
       </div>
 
-      <div class="flex items-center mb-4">
+      <!-- <div class="flex items-center mb-4">
         <label for="currentPassword" class="w-40 font-semibold">Aktualne hasło</label>
         <div class="flex-1 relative">
           <input
@@ -101,7 +101,7 @@
             <span v-else>👁️</span>
           </button>
         </div>
-      </div>
+      </div> -->
 
       <div class="flex items-center mb-4">
         <label for="newPassword" class="w-40 font-semibold">Nowe hasło</label>
@@ -341,11 +341,11 @@ export default {
 
         // Dodaj hasło tylko jeśli użytkownik chce je zmienić
         if (passwordData.newPassword) {
-          if (!passwordData.currentPassword) {
-            throw new Error('Aktualne hasło jest wymagane do zmiany hasła');
-          }
+          // if (!passwordData.currentPassword) {
+          //   throw new Error('Aktualne hasło jest wymagane do zmiany hasła');
+          // }
           changedFields.password = passwordData.newPassword;
-          changedFields.currentPassword = passwordData.currentPassword;
+          // changedFields.currentPassword = passwordData.currentPassword;
 
           // Jeśli zmieniamy hasło, użyjmy PUT zamiast PATCH dla bezpieczeństwa
           const fullUpdateData = {
@@ -363,7 +363,7 @@ export default {
         }
 
         // Wyczyść dane hasła
-        passwordData.currentPassword = '';
+        // passwordData.currentPassword = '';
         passwordData.newPassword = '';
         passwordData.confirmPassword = '';
 
