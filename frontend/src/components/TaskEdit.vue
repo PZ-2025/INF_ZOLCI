@@ -205,13 +205,13 @@
         >
           Anuluj
         </button>
-        <button
+        <!-- <button
           type="button"
           @click="toggleDebugInfo"
           class="px-3 py-2 rounded-md bg-blue-500 text-white text-xs hover:bg-blue-600 transition"
         >
           {{ showDebugInfo ? 'Ukryj' : 'Debug' }}
-        </button>
+        </button> -->
         <button
           type="submit"
           class="px-6 py-2 rounded-md bg-primary hover:bg-secondary text-white text-sm font-semibold transition"

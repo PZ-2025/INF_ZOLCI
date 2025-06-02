@@ -65,7 +65,7 @@
           </div>
 
           <!-- Data utworzenia -->
-          <div class="flex items-center space-x-4">
+          <!-- <div class="flex items-center space-x-4">
             <label for="createdAt" class="w-48 text-black text-lg font-medium">Data utworzenia</label>
             <input
               :value="formatDate(team.createdAt)"
@@ -75,7 +75,7 @@
               class="flex-1 p-2.5 border border-gray-300 rounded-md bg-gray-100 text-sm text-gray-600 cursor-not-allowed"
               placeholder="Automatycznie ustawiona"
             />
-          </div>
+          </div> -->
         </div>
       </div>
 
