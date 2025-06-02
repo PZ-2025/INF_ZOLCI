@@ -1,14 +1,24 @@
 {
-  "name": "frontend",
+  "name": "buildtask-frontend",
+  "productName": "BuildTask",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.0.1",
   "main": "main.js",
   "type": "module",
+  "description": "Task management application for construction companies",
+  "author": {
+    "name": "INF_ŻÓŁCI",
+    "email": "XDDDDD@XDDD.XD"
+  },
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "electron:start": "npm run build && electron ."
+    "electron:start": "npm run build && electron .",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:linux": "npm run build && electron-builder --linux"
   },
   "dependencies": {
     "axios": "^1.8.4",
@@ -25,5 +35,48 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "vite": "^6.2.0"
+  },
+  "build": {
+    "appId": "com.buildtask.app",
+    "productName": "BuildTask",
+    "copyright": "Copyright © 2023 INF_ŻÓŁCI",
+    "forceCodeSigning": false,
+    "files": [
+      "dist/**/*",
+      "main.js",
+      "preload.js",
+      "node_modules/**/*",
+      "package.json"
+    ],
+    "extraFiles": [
+      {
+        "from": "../backend/build/libs",
+        "to": "backend",
+        "filter": ["*.exe"]
+      },
+      {
+        "from": "../BuildTask-installer/tools/jre",
+        "to": "backend/jre"
+      }
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "src/assets/buildtask_logo_big.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "BuildTask"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "src/assets/buildtask_logo.icns"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "src/assets/buildtask_logo.png"
+    }
   }
 }

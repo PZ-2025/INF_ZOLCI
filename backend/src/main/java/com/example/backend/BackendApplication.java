@@ -7,15 +7,12 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import io.github.cdimascio.dotenv.Dotenv;
 
+import java.io.File;
+import java.util.Arrays;
+import java.util.List;
+
 /**
  * Główna klasa startowa aplikacji BuildTask - systemu zarządzania zadaniami dla firmy budowlanej.
- *
- * <p>Klasa konfiguruje środowisko Spring Boot, inicjalizuje komponenty, repozytoria i modele
- * z określonych pakietów oraz ładuje zmienne środowiskowe przed uruchomieniem aplikacji.</p>
- *
- * @author Jakub
- * @version 1.1.0
- * @since 1.0.0
  */
 @SpringBootApplication
 @EnableJpaRepositories(basePackages = "com.example.backend.repository")
@@ -27,27 +24,62 @@ import io.github.cdimascio.dotenv.Dotenv;
 })
 public class BackendApplication {
 
-    /**
-     * Główna metoda startowa aplikacji BuildTask.
-     *
-     * <p>Odpowiada za:</p>
-     * <ul>
-     *   <li>Ładowanie zmiennych środowiskowych z pliku .env</li>
-     *   <li>Ustawienie zmiennych środowiskowych jako właściwości systemowe</li>
-     *   <li>Uruchomienie aplikacji Spring Boot</li>
-     * </ul>
-     *
-     * @param args argumenty wiersza poleceń przekazywane podczas uruchamiania aplikacji
-     */
     public static void main(final String[] args) {
-        // Ładowanie zmiennych środowiskowych
-        Dotenv dotenv = Dotenv.configure().load();
-
-        // Ustaw je jako właściwości systemowe
-        dotenv.entries().forEach(e ->
-                System.setProperty(e.getKey(), e.getValue())
+        List<String> requiredEnvVars = Arrays.asList(
+                "MYSQL_ROOT_PASSWORD",
+                "MYSQL_DATABASE",
+                "MYSQL_USER",
+                "MYSQL_PASSWORD",
+                "MYSQL_CONNECTION_STRING",
+                "SPRING_PROFILES_ACTIVE",
+                "REPORTS_STORAGE_PATH"
         );
 
+        boolean dotenvLoaded = false;
+        Dotenv dotenv = null;
+
+        // Sprawdź, czy istnieje plik .env w bieżącym katalogu
+        if (new File(".env").exists()) {
+            dotenv = Dotenv.configure().ignoreIfMissing().load();
+            dotenvLoaded = true;
+            System.out.println(".env file found — loading environment variables from it.");
+        } else {
+            System.out.println(".env file not found — falling back to system environment variables.");
+        }
+
+        boolean allEnvVarsSet = true;
+
+        for (String envVar : requiredEnvVars) {
+            String value = null;
+
+            if (dotenvLoaded) {
+                value = dotenv.get(envVar);
+            }
+
+            if (value == null || value.isEmpty()) {
+                value = System.getenv(envVar);
+            }
+
+            if (value == null || value.isEmpty()) {
+                System.err.println("UWAGA: Zmienna środowiskowa " + envVar + " nie jest ustawiona!");
+                allEnvVarsSet = false;
+            } else {
+                // Nadpisuj tylko jeśli zmienna nie jest jeszcze ustawiona jako systemowa
+                if (System.getProperty(envVar) == null) {
+                    System.setProperty(envVar, value);
+                }
+            }
+        }
+
+        if (!allEnvVarsSet) {
+            System.err.println("Nie wszystkie wymagane zmienne środowiskowe są ustawione.");
+            System.err.println("Upewnij się, że plik .env istnieje lub że skrypt setup-env.sh/.bat został uruchomiony.");
+            System.err.println("Kontynuuję uruchamianie, ale aplikacja może nie działać poprawnie...");
+        } else {
+            System.out.println("Wszystkie wymagane zmienne środowiskowe zostały poprawnie ustawione.");
+            System.out.println("Profil aktywny: " + System.getProperty("SPRING_PROFILES_ACTIVE"));
+            System.out.println("Ścieżka do raportów: " + System.getProperty("REPORTS_STORAGE_PATH"));
+        }
 
         SpringApplication.run(BackendApplication.class, args);
     }

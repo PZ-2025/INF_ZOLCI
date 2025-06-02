@@ -18,5 +18,6 @@ frontend/assets/styles.css
 docs/
 docs/**
 /backend/reports/
+/app-installer/tools/jre/
 /app-installer/tools/
 /app-installer/installer/
