@@ -33,5 +33,32 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function({ addBase }) {
+      addBase({
+        // Style dla Vue3 Datepicker
+        '.datepicker-wrapper': {
+          'width': '100% !important',
+          'max-width': '100% !important',
+          'overflow': 'hidden !important',
+        },
+        '.datepicker-wrapper input[type="text"]': {
+          'background-color': 'white !important',
+          'color': 'black !important',
+          'border': '1px solid #d1d5db !important',
+          'border-right': '1px solid #d1d5db !important', 
+          'border-radius': '0.375rem !important',
+          'width': '100% !important',
+          'max-width': '100% !important',
+          'box-sizing': 'border-box !important',
+        },
+        '.datepicker-wrapper input:focus': {
+          'outline': 'none !important',
+          'box-shadow': '0 0 0 2px #3F51B5 !important',
+          'border-color': '#3F51B5 !important',
+          'border-right-color': '#3F51B5 !important', 
+        },
+      })
+    }
+  ],
 }

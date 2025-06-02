@@ -14,13 +14,13 @@
         </div>
       </div>
 
-      <div class="mb-4">
-        <label for="reportType" class="block font-semibold mb-2">Wybierz typ raportu:</label>
+      <div class="flex items-center gap-4 mb-4">
+        <label for="reportType" class="font-semibold w-32 shrink-0">Wybierz typ raportu:</label>
         <select
             id="reportType"
             v-model="reportType"
             @change="handleReportTypeChange"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             required
         >
           <option value="employee_load">Raport obciążenia pracownika</option>
@@ -29,35 +29,45 @@
         </select>
       </div>
 
-      <div class="flex flex-col md:flex-row gap-4 mb-4">
-        <div class="flex-1">
-          <label for="dateFrom" class="block font-semibold mb-2">Data początkowa:</label>
-          <input
-              id="dateFrom"
-              type="date"
+      <div class="mb-4">
+        <div class="flex items-center gap-4 mb-3">
+          <label for="dateFrom" class="font-semibold w-32 shrink-0">Data początkowa:</label>
+          <div class="datepicker-container flex-1">
+            <Datepicker
               v-model="dateFrom"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :inputClass="datepickerInputClass"
+              :format="'yyyy-MM-dd'"
+              :id="'dateFrom'"
+              :calendar-class="'datepicker-calendar'"
+              :auto-apply="true"
               required
-          />
+            />
+          </div>
         </div>
-        <div class="flex-1">
-          <label for="dateTo" class="block font-semibold mb-2">Data końcowa:</label>
-          <input
-              id="dateTo"
-              type="date"
+        <div class="flex items-center gap-4">
+          <label for="dateTo" class="font-semibold w-32 shrink-0">Data końcowa:</label>
+          <div class="datepicker-container flex-1">
+            <Datepicker
               v-model="dateTo"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+              :inputClass="datepickerInputClass"
+              :format="'yyyy-MM-dd'"
+              :id="'dateTo'"
+              :auto-apply="true"
+              :close-on-select="true"
+              :close-on-auto-apply="true"
+              :calendar-class="'datepicker-calendar'"
               required
-          />
+            />
+          </div>
         </div>
       </div>
 
-      <div v-if="reportType === 'construction_progress'" class="mb-4">
-        <label for="teamId" class="block font-semibold mb-2">Zespół:</label>
+      <div v-if="reportType === 'construction_progress'" class="flex items-center gap-4 mb-4">
+        <label for="teamId" class="font-semibold w-32 shrink-0">Zespół:</label>
         <select
             id="teamId"
             v-model="teamId"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
             required
         >
           <option disabled value="">Wybierz zespół</option>
@@ -67,12 +77,12 @@
         </select>
       </div>
 
-      <div v-if="reportType === 'employee_load'" class="mb-4">
-        <label for="targetUserId" class="block font-semibold mb-2">Użytkownik (opcjonalnie):</label>
+      <div v-if="reportType === 'employee_load'" class="flex items-center gap-4 mb-4">
+        <label for="targetUserId" class="font-semibold w-32 shrink-0">Użytkownik (opcjonalnie):</label>
         <select
             id="targetUserId"
             v-model="targetUserId"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="">Wszyscy użytkownicy</option>
           <option v-for="user in users" :key="user.id" :value="user.id">
@@ -84,10 +94,16 @@
       <div class="pt-2">
         <button
             type="submit"
-            class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
-            :disabled="loading"
+            class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition disabled:bg-gray-400 disabled:cursor-not-allowed"
+            :disabled="loading || isGenerating"
         >
-          <span v-if="loading">Generowanie...</span>
+          <span v-if="loading || isGenerating" class="flex items-center justify-center">
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Generowanie...
+          </span>
           <span v-else>Generuj Raport</span>
         </button>
       </div>
@@ -107,7 +123,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import teamService from '../services/teamService';
 import userService from '../services/userService';
@@ -115,14 +131,21 @@ import pdfReportService from '../services/pdfReportService';
 import { authState } from '../../router/router.js';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
+import Datepicker from 'vue3-datepicker';
 
 const router = useRouter();
 const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
+// Klasa CSS dla inputów datepicker - dopasowana wysokość do innych inputów
+const datepickerInputClass = computed(() => 
+  'w-full px-4 py-2 border border-gray-300 rounded-lg bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none datepicker-input-custom'
+);
+
 // Zmienione nazwy zmiennych, aby dokładnie pasowały do parametrów API
 const reportType = ref('employee_load');
-const dateFrom = ref('');
-const dateTo = ref('');
+// Zmieniamy typ na Date
+const dateFrom = ref(null);
+const dateTo = ref(null);
 const teamId = ref('');
 const targetUserId = ref('');
 
@@ -131,6 +154,11 @@ const users = ref([]);
 const loading = ref(false);
 const successMessage = ref('');
 const generatedReportId = ref(null);
+
+const isGenerating = ref(false);
+const lastGeneratedParams = ref(null);
+const generationId = ref(0); // Unikalny ID dla każdego generowania
+const generatedFileName = ref('');
 
 const handleReportTypeChange = () => {
   // reset selected values when report type changes
@@ -141,20 +169,20 @@ const handleReportTypeChange = () => {
 onMounted(async () => {
   // Ustaw domyślne daty (ostatni miesiąc)
   const today = new Date();
-  dateTo.value = today.toISOString().split('T')[0];
+  dateTo.value = today;
 
   const lastMonth = new Date();
   lastMonth.setMonth(lastMonth.getMonth() - 1);
-  dateFrom.value = lastMonth.toISOString().split('T')[0];
+  dateFrom.value = lastMonth;
 
   try {
     // Pobierz zespoły
     const teamsData = await teamService.getAllTeams();
     teams.value = teamsData;
 
-    // Pobierz użytkowników
+    // Pobierz użytkowników i odfiltruj "admin"
     const usersData = await userService.getActiveUsers();
-    users.value = usersData;
+    users.value = usersData.filter(u => u.username !== 'admin');
   } catch (error) {
     console.error('Błąd podczas pobierania danych:', error);
     showStatus({
@@ -167,8 +195,12 @@ onMounted(async () => {
 });
 
 const generateReport = async () => {
+  const currentGenerationId = ++generationId.value;
+  console.log(`🚀 Rozpoczynanie generowania raportu #${currentGenerationId}`);
+
   // Walidacja
   if (!dateFrom.value || !dateTo.value) {
+    console.log(`❌ Błąd walidacji dat #${currentGenerationId}`);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -178,8 +210,8 @@ const generateReport = async () => {
     return;
   }
 
-  // Sprawdź czy data końcowa nie jest wcześniejsza niż początkowa
-  if (new Date(dateTo.value) < new Date(dateFrom.value)) {
+  if (dateTo.value < dateFrom.value) {
+    console.log(`❌ Błąd walidacji zakresu dat #${currentGenerationId}`);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -189,8 +221,8 @@ const generateReport = async () => {
     return;
   }
 
-  // Dodatkowa walidacja dla typów raportów
   if (reportType.value === 'construction_progress' && !teamId.value) {
+    console.log(`❌ Błąd walidacji zespołu #${currentGenerationId}`);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -200,57 +232,109 @@ const generateReport = async () => {
     return;
   }
 
+  // KLUCZOWE ZABEZPIECZENIE
+  if (isGenerating.value) {
+    console.log(`⏸️ Raport jest już generowany, ignoruję wywołanie #${currentGenerationId}`);
+    return;
+  }
+
+  console.log(`🔒 Ustawianie flagi isGenerating na true #${currentGenerationId}`);
+  isGenerating.value = true;
   loading.value = true;
   successMessage.value = '';
   generatedReportId.value = null;
 
+  // Formatowanie dat
+  const formatDate = (date) => {
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const currentParams = {
+    type: reportType.value,
+    dateFrom: formatDate(dateFrom.value),
+    dateTo: formatDate(dateTo.value),
+    teamId: teamId.value,
+    targetUserId: targetUserId.value,
+    timestamp: Date.now()
+  };
+
+  console.log(`📋 Parametry raportu #${currentGenerationId}:`, currentParams);
+
+  // Sprawdź duplikaty na podstawie parametrów
+  if (lastGeneratedParams.value) {
+    const timeDiff = currentParams.timestamp - lastGeneratedParams.value.timestamp;
+    const paramsEqual = JSON.stringify({...currentParams, timestamp: undefined}) === 
+                       JSON.stringify({...lastGeneratedParams.value, timestamp: undefined});
+    
+    console.log(`🔍 Sprawdzanie duplikatów #${currentGenerationId}: timeDiff=${timeDiff}ms, paramsEqual=${paramsEqual}`);
+    
+    if (paramsEqual && timeDiff < 10000) {
+      console.log(`🚫 Ignoruję duplikat #${currentGenerationId}`);
+      isGenerating.value = false;
+      loading.value = false;
+      return;
+    }
+  }
+
   try {
-    // Potrzebujemy ID zalogowanego użytkownika
     const userId = authState.user?.id;
     if (!userId) {
       throw new Error('Brak zalogowanego użytkownika');
     }
 
+    console.log(`📞 Wywołanie API dla raportu #${currentGenerationId}, userId: ${userId}`);
+    
     let response;
 
-    // Wywołaj odpowiednią metodę w zależności od typu raportu
     switch (reportType.value) {
       case 'construction_progress':
+        console.log(`🏗️ Generowanie raportu postępu budowy #${currentGenerationId}`);
         response = await pdfReportService.generateConstructionProgressReport(
             teamId.value,
-            dateFrom.value,
-            dateTo.value,
+            currentParams.dateFrom,
+            currentParams.dateTo,
             userId
         );
         break;
       case 'employee_load':
+        console.log(`👥 Generowanie raportu obciążenia pracownika #${currentGenerationId}`);
         response = await pdfReportService.generateEmployeeLoadReport(
             targetUserId.value || null,
-            dateFrom.value,
-            dateTo.value,
+            currentParams.dateFrom,
+            currentParams.dateTo,
             userId
         );
         break;
       case 'team_efficiency':
+        console.log(`📊 Generowanie raportu efektywności zespołu #${currentGenerationId}`);
         response = await pdfReportService.generateTeamEfficiencyReport(
-            dateFrom.value,
-            dateTo.value,
+            currentParams.dateFrom,
+            currentParams.dateTo,
             userId
         );
         break;
     }
 
-    console.log('Raport wygenerowany:', response);
+    console.log(`✅ Odpowiedź z API #${currentGenerationId}:`, response);
 
     if (response && response.reportId) {
       generatedReportId.value = response.reportId;
-      successMessage.value = `Raport został wygenerowany pomyślnie! Nazwa pliku: ${response.fileName || 'Raport PDF'}`;
+      generatedFileName.value = response.fileName || `${reportType.value}_${formatDate(dateFrom.value)}_${formatDate(dateTo.value)}.pdf`;
+      successMessage.value = `Raport został wygenerowany pomyślnie! Nazwa pliku: ${generatedFileName.value}`;
+      
+      lastGeneratedParams.value = currentParams;
+      console.log(`💾 Zapisano parametry ostatniego raportu #${currentGenerationId}:`, lastGeneratedParams.value);
     } else {
       successMessage.value = 'Raport został wygenerowany pomyślnie! Możesz go znaleźć w historii raportów.';
+      console.log(`⚠️ Brak reportId w odpowiedzi #${currentGenerationId}`);
     }
 
   } catch (error) {
-    console.error('Błąd podczas generowania raportu:', error);
+    console.error(`❌ Błąd podczas generowania raportu #${currentGenerationId}:`, error);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -258,18 +342,37 @@ const generateReport = async () => {
       buttonText: 'Zamknij'
     });
   } finally {
+    console.log(`🔓 Zwalnianie flagi isGenerating #${currentGenerationId}`);
     loading.value = false;
+    isGenerating.value = false;
   }
 };
 
 const downloadLastReport = async () => {
-  if (!generatedReportId.value) return;
+  console.log(`📥 Próba pobrania raportu. ID: ${generatedReportId.value}, Nazwa: ${generatedFileName.value}`);
+  
+  if (!generatedReportId.value) {
+    console.log(`❌ Brak ID raportu do pobrania`);
+    showStatus({
+      type: 'error',
+      title: 'Błąd',
+      message: 'Brak raportu do pobrania',
+      buttonText: 'OK'
+    });
+    return;
+  }
 
   try {
-    const downloadUrl = await pdfReportService.downloadReport(generatedReportId.value);
-    window.open(downloadUrl, '_blank');
+    console.log(`🔄 Rozpoczynanie pobierania raportu ID: ${generatedReportId.value}`);
+    
+    // Użyj funkcji z pdfReportService do pobierania i zapisywania
+    const fileName = generatedFileName.value || `raport_${generatedReportId.value}.pdf`;
+    await pdfReportService.downloadAndSaveReport(generatedReportId.value, fileName);
+    
+    console.log(`✅ Raport ${fileName} został pobrany pomyślnie`);
+    
   } catch (error) {
-    console.error('Błąd podczas pobierania raportu:', error);
+    console.error('❌ Błąd podczas pobierania raportu:', error);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -279,3 +382,15 @@ const downloadLastReport = async () => {
   }
 };
 </script>
+
+<style scoped>
+.transition {
+  transition: all 0.2s ease-in-out;
+}
+/* Podstawowe style dla vue3-datepicker */
+:deep(.datepicker input) {
+  width: 100% !important;
+  background-color: white !important;
+  color: black !important;
+}
+</style>

@@ -3,8 +3,8 @@
     <div class="flex justify-between items-center mb-6">
       <h1 class="text-3xl font-bold text-primary">Zespoły</h1>
 
-      <!-- Przycisk do przejścia na stronę dodawania zespołu -->
       <router-link
+          v-if="canAddTeam"
           to="/addteam"
           class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition flex items-center"
       >
@@ -21,6 +21,10 @@
       <button @click="fetchTeams" class="bg-warning mt-2 px-4 py-2 rounded-md">Spróbuj ponownie</button>
     </div>
 
+    <div v-else-if="teams.length === 0" class="flex justify-center items-center h-64">
+      <p class="text-primary text-xl">Nie należysz do żadnego zespołu.</p>
+    </div>
+
     <div v-else class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       <div
           v-for="team in teams"
@@ -35,6 +39,7 @@
           {{ getTeamShortName(team) }}
         </div>
         <h3 class="font-semibold text-secondary">{{ team.name }}</h3>
+        <p class="text-muted text-sm">{{ getTeamManagerName(team) }}</p>
         <p class="text-muted text-sm">{{ teamMemberCounts[team.id] || 0 }} członków</p>
       </div>
     </div>
@@ -42,10 +47,12 @@
 </template>
 
 <script>
-// src/components/Teams.vue (script section)
-import { ref, reactive, onMounted } from 'vue';
+
+import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import teamService from '../services/teamService';
+import userService from '../services/userService';
+import { authState } from '../../router/router.js';
 
 export default {
   name: 'TeamSelection',
@@ -56,29 +63,83 @@ export default {
     const loading = ref(true);
     const error = ref(null);
 
-    // Fetch teams from API
+    // aktualny użytkownik i rola
+    const currentUser = ref(null);
+    const userRole = ref('');
+
+    // Filtrowane zespoły do wyświetlenia
+    const visibleTeams = computed(() => {
+      if (userRole.value === 'admin' || userRole.value === 'administrator' || userRole.value === 'ADMIN') {
+        return teams.value;
+      }
+      // Pracownik/kierownik: tylko zespoły, do których należy
+      if (!currentUser.value) return [];
+      return teams.value.filter(team =>
+          team.managerId === currentUser.value.id ||
+          (team.members && team.members.some(m => m.userId === currentUser.value.id))
+      );
+    });
+
+    // Możliwość dodawania zespołów (administrator, kierownik)
+    const canAddTeam = computed(() => {
+      const role = authState.user?.role;
+      return role === 'administrator' || role === 'admin' || role === 'kierownik' || role === 'manager' || role === 'ADMIN';
+    });
+
+    // Pobierz zespoły z API
     const fetchTeams = async () => {
       loading.value = true;
       error.value = null;
 
       try {
-        // Get teams from API
+        // Pobierz aktualnego użytkownika i rolę
+        if (authState.user && authState.user.id) {
+          currentUser.value = authState.user;
+          userRole.value = authState.user.role;
+        } else {
+          // fallback jeśli nie ma w stanie
+          const user = await userService.getCurrentUser();
+          currentUser.value = user;
+          userRole.value = user.role;
+        }
+
+        // Weź zespoły z API
         teams.value = await teamService.getAllTeams();
 
-        // Fetch member counts for each team
+        // Pobierz dane kierownika dla każdego zespołu
+        for (const team of teams.value) {
+          if (team.managerId) {
+            try {
+              const manager = await userService.getUserById(team.managerId);
+              team.manager = manager;
+            } catch (err) {
+              console.error(`Error fetching manager for team ${team.id}:`, err);
+              team.manager = null;
+            }
+          }
+
+          // Pobierz członków zespołu (potrzebne do filtracji)
+          try {
+            const members = await teamService.getTeamMembers(team.id);
+            team.members = members || [];
+          } catch {
+            team.members = [];
+          }
+        }
+
+        // Pobierz liczbę członków dla każdego zespołu
         await fetchTeamMemberCounts();
       } catch (err) {
         console.error('Error fetching teams:', err);
         error.value = err.message;
 
-        // Fallback data if API fails
+        // Fallback jeśli API nie działa
         teams.value = [
           {id: 1, name: 'Zespół A', manager: {firstName: 'Jan', lastName: 'Kowalski'}},
           {id: 2, name: 'Zespół B', manager: {firstName: 'Anna', lastName: 'Nowak'}},
           {id: 3, name: 'Zespół C', manager: {firstName: 'Piotr', lastName: 'Zieliński'}}
         ];
 
-        // Set some default member counts for fallback data
         teamMemberCounts[1] = 3;
         teamMemberCounts[2] = 4;
         teamMemberCounts[3] = 2;
@@ -87,27 +148,30 @@ export default {
       }
     };
 
-    // Fetch member counts for all teams
+    // Pobierz liczbę członków zespołu
     const fetchTeamMemberCounts = async () => {
       for (const team of teams.value) {
         try {
-          // Fetch team members using teamService
           const members = await teamService.getTeamMembers(team.id);
 
-          // Store the count
           if (Array.isArray(members)) {
-            teamMemberCounts[team.id] = members.length;
+            // Liczba członków + kierownik (jeśli jest)
+            let count = members.length;
+            if (team.managerId) {
+              count += 1; // Dodaj kierownika do liczby członków
+            }
+            teamMemberCounts[team.id] = count;
           } else {
-            teamMemberCounts[team.id] = 0;
+            teamMemberCounts[team.id] = team.managerId ? 1 : 0;
           }
         } catch (err) {
           console.error(`Error fetching members for team ${team.id}:`, err);
-          teamMemberCounts[team.id] = 0; // Default to 0 on error
+          teamMemberCounts[team.id] = team.managerId ? 1 : 0;
         }
       }
     };
 
-    // Select a team and navigate to details
+    // wybierz zespół i przejdź do szczegółów
     const selectTeam = (team) => {
       if (!team || !team.id) {
         console.error('Invalid team object or missing ID', team);
@@ -120,7 +184,7 @@ export default {
       router.push({ name: 'teamDetails', params: { id: teamId } });
     };
 
-    // Helper functions for UI
+    // pomocnicze funkcje do wyświetlania skrótu i koloru zespołu
     const getTeamShortName = (team) => {
       if (!team.name) return '??';
       const words = team.name.split(' ');
@@ -135,17 +199,29 @@ export default {
       return colors[team.id % colors.length];
     };
 
+    // Pobierz nazwę kierownika zespołu
+    const getTeamManagerName = (team) => {
+      if (team.manager) {
+        return `Kierownik: ${team.manager.firstName} ${team.manager.lastName}`;
+      } else if (team.managerId) {
+        return 'Kierownik: Ładowanie...';
+      }
+      return 'Kierownik: Nieprzypisany';
+    };
+
     onMounted(fetchTeams);
 
     return {
-      teams,
+      teams: visibleTeams,
       teamMemberCounts,
       loading,
       error,
       fetchTeams,
       selectTeam,
       getTeamShortName,
-      getTeamColor
+      getTeamColor,
+      canAddTeam,
+      getTeamManagerName
     };
   }
 };

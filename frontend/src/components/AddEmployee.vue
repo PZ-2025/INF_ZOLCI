@@ -80,16 +80,26 @@
 
       <div class="mb-4 flex items-center">
         <label for="password" class="block font-semibold mr-4 w-40 text-right">Hasło</label>
-        <div class="flex-1">
+        <div class="flex-1 relative">
           <input
-              type="password"
+              :type="showPassword ? 'text' : 'password'"
               id="password"
               v-model="user.password"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-              placeholder="Minimum 6 znaków"
-              minlength="6"
+              placeholder="Minimum 8 znaków"
+              minlength="8"
               required
           />
+          <button
+            type="button"
+            @click="showPassword = !showPassword"
+            class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
+            tabindex="-1"
+            aria-label="Pokaż/Ukryj hasło"
+          >
+            <span v-if="showPassword">🙈</span>
+            <span v-else>👁️</span>
+          </button>
           <p v-if="passwordError" class="text-red-500 mt-1 text-sm">{{ passwordError }}</p>
         </div>
       </div>
@@ -102,9 +112,9 @@
             class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             required
         >
-          <option value="employee">Pracownik</option>
-          <option value="manager">Kierownik</option>
-          <option value="admin">Administrator</option>
+          <option value="pracownik">Pracownik</option>
+          <option value="kierownik">Kierownik</option>
+          <option value="administrator">Administrator</option>
         </select>
       </div>
 
@@ -159,7 +169,7 @@ export default {
       username: '',
       password: '',
       phone: '', 
-      role: 'employee',
+      role: 'pracownik',
       isActive: true
     });
 
@@ -168,6 +178,7 @@ export default {
     const error = ref('');
     const successMessage = ref('');
     const passwordError = ref('');
+    const showPassword = ref(false);
 
     // Użycie composable do obsługi modalu
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
@@ -224,7 +235,7 @@ export default {
           buttonText: 'OK',
           autoClose: true,
           autoCloseDelay: 2000,
-          onClose: () => router.push('/allusers')
+          onClose: () => router.push('/adminpanel')
         });
 
         // Wyczyść formularz
@@ -235,7 +246,7 @@ export default {
           username: '',
           password: '',
           phone: '', // reset phone
-          role: 'employee',
+          role: 'pracownik',
           isActive: true
         };
 
@@ -263,6 +274,7 @@ export default {
       error,
       successMessage,
       passwordError,
+      showPassword,
       addEmployee,
       goBack,
       resetForm,

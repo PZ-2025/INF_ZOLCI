@@ -3,6 +3,7 @@ import { reactive } from 'vue';
 import authService from '@/services/authService';
 
 import Teams from '@/components/Teams.vue';
+import TeamEdit from '@/components/TeamEdit.vue';
 import AllEmployees from '@/components/AllEmployees.vue';
 import LoginForm from '@/components/LoginForm.vue';
 import RaportGenerate from '@/components/RaportGenerate.vue';
@@ -20,6 +21,9 @@ import AddTask from '@/components/AddTask.vue';
 import EditTask from '@/components/TaskEdit.vue';
 import TaskDetails from '@/components/TaskDetails.vue';
 import TeamMembersManage from '@/components/TeamMembersManage.vue';
+import RaportMenu from '@/components/RaportMenu.vue';
+import TaskMenu from '@/components/TaskMenu.vue';
+import AdminPanelMenu from '@/components/AdminPanelMenu.vue';
 
 export const authState = reactive({
   isAuthenticated: false,
@@ -34,13 +38,16 @@ const routes = [
   { path: '/teamtasks/:id', name: "teamTasks", component: TeamsTasks, props: true, meta: { requiresAuth: true } },
   { path: '/allemployees', name: "allEmployees", component: AllEmployees, meta: { requiresAuth: true, minRole: 'kierownik' } },
   { path: '/addemployee', name: "addEmployee", component: AddEmployee, meta: { requiresAuth: true, minRole: 'kierownik' } },
+  { path: '/raport', name: "raportMenu", component: RaportMenu, meta: { requiresAuth: true, minRole: 'kierownik' } },
   { path: '/raportgenerate', name: "raportGenerate", component: RaportGenerate, meta: { requiresAuth: true, minRole: 'kierownik' } },
   { path: '/raporthistory', name: "raportHistory", component: RaportHistory, meta: { requiresAuth: true, minRole: 'kierownik' } },
-  { path: '/systemconf', name: "systemConf", component: SystemConf, meta: { requiresAuth: true, requiredRole: 'administrator' } },
-  { path: '/taskshistory', name: "tasksHistory", component: TasksHistory, meta: { requiresAuth: true } },
+  { path: '/tasks', name: "TaskMenu", component: TaskMenu, meta: { requiresAuth: true } },
   { path: '/addtask', name: "addTask", component: AddTask, meta: { requiresAuth: true, minRole: 'kierownik' } },
+  { path: '/taskshistory', name: "tasksHistory", component: TasksHistory, meta: { requiresAuth: true } },
+  { path: '/adminpanel', name: "adminPanelMenu", component: AdminPanelMenu, meta: { requiresAuth: true, requiredRole: 'administrator' } },
   { path: '/settings', name: "userSettings", component: UserSettings, meta: { requiresAuth: true } },
   { path: '/allusers', name: "allUsers", component: AllUsers, meta: { requiresAuth: true, minRole: 'kierownik' } },
+  { path: '/systemconf', name: "systemConf", component: SystemConf, meta: { requiresAuth: true, requiredRole: 'administrator' } },
   { path: '/edittask/:id', name: "editTask", component: EditTask, meta: { requiresAuth: true, minRole: 'kierownik' }, props: true },
   { path: '/taskdetails/:id', name: "taskDetails", component: TaskDetails, meta: { requiresAuth: true } },
   {
@@ -57,10 +64,17 @@ const routes = [
     meta: { requiresAuth: true, minRole: 'kierownik' },
     props: route => ({ userId: parseInt(route.params.id) || null })
   },
-    {
+  {
     path: '/raportview/:id',
     name: "raportView",
     component: RaportView,
+    meta: { requiresAuth: true, minRole: 'kierownik' },
+    props: route => ({ id: parseInt(route.params.id) || null })
+  },
+    {
+    path: '/teamedit/:id',
+    name: "teamEdit",
+    component: TeamEdit,
     meta: { requiresAuth: true, minRole: 'kierownik' },
     props: route => ({ id: parseInt(route.params.id) || null })
   },
@@ -87,6 +101,38 @@ router.beforeEach((to, from, next) => {
       return next(false);
     }
   }
+  next();
+});
+
+router.beforeEach((to, from, next) => {
+  // Istniejąca logika autoryzacji...
+  if (to.meta.requiresAuth) {
+    if (!authState.isAuthenticated) {
+      return next('/');
+    }
+
+    if (to.meta.requiredRole && authState.user.role !== to.meta.requiredRole) {
+      alert('Access denied - specific role required');
+      return next(false);
+    }
+
+    if (to.meta.minRole && !authService.hasRoleAtLeast(to.meta.minRole)) {
+      alert('Access denied - insufficient permissions');
+      return next(false);
+    }
+  }
+  
+  // NOWE: Zabezpieczenie przed cofaniem się do logowania gdy użytkownik jest zalogowany
+  if (to.path === '/' && authState.isAuthenticated) {
+    console.log('Przekierowanie zalogowanego użytkownika z / na /teams');
+    return next('/teams');
+  }
+  
+  // NOWE: Zapisz poprzednią trasę dla bezpiecznego cofania się
+  if (from.path && from.path !== '/' && authState.isAuthenticated) {
+    sessionStorage.setItem('previousRoute', from.path);
+  }
+  
   next();
 });
 

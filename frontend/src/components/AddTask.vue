@@ -1,136 +1,137 @@
 <template>
-  <div class="min-h-screen bg-background flex items-center justify-center px-4 py-10">
-    <div class="w-full max-w-2xl bg-surface border border-gray-200 rounded-2xl shadow-xl p-8 space-y-6">
-      <h1 class="text-3xl font-bold text-primary">Dodaj zadanie</h1>
+  <div class="min-h-screen bg-background flex flex-col items-start justify-start px-10 py-10 space-y-8">
+    <!-- Nagłówek -->
+    <h1 class="text-3xl font-bold text-primary">Dodaj zadanie</h1>
 
-      <div v-if="dataLoading" class="text-center py-6">
-        <p class="text-primary text-xl">Ładowanie danych...</p>
+    <!-- Loader -->
+    <div v-if="dataLoading" class="text-primary text-xl">Ładowanie danych...</div>
+
+    <!-- Formularz -->
+    <form v-else @submit.prevent="addTask" class="space-y-5 w-full max-w-3xl">
+      
+      <!-- Pole: Tytuł -->
+      <div class="flex items-center space-x-4">
+        <label for="title" class="w-48 text-black text-lg font-medium">Tytuł zadania</label>
+        <input
+          v-model="task.title"
+          id="title"
+          type="text"
+          required
+          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+          placeholder="np. Remont mieszkania ul. Załęska 76"
+        />
       </div>
 
-      <form v-else @submit.prevent="addTask" class="space-y-5">
-        <div>
-          <label for="title" class="block text-lg text-black font-medium mb-2">Tytuł zadania</label>
-          <input
-              v-model="task.title"
-              id="title"
-              type="text"
-              required
-              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
-              placeholder="np. Remont mieszkania ul. Załęska 76"
-          />
-        </div>
+      <!-- Pole: Opis -->
+      <div class="flex items-start space-x-4">
+        <label for="description" class="w-48 text-black text-lg font-medium pt-2">Opis zadania</label>
+        <textarea
+          v-model="task.description"
+          id="description"
+          rows="4"
+          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
+          placeholder="np. Klient ma problemy z wilgocią..."
+        ></textarea>
+      </div>
 
-        <div>
-          <label for="description" class="block text-lg text-black font-medium mb-2">Opis zadania</label>
-          <textarea
-              v-model="task.description"
-              id="description"
-              rows="4"
-              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black placeholder-gray-400 focus:ring-2 focus:ring-primary focus:outline-none"
-              placeholder="np. Klient ma problemy z wilgocią..."
-          ></textarea>
-        </div>
+      <!-- Pole: Zespół -->
+      <div class="flex items-center space-x-4">
+        <label for="teamId" class="w-48 text-black text-lg font-medium">Zespół</label>
+        <select
+          v-model.number="task.teamId"
+          id="teamId"
+          required
+          class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+        >
+          <option disabled value="">Wybierz zespół</option>
+          <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
+        </select>
+      </div>
 
-        <div>
-          <label for="teamId" class="block text-lg text-black font-medium mb-2">Zespół</label>
+      <!-- Priorytet i Status -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex items-center space-x-4">
+          <label for="priorityId" class="w-48 text-black text-lg font-medium">Priorytet</label>
           <select
-              v-model.number="task.teamId"
-              id="teamId"
-              required
-              class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+            v-model.number="task.priorityId"
+            id="priorityId"
+            required
+            class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
           >
-            <option disabled value="" class="text-gray-400">Wybierz zespół</option>
-            <option v-for="team in teams" :key="team.id" :value="team.id">{{ team.name }}</option>
+            <option disabled value="">Wybierz priorytet</option>
+            <option v-for="priority in priorities" :key="priority.id" :value="priority.id">{{ priority.name }}</option>
           </select>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label for="priorityId" class="block text-lg text-black font-medium mb-2">Priorytet</label>
-            <select
-                v-model.number="task.priorityId"
-                id="priorityId"
-                required
-                class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
-            >
-              <option disabled value="" class="text-gray-400">Wybierz priorytet</option>
-              <option v-for="priority in priorities" :key="priority.id" :value="priority.id">{{ priority.name }}</option>
-            </select>
-          </div>
+        <div class="flex items-center space-x-4">
+          <label for="statusId" class="w-48 text-black text-lg font-medium">Status</label>
+          <select
+            v-model.number="task.statusId"
+            id="statusId"
+            required
+            class="flex-1 p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
+          >
+            <option disabled value="">Wybierz status</option>
+            <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
+          </select>
+        </div>
+      </div>
 
-          <div>
-            <label for="statusId" class="block text-lg text-black font-medium mb-2">Status</label>
-            <select
-                v-model.number="task.statusId"
-                id="statusId"
-                required
-                class="w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
-            >
-              <option disabled value="" class="text-gray-400">Wybierz status</option>
-              <option v-for="status in statuses" :key="status.id" :value="status.id">{{ status.name }}</option>
-            </select>
+      <!-- Daty -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="flex items-center space-x-4">
+          <label for="startDate" class="w-48 text-black text-lg font-medium">Data rozpoczęcia</label>
+          <div class="flex-1">
+            <Datepicker
+              v-model="task.startDate"
+              :format="'yyyy-MM-dd'"
+              :inputClass="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none'"
+              :clearable="true"
+              :auto-apply="true"
+              :close-on-select="true"
+              :close-on-auto-apply="true"
+              placeholder="Wybierz datę rozpoczęcia..."
+            />
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label for="startDate" class="block text-lg text-black font-medium mb-2">Data rozpoczęcia</label>
-            <div class="relative">
-              <input
-                  v-model="task.startDate"
-                  id="startDate"
-                  type="date"
-                  required
-                  class="w-full p-2.5 pl-10 cursor-pointer border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
-              />
-              <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
-                <i class="fas fa-calendar-alt"></i>
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label for="deadline" class="block text-lg text-black font-medium mb-2">Deadline</label>
-            <div class="relative">
-              <input
-                  v-model="task.deadline"
-                  id="deadline"
-                  type="date"
-                  required
-                  class="w-full p-2.5 pl-10 cursor-pointer border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none"
-              />
-              <span class="absolute inset-y-0 left-3 flex items-center text-gray-500">
-                <i class="fas fa-calendar-alt"></i>
-              </span>
-            </div>
+        <div class="flex items-center space-x-4">
+          <label for="deadline" class="w-48 text-black text-lg font-medium">Deadline</label>
+          <div class="flex-1">
+            <Datepicker
+              v-model="task.deadline"
+              :format="'yyyy-MM-dd'"
+              :inputClass="'w-full p-2.5 border border-gray-300 rounded-md bg-white text-sm text-black focus:ring-2 focus:ring-primary focus:outline-none'"
+              :clearable="true"
+              :auto-apply="true"
+              placeholder="Wybierz deadline..."
+            />
           </div>
         </div>
+      </div>
 
-        <div class="flex justify-between pt-4">
-          <div class="flex gap-4">
-            <button
-                type="button"
-                @click="goBack"
-                class="px-5 py-2 rounded-md bg-gray-500 text-white text-sm hover:bg-gray-600 transition"
-            >
-              Anuluj
-            </button>
-            <button
-                type="submit"
-                class="px-6 py-2 rounded-md bg-primary hover:bg-secondary text-white text-sm font-semibold transition"
-                :disabled="loading"
-            >
-              <span v-if="loading">Dodawanie...</span>
-              <span v-else>Dodaj zadanie</span>
-            </button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
+      <!-- Przyciski -->
+      <div class="flex justify-end gap-4 pt-4">
+        <button
+          type="button"
+          @click="goBack"
+          class="px-5 py-2 rounded-md bg-gray-500 text-white text-sm hover:bg-gray-600 transition"
+        >
+          Anuluj
+        </button>
+        <button
+          type="submit"
+          class="px-6 py-2 rounded-md bg-primary hover:bg-secondary text-white text-sm font-semibold transition"
+          :disabled="loading"
+        >
+          <span v-if="loading">Dodawanie...</span>
+          <span v-else>Dodaj zadanie</span>
+        </button>
+      </div>
+    </form>
 
-  <!-- Status Modal -->
-  <StatusModal
+    <!-- Status Modal -->
+    <StatusModal
       :show="showModal"
       :type="modalConfig.type"
       :title="modalConfig.title"
@@ -139,7 +140,8 @@
       :auto-close="modalConfig.autoClose"
       :auto-close-delay="modalConfig.autoCloseDelay"
       @close="hideModal"
-  />
+    />
+  </div>
 </template>
 
 <script setup>
@@ -152,6 +154,7 @@ import taskStatusService from '../services/taskStatusService';
 import { authState } from '../../router/router.js';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
+import Datepicker from 'vue3-datepicker';
 
 const router = useRouter();
 
@@ -162,8 +165,8 @@ const task = ref({
   teamId: '',
   priorityId: '',
   statusId: '',
-  startDate: '',
-  deadline: ''
+  startDate: null,
+  deadline: null
   // Pola id, createdById i createdAt będą dodane przez backend
 });
 
@@ -255,12 +258,12 @@ const fetchReferenceData = async () => {
 onMounted(async () => {
   // Ustawienie domyślnej daty rozpoczęcia na dzisiaj
   const today = new Date();
-  task.value.startDate = today.toISOString().split('T')[0];
+  task.value.startDate = today;
 
   // Ustawienie domyślnego deadlinu na tydzień od dziś
   const nextWeek = new Date();
   nextWeek.setDate(nextWeek.getDate() + 7);
-  task.value.deadline = nextWeek.toISOString().split('T')[0];
+  task.value.deadline = nextWeek;
 
   // Pobierz dane referencyjne
   await fetchReferenceData();
@@ -316,14 +319,22 @@ const addTask = async () => {
     });
 
     // Przekształcenie danych do formatu API zgodnego z oczekiwanym JSON
+    const formatDate = (date) => {
+      if (!date) return '';
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
     const taskData = {
       title: task.value.title,
       description: task.value.description || '',
       teamId: task.value.teamId,
       priorityId: task.value.priorityId,
       statusId: task.value.statusId,
-      startDate: task.value.startDate,
-      deadline: task.value.deadline,
+      startDate: formatDate(task.value.startDate),
+      deadline: formatDate(task.value.deadline),
       createdById: userId
     };
 
@@ -354,7 +365,7 @@ const addTask = async () => {
     });
 
   } catch (err) {
-    console.error('Błąd podczas dodawania zadania:', err);
+    console.error('Błąd podczas dodawania zadania:',  err);
     showStatus({
       type: 'error',
       title: 'Błąd',
@@ -371,3 +382,15 @@ const goBack = () => {
   router.back();
 };
 </script>
+
+<style scoped>
+.transition {
+  transition: all 0.2s ease-in-out;
+}
+/* Podstawowe style dla vue3-datepicker */
+:deep(.datepicker input) {
+  width: 100% !important;
+  background-color: white !important;
+  color: black !important;
+}
+</style>

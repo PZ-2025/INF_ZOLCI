@@ -1,6 +1,8 @@
 package com.example.backend.controllers;
 
 import com.example.backend.dto.TeamDTO;
+import com.example.backend.dto.UserDTO;
+import com.example.backend.dto.UserResponseDTO;
 import com.example.backend.services.TeamService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -167,6 +169,47 @@ public class TeamController {
     public ResponseEntity<TeamDTO> deactivateTeam(@PathVariable Integer id) {
         return teamService.deactivateTeam(id)
                 .map(team -> new ResponseEntity<>(team, HttpStatus.OK))
+                .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    /**
+     * Pobiera dane kierownika zespołu o podanym ID.
+     *
+     * @param id Identyfikator zespołu
+     * @return Dane kierownika zespołu lub status 404, jeśli zespół nie istnieje
+     */
+    @GetMapping("/{id}/manager")
+    public ResponseEntity<UserResponseDTO> getTeamManager(@PathVariable Integer id) {
+        return teamService.getTeamManager(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    /**
+     * Częściowo aktualizuje zespół (PATCH).
+     *
+     * @param id      Identyfikator zespołu
+     * @param teamDTO Dane zespołu do aktualizacji
+     * @return Zaktualizowany zespół lub status 404, jeśli nie istnieje
+     */
+    @PatchMapping(value = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<TeamDTO> patchTeam(@PathVariable Integer id, @RequestBody TeamDTO teamDTO) {
+        teamDTO.setId(id);
+        return teamService.getTeamById(id)
+                .map(existingTeam -> {
+                    // Aktualizuj tylko pola które nie są null w teamDTO
+                    if (teamDTO.getName() != null) {
+                        existingTeam.setName(teamDTO.getName());
+                    }
+                    if (teamDTO.getManagerId() != null) {
+                        existingTeam.setManagerId(teamDTO.getManagerId());
+                    }
+                    if (teamDTO.getIsActive() != null) {
+                        existingTeam.setIsActive(teamDTO.getIsActive());
+                    }
+                    
+                    TeamDTO updatedTeam = teamService.updateTeam(existingTeam);
+                    return new ResponseEntity<>(updatedTeam, HttpStatus.OK);
+                })
                 .orElse(new ResponseEntity<>(HttpStatus.NOT_FOUND));
     }
 }

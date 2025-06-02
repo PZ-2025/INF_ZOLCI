@@ -2,6 +2,7 @@ package com.example.backend.services;
 
 import com.example.backend.dto.TeamDTO;
 import com.example.backend.dto.UserDTO;
+import com.example.backend.dto.UserResponseDTO;
 import com.example.backend.models.Team;
 import com.example.backend.models.User;
 import com.example.backend.repository.TaskRepository;
@@ -210,5 +211,34 @@ public class TeamService {
      */
     public boolean existsById(Integer id) {
         return teamRepository.existsById(id);
+    }
+
+    /**
+     * Pobiera dane kierownika zespołu jako DTO.
+     *
+     * @param teamId Identyfikator zespołu
+     * @return Opcjonalne dane kierownika zespołu, jeśli zespół istnieje
+     */
+    public Optional<UserResponseDTO> getTeamManager(Integer teamId) {
+        return teamRepository.findById(teamId)
+                .map(team -> mapUserToResponseDTO(team.getManager()));
+    }
+
+    private UserResponseDTO mapUserToResponseDTO(User user) {
+        if (user == null) return null;
+
+        UserResponseDTO dto = new UserResponseDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+        dto.setFirstName(user.getFirstName());
+        dto.setLastName(user.getLastName());
+        dto.setPhone(user.getPhone());
+        dto.setRole(user.getRole());
+        dto.setIsActive(user.getIsActive());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setLastLogin(user.getLastLogin());
+
+        return dto;
     }
 }

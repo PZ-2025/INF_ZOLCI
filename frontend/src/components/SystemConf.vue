@@ -35,7 +35,7 @@
       </div>
 
       <div class="bg-surface p-6 rounded-lg shadow-md mb-6 border border-gray-200">
-        <h2 class="text-xl font-semibold mb-4">Globalne Kryteria Priorytetów</h2>
+        <h2 class="text-xl font-semibold mb-4">Domyślne kryterium priorytetów</h2>
         <select
             v-model="settings.defaultPriority"
             class="w-full p-2 border border-gray-300 rounded bg-white focus:outline-none focus:ring-2 focus:ring-primary"

@@ -21,102 +21,150 @@
         {{ successMessage }}
       </div>
 
-      <!-- Pole formularza -->
+      <!-- Pole formularza: Username -->
+      <div class="flex items-center mb-4">
+        <label class="w-40 font-semibold">Nazwa użytkownika</label>
+        <input
+            type="text"
+            v-model="user.username"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz nazwę użytkownika"
+            required
+        />
+      </div>
+
+      <!-- Pole formularza: Imię -->
       <div class="flex items-center mb-4">
         <label class="w-40 font-semibold">Imię</label>
         <input
-          type="text"
-          v-model="user.firstName"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Wpisz imię"
-          required
+            type="text"
+            v-model="user.firstName"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz imię"
+            required
         />
       </div>
 
       <div class="flex items-center mb-4">
         <label class="w-40 font-semibold">Nazwisko</label>
         <input
-          type="text"
-          v-model="user.lastName"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Wpisz nazwisko"
-          required
+            type="text"
+            v-model="user.lastName"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz nazwisko"
+            required
         />
       </div>
 
       <div class="flex items-center mb-4">
         <label for="email" class="w-40 font-semibold">Adres e-mail</label>
         <input
-          type="email"
-          id="email"
-          v-model="user.email"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Twój adres e-mail"
-          required
+            type="email"
+            id="email"
+            v-model="user.email"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Twój adres e-mail"
+            required
         />
       </div>
 
       <div class="flex items-center mb-4">
         <label for="phone" class="w-40 font-semibold">Telefon</label>
         <input
-          type="text"
-          id="phone"
-          v-model="user.phone"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Numer telefonu"
+            type="text"
+            id="phone"
+            v-model="user.phone"
+            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Numer telefonu"
         />
       </div>
 
-      <div class="flex items-center mb-4">
+      <!-- <div class="flex items-center mb-4">
         <label for="currentPassword" class="w-40 font-semibold">Aktualne hasło</label>
-        <input
-          type="password"
-          id="currentPassword"
-          v-model="passwordData.currentPassword"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Wpisz aktualne hasło"
-          :required="passwordData.newPassword.length > 0"
-        />
-      </div>
+        <div class="flex-1 relative">
+          <input
+            :type="showCurrentPassword ? 'text' : 'password'"
+            id="currentPassword"
+            v-model="passwordData.currentPassword"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz aktualne hasło"
+            :required="passwordData.newPassword.length > 0"
+          />
+          <button
+            type="button"
+            @click="showCurrentPassword = !showCurrentPassword"
+            class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
+            tabindex="-1"
+            aria-label="Pokaż/Ukryj hasło"
+          >
+            <span v-if="showCurrentPassword">🙈</span>
+            <span v-else>👁️</span>
+          </button>
+        </div>
+      </div> -->
 
       <div class="flex items-center mb-4">
         <label for="newPassword" class="w-40 font-semibold">Nowe hasło</label>
-        <input
-          type="password"
-          id="newPassword"
-          v-model="passwordData.newPassword"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Wpisz nowe hasło"
-        />
+        <div class="flex-1 relative">
+          <input
+            :type="showNewPassword ? 'text' : 'password'"
+            id="newPassword"
+            v-model="passwordData.newPassword"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Wpisz nowe hasło"
+          />
+          <button
+            type="button"
+            @click="showNewPassword = !showNewPassword"
+            class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
+            tabindex="-1"
+            aria-label="Pokaż/Ukryj hasło"
+          >
+            <span v-if="showNewPassword">🙈</span>
+            <span v-else>👁️</span>
+          </button>
+        </div>
       </div>
 
       <div class="flex items-center mb-1">
         <label for="confirmPassword" class="w-40 font-semibold">Potwierdź hasło</label>
-        <input
-          type="password"
-          id="confirmPassword"
-          v-model="passwordData.confirmPassword"
-          class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-          placeholder="Potwierdź nowe hasło"
-          :required="passwordData.newPassword.length > 0"
-        />
+        <div class="flex-1 relative">
+          <input
+            :type="showConfirmPassword ? 'text' : 'password'"
+            id="confirmPassword"
+            v-model="passwordData.confirmPassword"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            placeholder="Potwierdź nowe hasło"
+            :required="passwordData.newPassword.length > 8"
+          />
+          <button
+            type="button"
+            @click="showConfirmPassword = !showConfirmPassword"
+            class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
+            tabindex="-1"
+            aria-label="Pokaż/Ukryj hasło"
+          >
+            <span v-if="showConfirmPassword">🙈</span>
+            <span v-else>👁️</span>
+          </button>
+        </div>
       </div>
       <p v-if="passwordError" class="text-red-500 ml-40 mt-1 text-sm">{{ passwordError }}</p>
 
       <div v-if="userId" class="flex items-center mb-6">
         <label for="isActive" class="w-40 font-semibold">Aktywny</label>
         <input
-          type="checkbox"
-          id="isActive"
-          v-model="user.isActive"
-          class="h-5 w-5"
+            type="checkbox"
+            id="isActive"
+            v-model="user.isActive"
+            class="h-5 w-5"
         />
       </div>
 
       <button
-        type="submit"
-        class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
-        :disabled="isSaving"
+          type="submit"
+          class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
+          :disabled="isSaving"
       >
         <span v-if="isSaving">Zapisywanie zmian...</span>
         <span v-else>Zapisz Zmiany</span>
@@ -124,14 +172,14 @@
     </form>
 
     <StatusModal
-      :show="showModal"
-      :type="modalConfig.type"
-      :title="modalConfig.title"
-      :message="modalConfig.message"
-      :button-text="modalConfig.buttonText"
-      :auto-close="modalConfig.autoClose"
-      :auto-close-delay="modalConfig.autoCloseDelay"
-      @close="hideModal"
+        :show="showModal"
+        :type="modalConfig.type"
+        :title="modalConfig.title"
+        :message="modalConfig.message"
+        :button-text="modalConfig.buttonText"
+        :auto-close="modalConfig.autoClose"
+        :auto-close-delay="modalConfig.autoCloseDelay"
+        @close="hideModal"
     />
   </div>
 </template>
@@ -157,6 +205,10 @@ export default {
   setup(props) {
     const router = useRouter();
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
+
+    const showCurrentPassword = ref(false);
+    const showNewPassword = ref(false);
+    const showConfirmPassword = ref(false);
 
     // Oryginalne dane użytkownika (do wykrywania zmian)
     const originalUserData = ref({});
@@ -191,7 +243,7 @@ export default {
         return 'Hasła nie są identyczne';
       }
       if (passwordData.newPassword && passwordData.newPassword.length < 6) {
-        return 'Hasło musi mieć co najmniej 6 znaków';
+        return 'Hasło musi mieć co najmniej 8 znaków';
       }
       return null;
     });
@@ -268,6 +320,9 @@ export default {
         const changedFields = {};
 
         // Sprawdź, które pola zostały zmienione
+        if (user.username !== originalUserData.value.username) {
+          changedFields.username = user.username;
+        }
         if (user.firstName !== originalUserData.value.firstName) {
           changedFields.firstName = user.firstName;
         }
@@ -286,11 +341,11 @@ export default {
 
         // Dodaj hasło tylko jeśli użytkownik chce je zmienić
         if (passwordData.newPassword) {
-          if (!passwordData.currentPassword) {
-            throw new Error('Aktualne hasło jest wymagane do zmiany hasła');
-          }
+          // if (!passwordData.currentPassword) {
+          //   throw new Error('Aktualne hasło jest wymagane do zmiany hasła');
+          // }
           changedFields.password = passwordData.newPassword;
-          changedFields.currentPassword = passwordData.currentPassword;
+          // changedFields.currentPassword = passwordData.currentPassword;
 
           // Jeśli zmieniamy hasło, użyjmy PUT zamiast PATCH dla bezpieczeństwa
           const fullUpdateData = {
@@ -308,7 +363,7 @@ export default {
         }
 
         // Wyczyść dane hasła
-        passwordData.currentPassword = '';
+        // passwordData.currentPassword = '';
         passwordData.newPassword = '';
         passwordData.confirmPassword = '';
 
@@ -328,7 +383,7 @@ export default {
             if (props.userId) {
               router.push('/allusers');
             }
-          } 
+          }
         });
 
         // Zaktualizuj dane w stanie autoryzacji tylko jeśli edytujemy własne dane
@@ -367,7 +422,10 @@ export default {
       updateSettings,
       showModal,
       modalConfig,
-      hideModal
+      hideModal,
+      showCurrentPassword,
+      showNewPassword,
+      showConfirmPassword
     };
   }
 };

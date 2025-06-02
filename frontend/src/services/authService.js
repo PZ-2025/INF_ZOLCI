@@ -7,9 +7,9 @@ const API_URL = process.env.API_URL || 'http://localhost:8080';
 
 // Hierarchia ról (im wyższa liczba, tym większe uprawnienia)
 const roleHierarchy = {
-  'użytkownik': 1,    //employee
-  'kierownik': 2,     //manager
-  'administrator': 3  //admin
+  'pracownik': 1,
+  'kierownik': 2,
+  'administrator': 3
 };
 
 const authService = {
@@ -101,4 +101,5 @@ const authService = {
   }
 };
 
+export { authState }; 
 export default authService;

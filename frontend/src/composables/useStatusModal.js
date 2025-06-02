@@ -7,13 +7,19 @@ export function useStatusModal() {
     title: '',
     message: '',
     buttonText: 'OK',
+    cancelText: 'Anuluj',
+    showCancelButton: true,
     autoClose: true,
     autoCloseDelay: 2000,
-    onClose: null
+    onClose: null,
+    onCancel: null
   });
 
   const showStatus = (config) => {
-    modalConfig.value = { ...modalConfig.value, ...config };
+    modalConfig.value = { 
+      ...modalConfig.value, // zachowaj domyślne wartości
+      ...config // nadpisz przekazanymi wartościami
+    };
     showModal.value = true;
   };
 

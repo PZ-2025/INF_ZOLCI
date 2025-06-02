@@ -29,7 +29,7 @@ const teamService = {
 
     // Update team
     async updateTeam(teamId, teamData) {
-        return await apiService.put(`/database/teams/${teamId}`, teamData);
+        return await apiService.patch(`/database/teams/${teamId}`, teamData);
     },
 
     // Activate team

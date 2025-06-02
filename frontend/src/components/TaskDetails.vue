@@ -17,12 +17,24 @@
       <div class="space-y-4">
         <p><span class="font-semibold text-black">Tytuł: </span> <span class="text-black">{{ task.title }}</span></p>
         <p><span class="font-semibold text-black">Opis: </span> <span class="text-black">{{ task.description }}</span></p>
-        <p>
-          <span class="font-semibold text-black">Status: </span>
-          <span :class="getStatusClass(task.statusId || task.status?.id)">
-            {{ getStatusText(task.statusId || task.status?.id) }}
-          </span>
-        </p>
+        
+        <!-- Status z przyciskiem do zmiany -->
+        <div class="flex items-center justify-between">
+          <p class="flex-grow">
+            <span class="font-semibold text-black">Status: </span>
+            <span :class="getStatusClass(task.statusId || task.status?.id)">
+              {{ getStatusText(task.statusId || task.status?.id) }}
+            </span>
+          </p>
+          <button 
+            v-if="canShowChangeStatusButton"
+            @click="openStatusModal"
+            class="ml-4 px-3 py-1 bg-primary hover:bg-secondary text-white text-xs rounded-md transition-colors"
+          >
+            Zmień
+          </button>
+        </div>
+        
         <p>
           <span class="font-semibold text-black">Priorytet: </span>
           <span :class="getPriorityClass(task.priorityId || task.priority?.id)">
@@ -36,6 +48,10 @@
         <p>
           <span class="font-semibold text-black">Data rozpoczęcia: </span>
           <span class="text-black">{{ formatDate(task.startDate) }}</span>
+        </p>
+        <p v-if="task.completed_date">
+          <span class="font-semibold text-black">Data zakończenia: </span>
+          <span class="text-black">{{ formatDate(task.completed_date) }}</span>
         </p>
         <p><span class="font-semibold text-black">Zespół: </span> <span class="text-black">{{ teamName }}</span></p>
       </div>
@@ -65,9 +81,9 @@
                 <div class="text-sm text-gray-600 mb-1">
                   {{ comment.userFullName || comment.username || 'Użytkownik' }} — {{ formatDate(comment.createdAt) }}
                 </div>
-                <!-- Przycisk usuwania komentarza - widoczny tylko dla managera lub admina -->
+                <!-- Przycisk usuwania komentarza - widoczny tylko dla uprawnionych -->
                 <button
-                    v-if="canDeleteComments"
+                    v-if="canDeleteComment(comment)"
                     @click="deleteComment(comment.id)"
                     class="bg-red-600 hover:bg-red-700 text-white p-2 transition-colors duration-200"
                     :disabled="isDeletingComment"
@@ -85,7 +101,7 @@
 
         <!-- Przycisk "Pokaż więcej" gdy liczba komentarzy > 3 -->
         <div v-if="taskComments.length > 3" class="text-center pt-2">
-          <button @click="toggleComments" class="text-primary hover:text-secondary text-sm">
+          <button @click="toggleComments" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded-md transition">
             {{ showAllComments ? 'Pokaż mniej' : 'Pokaż wszystkie' }}
           </button>
         </div>
@@ -113,12 +129,11 @@
       </div>
 
       <div class="flex justify-between">
-        <button @click="toggleDebug"
-                class="px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg text-sm transition">
-          {{ debugMode ? 'Ukryj debug' : 'Debug' }}
-        </button>
+        <!-- Pusta przestrzeń jeśli nie ma uprawnień -->
+        <div></div>
 
-        <div class="space-x-4">
+        <!-- Przyciski tylko dla uprawnionych użytkowników -->
+        <div v-if="canEditAndDeleteTask" class="space-x-4">
           <button @click="editTask"
                   class="px-4 py-2 bg-primary hover:bg-secondary text-white rounded-lg text-sm transition">
             Edytuj
@@ -128,6 +143,75 @@
             Usuń zadanie
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal do zmiany statusu -->
+  <div 
+    v-if="showStatusChangeModal" 
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    @click="closeStatusModal"
+  >
+    <div 
+      class="bg-white rounded-lg shadow-xl max-w-md w-full p-6 transform transition-all"
+      @click.stop
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-semibold text-gray-900">Zmień status zadania</h3>
+        <button 
+          @click="closeStatusModal"
+          class="text-white bg-primary hover:text-secondary transition-colors"
+        >
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div class="mb-4">
+        <p class="text-sm text-gray-600 mb-2">Aktualny status:</p>
+        <div class="flex items-center justify-center">
+          <span :class="getStatusClass(task.statusId || task.status?.id)" class="font-semibold">
+            {{ getStatusText(task.statusId || task.status?.id) }}
+          </span>
+        </div>
+      </div>
+      
+      <div class="mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">
+          Nowy status:
+        </label>
+        <select
+          v-model="selectedStatusId"
+          class="w-full bg-white border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+        >
+          <option value="" disabled>Wybierz nowy status</option>
+          <option
+            v-for="status in availableStatuses"
+            :key="status.id"
+            :value="status.id"
+            class="text-gray-900"
+          >
+            {{ status.name }}
+          </option>
+        </select>
+      </div>
+      
+      <div class="flex space-x-3 justify-end">
+        <button
+          @click="closeStatusModal"
+          class="text-white bg-primary hover:text-secondary transition-colors"
+        >
+          Anuluj
+        </button>
+        <button
+          @click="confirmStatusChange"
+          :disabled="!selectedStatusId || isUpdatingStatus"
+          class="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-md transition-colors"
+        >
+          {{ isUpdatingStatus ? 'Zapisywanie...' : 'Zapisz' }}
+        </button>
       </div>
     </div>
   </div>
@@ -144,7 +228,6 @@
       @close="hideModal"
   />
 </template>
-
 <script>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
@@ -175,6 +258,12 @@ export default {
     const showAllComments = ref(false);
     const statuses = ref([]);
     const priorities = ref([]);
+    const selectedStatusId = ref(null);
+    const teams = ref([]);
+    
+    // Modal state
+    const showStatusChangeModal = ref(false);
+    const isUpdatingStatus = ref(false);
 
     // Modal setup
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
@@ -182,6 +271,31 @@ export default {
     // Sprawdzenie czy użytkownik może usuwać komentarze (manager lub admin)
     const canDeleteComments = computed(() => {
       return authService.hasRoleAtLeast('manager');
+    });
+
+    // Nowa funkcja sprawdzająca uprawnienia do usuwania pojedynczego komentarza
+    const canDeleteComment = (comment) => {
+      const user = authState.user;
+      if (!user) return false;
+
+      // 1. Administrator systemu
+      if (user.role === 'administrator') return true;
+
+      if (user.role === 'kierownik') return true;
+
+      // 2. Autor komentarza
+      if (comment.userId && user.id === comment.userId) return true;
+
+      return false;
+    };
+
+    // NOWE: Kontrola uprawnień do edycji i usuwania zadań
+    const canEditAndDeleteTask = computed(() => {
+      const user = authState.user;
+      if (!user) return false;
+      
+      // Tylko kierownik i administrator mogą edytować/usuwać zadania
+      return user.role === 'kierownik' || user.role === 'administrator';
     });
 
     // Computed property do obsługi komentarzy
@@ -199,6 +313,156 @@ export default {
       }
       return [];
     });
+
+    // Ustal uprawnienia
+    const userRole = computed(() => authState.user?.role || '');
+    const isManager = computed(() => userRole.value === 'kierownik' || userRole.value === 'administrator');
+    const isEmployee = computed(() => userRole.value === 'pracownik');
+
+    // Czy zadanie jest zakończone
+    const isTaskCompleted = computed(() => {
+      const statusId = task.value.statusId || task.value.status?.id;
+      const foundStatus = statuses.value.find(s => s.id === Number(statusId));
+      if (foundStatus) {
+        const name = foundStatus.name.toLowerCase();
+        return name.includes('zakończ') || name.includes('completed') || name.includes('done');
+      }
+      return statusId === 3;
+    });
+
+    // Widoczność przycisku zmiany statusu
+    const canShowChangeStatusButton = computed(() => {
+      if (!authState.user) return false;
+      // ZABLOKUJ jeśli zadanie zakończone
+      if (isTaskCompleted.value) return false;
+      // dowolny uprawniony
+      return canEditStatus.value;
+    });
+
+    // Czy użytkownik może edytować status
+    const canEditStatus = computed(() => {
+      if (!authState.user) return false;
+      // Kierownik lub administrator może zawsze
+      if (isManager.value) return true;
+      // Pracownik może, ale nie na "Zakończone"
+      if (isEmployee.value) return true;
+      return false;
+    });
+
+    // Lista statusów dostępnych do wyboru
+    const availableStatuses = computed(() => {
+      if (isManager.value) {
+        return statuses.value;
+      }
+      // Pracownik - bez statusu "Zakończone"
+      return statuses.value.filter(s => !s.name?.toLowerCase().includes('zakończ'));
+    });
+
+    // Funkcje modala
+    const openStatusModal = () => {
+      // Nie otwieraj modala jeśli zadanie zakończone
+      if (isTaskCompleted.value) return;
+      selectedStatusId.value = task.value.statusId || task.value.status?.id;
+      showStatusChangeModal.value = true;
+    };
+
+    const closeStatusModal = () => {
+      showStatusChangeModal.value = false;
+      selectedStatusId.value = null;
+      isUpdatingStatus.value = false;
+    };
+
+const confirmStatusChange = async () => {
+  if (!selectedStatusId.value || !task.value.id) return;
+  
+  isUpdatingStatus.value = true;
+  
+  try {
+    // Pobierz aktualne dane zadania
+    const currentTask = await taskService.getTaskById(task.value.id);
+    console.log('Aktualne dane zadania:', currentTask);
+
+    // Sprawdź czy nowy status to "Zakończone"
+    const selectedStatus = statuses.value.find(s => s.id === Number(selectedStatusId.value));
+    const isCompletedStatus = selectedStatus?.name?.toLowerCase().includes('zakończ');
+    
+    console.log('Wybrany status:', selectedStatus);
+    console.log('Czy status zakończony?', isCompletedStatus);
+    console.log('Aktualna completedDate:', currentTask.completedDate);
+
+    // Formatuj dzisiejszą datę do formatu YYYY-MM-DD
+    const formatDateToString = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+
+    // Przygotuj dane do aktualizacji z PRAWIDŁOWĄ NAZWĄ POLA
+    const updatedTask = {
+      ...currentTask,
+      statusId: Number(selectedStatusId.value)
+    };
+
+    // POPRAWKA: używaj completedDate (camelCase) zamiast completed_date
+    if (isCompletedStatus) {
+      // Ustaw zawsze dzisiejszą datę, gdy status to "Zakończone"
+      updatedTask.completedDate = formatDateToString(new Date());
+    } else {
+      // Jeśli nowy status to NIE "Zakończone", usuń completedDate
+      updatedTask.completedDate = null;
+    }
+
+    console.log('Dane do wysłania:', updatedTask);
+    console.log('completedDate w updatedTask:', updatedTask.completedDate);
+
+    // Użyj taskService.updateTask z poprawionymi danymi
+    const result = await taskService.updateTask(task.value.id, updatedTask);
+    console.log('Odpowiedź z serwera:', result);
+    
+    // Zaktualizuj lokalny stan z odpowiedzi serwera
+    task.value.statusId = result.statusId;
+    task.value.completedDate = result.completedDate;
+    // OBSŁUGA OBU FORMATÓW na wszelki wypadek
+    if (result.completed_date !== undefined) {
+      task.value.completed_date = result.completed_date;
+    }
+    
+    // Zamknij modal
+    closeStatusModal();
+    
+    // Pokaż komunikat sukcesu
+    let message;
+    if (isCompletedStatus && !currentTask.completedDate) {
+      message = 'Status zadania został zaktualizowany i automatycznie ustawiono datę zakończenia';
+    } else if (!isCompletedStatus && currentTask.completedDate) {
+      message = 'Status zadania został zaktualizowany i usunięto datę zakończenia';
+    } else {
+      message = 'Status zadania został zaktualizowany';
+    }
+    
+    showStatus({
+      type: 'success',
+      title: 'Sukces',
+      message: message,
+      buttonText: 'OK',
+      autoClose: true,
+      autoCloseDelay: 1500
+    });
+    
+  } catch (err) {
+    console.error('Błąd podczas aktualizacji statusu:', err);
+    let msg = 'Nie udało się zaktualizować statusu: ' + (err.response?.data?.message || err.message);
+    showStatus({
+      type: 'error',
+      title: 'Błąd',
+      message: msg,
+      buttonText: 'Zamknij'
+    });
+  } finally {
+    isUpdatingStatus.value = false;
+  }
+};
 
     const toggleDebug = () => {
       debugMode.value = !debugMode.value;
@@ -294,10 +558,26 @@ export default {
       }
     };
 
+    // Pobierz zespoły
+    const fetchTeams = async () => {
+      try {
+        teams.value = await teamService.getAllTeams();
+      } catch (err) {
+        teams.value = [];
+      }
+    };
+
+    // Poprawione computed teamName
     const teamName = computed(() => {
       if (!task.value) return 'Nieznany zespół';
       if (task.value.team?.name) return task.value.team.name;
-      return `Zespół #${task.value.teamId}`;
+      // Szukaj po teamId w liście zespołów
+      const teamId = task.value.teamId || task.value.team?.id;
+      if (teamId && teams.value.length > 0) {
+        const found = teams.value.find(t => t.id === teamId);
+        if (found) return found.name;
+      }
+      return `Zespół #${teamId || ''}`;
     });
 
     const addComment = async () => {
@@ -467,9 +747,7 @@ export default {
         return date.toLocaleDateString('pl-PL', {
           year: 'numeric',
           month: 'long',
-          day: 'numeric',
-          hour: '2-digit',
-          minute: '2-digit'
+          day: 'numeric'
         });
       } catch (err) {
         return dateString;
@@ -544,6 +822,8 @@ export default {
       await fetchReferenceData();
       // Pobierz szczegóły zadania
       await fetchTaskDetails();
+      // Pobierz zespoły
+      await fetchTeams();
 
       // Dodanie stylów dla niestandardowego scrollbara
       const style = document.createElement('style');
@@ -581,6 +861,8 @@ export default {
       debugMode,
       toggleDebug,
       canDeleteComments,
+      canDeleteComment,
+      canEditAndDeleteTask,
       addComment,
       deleteComment,
       editTask,
@@ -593,7 +875,18 @@ export default {
       fetchTaskDetails,
       showModal,
       modalConfig,
-      hideModal
+      hideModal,
+      selectedStatusId,
+      canEditStatus,
+      availableStatuses,
+      showStatusChangeModal,
+      isUpdatingStatus,
+      openStatusModal,
+      closeStatusModal,
+      confirmStatusChange,
+      isTaskCompleted,
+      canShowChangeStatusButton,
+      teams
     };
   }
 };
