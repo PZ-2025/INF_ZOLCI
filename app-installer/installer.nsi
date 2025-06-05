@@ -374,18 +374,79 @@ Function InitializeDatabase
     DetailPrint "Found MariaDB at: $MySQLExePath"
     DetailPrint "Creating database and user..."
 
-    StrCpy $0 '"$MySQLExePath" -h localhost -P 3306 -u root -proot --execute="source $TEMP\BuildTask-Install\init.sql"'
-    DetailPrint "Executing: $0"
-
-    nsExec::ExecToLog '$0'
+    ; Method 1: Try using stdin redirection with cmd /c (most reliable)
+    DetailPrint "Attempting database initialization using stdin redirection..."
+    nsExec::ExecToLog 'cmd /c ""$MySQLExePath" -h localhost -P 3306 -u root -proot < "$TEMP\BuildTask-Install\init.sql""'
     Pop $R0
 
     ${If} $R0 == 0
-        DetailPrint "Database initialization successful"
-    ${Else}
-        DetailPrint "Database initialization failed (code: $R0)"
-        Abort
+        DetailPrint "Database initialization successful (stdin method)"
+        Goto db_success
     ${EndIf}
+
+    ; Method 2: Try executing SQL commands directly (fallback)
+    DetailPrint "Stdin method failed (code: $R0), trying direct SQL execution..."
+
+    ; Execute each SQL command separately
+    DetailPrint "Creating database..."
+    nsExec::ExecToLog '"$MySQLExePath" -h localhost -P 3306 -u root -proot --execute="CREATE DATABASE IF NOT EXISTS buildtask_db;"'
+    Pop $R0
+
+    DetailPrint "Creating user..."
+    nsExec::ExecToLog '"$MySQLExePath" -h localhost -P 3306 -u root -proot --execute="CREATE USER IF NOT EXISTS $\'buildtask_user$\'@$\'localhost$\' IDENTIFIED BY $\'buildtask_password$\';"'
+    Pop $R0
+
+    DetailPrint "Granting privileges..."
+    nsExec::ExecToLog '"$MySQLExePath" -h localhost -P 3306 -u root -proot --execute="GRANT ALL PRIVILEGES ON buildtask_db.* TO $\'buildtask_user$\'@$\'localhost$\';"'
+    Pop $R0
+
+    DetailPrint "Flushing privileges..."
+    nsExec::ExecToLog '"$MySQLExePath" -h localhost -P 3306 -u root -proot --execute="FLUSH PRIVILEGES;"'
+    Pop $R0
+
+    ${If} $R0 == 0
+        DetailPrint "Database initialization successful (direct SQL method)"
+        Goto db_success
+    ${EndIf}
+
+    ; Method 3: Try copying init.sql to a path without spaces (last resort)
+    DetailPrint "Direct SQL failed (code: $R0), trying simpler path..."
+
+    ; Copy to C:\init.sql temporarily
+    CopyFiles "$TEMP\BuildTask-Install\init.sql" "C:\init.sql"
+
+    nsExec::ExecToLog 'cmd /c ""$MySQLExePath" -h localhost -P 3306 -u root -proot < C:\init.sql"'
+    Pop $R0
+
+    ; Clean up
+    Delete "C:\init.sql"
+
+    ${If} $R0 == 0
+        DetailPrint "Database initialization successful (simple path method)"
+        Goto db_success
+    ${EndIf}
+
+    ; If all methods failed
+    DetailPrint "All database initialization methods failed"
+    MessageBox MB_ICONSTOP "ERROR: Database initialization failed!$\n$\nAll attempted methods failed:$\n1. stdin redirection$\n2. Direct SQL execution$\n3. Simple path method$\n$\nLast error code: $R0$\n$\nPlease:$\n1. Check if MariaDB is running properly$\n2. Verify root password is 'root'$\n3. Try running the installer as administrator$\n4. Check Windows Event Viewer for details"
+    Abort
+
+    db_success:
+        ; Verify database was created
+        DetailPrint "Verifying database creation..."
+        nsExec::ExecToStack '"$MySQLExePath" -h localhost -P 3306 -u root -proot --execute="SHOW DATABASES LIKE $\'buildtask_db$\';"'
+        Pop $R0
+        Pop $R1
+        ${If} $R0 == 0
+            StrLen $R2 $R1
+            ${If} $R2 > 10  ; Should contain "buildtask_db"
+                DetailPrint "Database verification successful - buildtask_db exists"
+            ${Else}
+                DetailPrint "Warning: Database verification unclear - output: $R1"
+            ${EndIf}
+        ${Else}
+            DetailPrint "Warning: Could not verify database creation (code: $R0)"
+        ${EndIf}
 FunctionEnd
 
 ; Function to find MariaDB installation path
