@@ -86,8 +86,8 @@
               id="password"
               v-model="user.password"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-              placeholder="Minimum 8 znaków"
-              minlength="8"
+              placeholder="Minimum 6 znaków"
+              minlength="6"
               required
           />
           <button
