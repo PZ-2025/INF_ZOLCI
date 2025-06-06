@@ -540,7 +540,7 @@ export default {
         } else {
           console.log('Brak zmian w danych użytkownika');
           
-          // NOWE: Informuj użytkownika, że nie wprowadził żadnych zmian
+          // Informuj użytkownika, że nie wprowadził żadnych zmian
           showStatus({
             type: 'info',
             title: 'Brak zmian',
@@ -630,7 +630,7 @@ export default {
           buttonText: 'Tak, anuluj edycję',
           cancelText: 'Nie, kontynuuj edycję',
           showCancelButton: true,
-          autoClose: false, // Wyłącz auto-zamykanie
+          autoClose: false,
           onClose: () => {
             // To się wykona gdy kliknie główny przycisk "Tak, anuluj edycję"
             resetToOriginalData();
@@ -638,7 +638,7 @@ export default {
           },
           onCancel: () => {
             // To się wykona gdy kliknie przycisk "Nie, kontynuuj edycję"
-            hideModal();
+            console.log('Użytkownik kontynuuje edycję');
           }
         });
       } else {
