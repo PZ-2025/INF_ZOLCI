@@ -156,6 +156,7 @@ import { useRouter } from 'vue-router';
 import userService from '../services/userService';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
+import { useValidation } from '../composables/useValidation';
 
 export default {
   setup() {
@@ -183,15 +184,18 @@ export default {
     // Użycie composable do obsługi modalu
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
+    // Użycie composable do walidacji
+    const { validateUser } = useValidation();
+
     // Walidacja hasła
-    const validatePassword = () => {
-      if (user.value.password.length < 6) {
-        passwordError.value = 'Hasło musi mieć co najmniej 6 znaków';
-        return false;
-      }
-      passwordError.value = '';
-      return true;
-    };
+    // const validatePassword = () => {
+    //   if (user.value.password.length < 6) {
+    //     passwordError.value = 'Hasło musi mieć co najmniej 6 znaków';
+    //     return false;
+    //   }
+    //   passwordError.value = '';
+    //   return true;
+    // };
 
     // Reset formularza
     const resetForm = () => {
@@ -201,16 +205,25 @@ export default {
 
     // Dodawanie pracownika
     const addEmployee = async () => {
-      // Walidacja formularza
-      if (!validatePassword()) {
-        return;
-      }
-
       loading.value = true;
       error.value = '';
       successMessage.value = '';
 
       try {
+        // Walidacja z użyciem composable
+        const validationErrors = validateUser(user.value, false);
+        
+        if (validationErrors.length > 0) {
+          showStatus({
+            type: 'error',
+            title: 'Błędy walidacji',
+            message: validationErrors.join('\n'),
+            buttonText: 'Zamknij'
+          });
+          loading.value = false;
+          return;
+        }
+
         // Przekształcenie danych do formatu API
         const userData = {
           firstName: user.value.firstName,
@@ -245,7 +258,7 @@ export default {
           email: '',
           username: '',
           password: '',
-          phone: '', // reset phone
+          phone: '', 
           role: 'pracownik',
           isActive: true
         };

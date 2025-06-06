@@ -191,6 +191,7 @@ import userService from '../services/userService';
 import { authState } from '../../router/router.js';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
+import { useValidation } from '../composables/useValidation';
 
 export default {
   components: {
@@ -205,6 +206,8 @@ export default {
   setup(props) {
     const router = useRouter();
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
+
+    const { validateUser, validatePasswordMatch } = useValidation();
 
     const showCurrentPassword = ref(false);
     const showNewPassword = ref(false);
@@ -238,15 +241,15 @@ export default {
     const successMessage = ref(null);
 
     // Błąd walidacji haseł
-    const passwordError = computed(() => {
-      if (passwordData.newPassword && passwordData.newPassword !== passwordData.confirmPassword) {
-        return 'Hasła nie są identyczne';
-      }
-      if (passwordData.newPassword && passwordData.newPassword.length < 6) {
-        return 'Hasło musi mieć co najmniej 8 znaków';
-      }
-      return null;
-    });
+    // const passwordError = computed(() => {
+    //   if (passwordData.newPassword && passwordData.newPassword !== passwordData.confirmPassword) {
+    //     return 'Hasła nie są identyczne';
+    //   }
+    //   if (passwordData.newPassword && passwordData.newPassword.length < 6) {
+    //     return 'Hasło musi mieć co najmniej 8 znaków';
+    //   }
+    //   return null;
+    // });
 
     // Pobieranie danych użytkownika
     const loadUserData = async () => {
@@ -306,11 +309,40 @@ export default {
     // Aktualizacja ustawień użytkownika z użyciem PATCH
     const updateSettings = async () => {
       // Walidacja formularza
+      // if (passwordError.value) {
+      //   alert(passwordError.value);
+      //   return;
+      // }
+
       if (passwordError.value) {
-        alert(passwordError.value);
+        showStatus({
+          type: 'error',
+          title: 'Błąd walidacji',
+          message: passwordError.value,
+          buttonText: 'Zamknij'
+        });
         return;
       }
 
+      // Przygotuj dane do walidacji
+      const dataToValidate = { ...user };
+      if (passwordData.newPassword) {
+        dataToValidate.password = passwordData.newPassword;
+      }
+
+      // Walidacja z użyciem composable
+      const validationErrors = validateUser(dataToValidate, true);
+
+      if (validationErrors.length > 0) {
+        showStatus({
+          type: 'error',
+          title: 'Błędy walidacji',
+          message: validationErrors.join('\n'),
+          buttonText: 'Zamknij'
+        });
+        return;
+      }
+      
       isSaving.value = true;
       error.value = null;
       successMessage.value = null;

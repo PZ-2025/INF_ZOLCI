@@ -154,6 +154,7 @@ import taskStatusService from '../services/taskStatusService';
 import { authState } from '../../router/router.js';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
+import { useValidation } from '../composables/useValidation';
 import Datepicker from 'vue3-datepicker';
 
 const router = useRouter();
@@ -181,6 +182,8 @@ const dataLoading = ref(true);
 
 // Użycie composable do obsługi modalu
 const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
+
+const { validateTask } = useValidation();
 
 // Pobieranie danych referencyjnych (zespoły, priorytety, statusy)
 const fetchReferenceData = async () => {
@@ -274,32 +277,17 @@ const addTask = async () => {
   loading.value = true;
 
   // Sprawdzenie czy wszystkie wymagane pola są wypełnione
-  if (!task.value.title || !task.value.teamId || !task.value.priorityId || !task.value.statusId) {
+  const validationErrors = validateTask(task.value);
+
+  if (validationErrors.length > 0) {
     showStatus({
       type: 'error',
-      title: 'Błąd',
-      message: 'Wszystkie pola wymagane (tytuł, zespół, priorytet, status) muszą być wypełnione.',
+      title: 'Błędy walidacji',
+      message: validationErrors.join('\n'),
       buttonText: 'Zamknij'
     });
     loading.value = false;
     return;
-  }
-
-  // Walidacja dat
-  if (task.value.startDate && task.value.deadline) {
-    const startDate = new Date(task.value.startDate);
-    const deadline = new Date(task.value.deadline);
-
-    if (deadline < startDate) {
-      showStatus({
-        type: 'error',
-        title: 'Błąd',
-        message: 'Deadline nie może być wcześniejszy niż data rozpoczęcia.',
-        buttonText: 'Zamknij'
-      });
-      loading.value = false;
-      return;
-    }
   }
 
   try {

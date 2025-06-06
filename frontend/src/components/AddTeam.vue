@@ -102,6 +102,7 @@ import teamService from '../services/teamService';
 import userService from '../services/userService';
 import StatusModal from './StatusModal.vue';
 import { useStatusModal } from '../composables/useStatusModal';
+import { useValidation } from '../composables/useValidation';
 
 export default {
   setup() {
@@ -121,6 +122,8 @@ export default {
 
     // Użycie composable do obsługi modalu
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
+
+    const { validateTeam } = useValidation();
 
     // Pobranie listy kierowników
     const fetchManagers = async () => {
@@ -174,29 +177,41 @@ export default {
 
     const addTeam = async () => {
       loading.value = true;
+      
+      const validationErrors = validateTeam(team.value);
 
-      // Walidacja danych
-      if (!team.value.name.trim()) {
+      if (validationErrors.length > 0) {
         showStatus({
           type: 'error',
-          title: 'Błąd',
-          message: 'Nazwa zespołu jest wymagana.',
+          title: 'Błędy walidacji',
+          message: validationErrors.join('\n'),
           buttonText: 'Zamknij'
         });
         loading.value = false;
         return;
       }
+      // // Walidacja danych
+      // if (!team.value.name.trim()) {
+      //   showStatus({
+      //     type: 'error',
+      //     title: 'Błąd',
+      //     message: 'Nazwa zespołu jest wymagana.',
+      //     buttonText: 'Zamknij'
+      //   });
+      //   loading.value = false;
+      //   return;
+      // }
 
-      if (!team.value.managerId) {
-        showStatus({
-          type: 'error',
-          title: 'Błąd',
-          message: 'Wybór kierownika jest wymagany.',
-          buttonText: 'Zamknij'
-        });
-        loading.value = false;
-        return;
-      }
+      // if (!team.value.managerId) {
+      //   showStatus({
+      //     type: 'error',
+      //     title: 'Błąd',
+      //     message: 'Wybór kierownika jest wymagany.',
+      //     buttonText: 'Zamknij'
+      //   });
+      //   loading.value = false;
+      //   return;
+      // }
 
       try {
         // Przygotowanie danych do wysłania
