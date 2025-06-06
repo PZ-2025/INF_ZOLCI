@@ -1,4 +1,3 @@
-// frontend/src/components/UserSettings.vue
 <template>
   <div class="bg-background min-h-screen p-8 text-text">
     <h1 class="text-3xl text-left font-bold text-primary mb-6">
@@ -251,7 +250,18 @@ export default {
       return null;
     });
 
-    // Pobieranie danych użytkownika
+    // Sprawdzenie czy nazwa użytkownika "admin" już istnieje
+    const checkAdminExists = async (username) => {
+      if (username.toLowerCase() !== 'admin') return false;
+      
+      try {
+        const users = await userService.getAllUsers();
+        return users.some(user => user.username.toLowerCase() === 'admin');
+      } catch (err) {
+        console.error('Błąd podczas sprawdzania istnienia admina:', err);
+        return false;
+      }
+    };
     const loadUserData = async () => {
       loading.value = true;
       error.value = null;

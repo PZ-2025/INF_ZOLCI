@@ -32,7 +32,13 @@
             class="bg-surface border border-gray-200 p-4 rounded-lg shadow-md relative hover:shadow-lg transition"
         >
           <div class="mb-4">
-            <p class="font-medium text-lg text-text">{{ employee.firstName }} {{ employee.lastName }}</p>
+            <div class="flex items-center gap-2">
+              <p class="font-medium text-lg text-text">{{ employee.firstName }} {{ employee.lastName }}</p>
+              <!-- Specjalna ikona dla głównego administratora -->
+              <span v-if="isMainAdmin(employee)" class="text-yellow-500 text-lg" title="Główny Administrator">
+                👑
+              </span>
+            </div>
             <p class="text-sm text-muted">{{ employee.email }}</p>
             <p class="text-sm text-muted">Nazwa użytkownika: {{ employee.username }}</p>
             <span
@@ -45,9 +51,13 @@
               {{ employee.isActive ? 'Aktywny' : 'Nieaktywny' }}
             </span>
             <span
-                class="text-xs px-2 py-1 rounded-full ml-1 inline-block bg-blue-100 text-blue-800"
+                class="text-xs px-2 py-1 rounded-full ml-1 inline-block"
+                :class="{
+                  'bg-yellow-100 text-yellow-800 font-semibold': isMainAdmin(employee),
+                  'bg-blue-100 text-blue-800': !isMainAdmin(employee)
+                }"
             >
-              {{ getRoleName(employee.role) }}
+              {{ isMainAdmin(employee) ? '👑 Główny Administrator' : getRoleName(employee.role) }}
             </span>
           </div>
 
@@ -321,6 +331,7 @@ export default {
         'manager': 'Kierownik',
         'admin': 'Administrator',
         'administrator': 'Administrator',
+        'ADMIN': 'Administrator',
         'pracownik': 'Pracownik',
         'kierownik': 'Kierownik'
       };

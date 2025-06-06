@@ -68,14 +68,32 @@
 
       <div class="mb-4 flex items-center">
         <label for="username" class="block font-semibold mr-4 w-40 text-right">Nazwa użytkownika</label>
-        <input
-            type="text"
-            id="username"
-            v-model="user.username"
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="jan.kowalski"
-            required
-        />
+        <div class="flex-1">
+          <input
+              type="text"
+              id="username"
+              v-model="user.username"
+              @blur="validateUsername"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              placeholder="jan.kowalski"
+              required
+          />
+          <!-- Ostrzeżenie dla nazwy "admin" -->
+          <div v-if="usernameWarning" class="mt-2 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm">
+                  <strong>Uwaga:</strong> {{ usernameWarning }}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="mb-4 flex items-center">
@@ -106,16 +124,25 @@
 
       <div class="mb-6 flex items-center">
         <label for="role" class="block font-semibold mr-4 w-40 text-right">Rola</label>
-        <select
-            id="role"
-            v-model="user.role"
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            required
-        >
-          <option value="pracownik">Pracownik</option>
-          <option value="kierownik">Kierownik</option>
-          <option value="administrator">Administrator</option>
-        </select>
+        <div class="flex-1">
+          <select
+              id="role"
+              v-model="user.role"
+              @change="onRoleChange"
+              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+              required
+          >
+            <option value="pracownik">Pracownik</option>
+            <option value="kierownik">Kierownik</option>
+            <option value="administrator">Administrator</option>
+          </select>
+          <!-- Informacja o roli administratora -->
+          <div v-if="user.role === 'administrator'" class="mt-2 p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-800">
+            <p class="text-sm">
+              <strong>ℹ️ Informacja:</strong> Administrator ma pełny dostęp do systemu. Nazwa użytkownika "admin" jest zarezerwowana dla głównego administratora.
+            </p>
+          </div>
+        </div>
       </div>
 
       <div class="flex justify-between mt-6">
@@ -129,7 +156,7 @@
         <button
             type="submit"
             class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-lg transition"
-            :disabled="loading"
+            :disabled="loading || hasUsernameError"
         >
           <span v-if="loading">Dodawanie...</span>
           <span v-else>Zapisz</span>
@@ -180,6 +207,10 @@ export default {
     const successMessage = ref('');
     const passwordError = ref('');
     const showPassword = ref(false);
+    
+    // NOWE: Stany dla walidacji nazwy użytkownika
+    const usernameWarning = ref('');
+    const hasUsernameError = ref(false);
 
     // Użycie composable do obsługi modalu
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
@@ -187,24 +218,69 @@ export default {
     // Użycie composable do walidacji
     const { validateUser } = useValidation();
 
-    // Walidacja hasła
-    // const validatePassword = () => {
-    //   if (user.value.password.length < 6) {
-    //     passwordError.value = 'Hasło musi mieć co najmniej 6 znaków';
-    //     return false;
-    //   }
-    //   passwordError.value = '';
-    //   return true;
-    // };
+    // NOWE: Sprawdzenie czy nazwa użytkownika "admin" już istnieje
+    const checkAdminExists = async () => {
+      try {
+        const users = await userService.getAllUsers();
+        return users.some(user => user.username.toLowerCase() === 'admin');
+      } catch (err) {
+        console.error('Błąd podczas sprawdzania istnienia admina:', err);
+        return false;
+      }
+    };
+
+    // NOWE: Walidacja nazwy użytkownika
+    const validateUsername = async () => {
+      const username = user.value.username.toLowerCase();
+      usernameWarning.value = '';
+      hasUsernameError.value = false;
+
+      if (username === 'admin') {
+        const adminExists = await checkAdminExists();
+        if (adminExists) {
+          usernameWarning.value = 'Nazwa użytkownika "admin" jest już zajęta przez głównego administratora.';
+          hasUsernameError.value = true;
+        } else if (user.value.role !== 'administrator') {
+          usernameWarning.value = 'Nazwa "admin" może być używana tylko przez administratorów.';
+          hasUsernameError.value = true;
+        } else {
+          usernameWarning.value = 'Ta nazwa użytkownika utworzy głównego administratora systemu.';
+          hasUsernameError.value = false;
+        }
+      }
+    };
+
+    // NOWE: Obsługa zmiany roli
+    const onRoleChange = () => {
+      // Ponownie sprawdź nazwę użytkownika gdy zmieni się rola
+      if (user.value.username) {
+        validateUsername();
+      }
+    };
 
     // Reset formularza
     const resetForm = () => {
       error.value = '';
       passwordError.value = '';
+      usernameWarning.value = '';
+      hasUsernameError.value = false;
     };
 
     // Dodawanie pracownika
     const addEmployee = async () => {
+      // Sprawdź ponownie nazwę użytkownika przed zapisem
+      await validateUsername();
+      
+      if (hasUsernameError.value) {
+        showStatus({
+          type: 'error',
+          title: 'Błąd',
+          message: 'Nazwa użytkownika nie jest dostępna. Wybierz inną nazwę.',
+          buttonText: 'Zamknij'
+        });
+        return;
+      }
+
       loading.value = true;
       error.value = '';
       successMessage.value = '';
@@ -240,11 +316,17 @@ export default {
         const createdUser = await userService.createUser(userData);
         console.log('Pracownik został dodany:', createdUser);
 
+        // Specjalny komunikat dla głównego administratora
+        let successMsg = 'Pracownik został pomyślnie dodany!';
+        if (user.value.username.toLowerCase() === 'admin' && user.value.role === 'administrator') {
+          successMsg = '👑 Główny administrator został pomyślnie utworzony!';
+        }
+
         // Wyświetl komunikat sukcesu
         showStatus({
           type: 'success',
           title: 'Sukces',
-          message: 'Pracownik został pomyślnie dodany!',
+          message: successMsg,
           buttonText: 'OK',
           autoClose: true,
           autoCloseDelay: 2000,
@@ -262,6 +344,8 @@ export default {
           role: 'pracownik',
           isActive: true
         };
+        usernameWarning.value = '';
+        hasUsernameError.value = false;
 
       } catch (err) {
         console.error('Błąd podczas dodawania pracownika:', err);
@@ -288,9 +372,13 @@ export default {
       successMessage,
       passwordError,
       showPassword,
+      usernameWarning,
+      hasUsernameError,
       addEmployee,
       goBack,
       resetForm,
+      validateUsername,
+      onRoleChange,
       showModal,
       modalConfig,
       hideModal
