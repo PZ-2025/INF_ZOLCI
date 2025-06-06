@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -28,6 +28,7 @@ public class TaskDTO {
     private Integer id;
     
     @NotBlank(message = "Tytuł zadania nie może być pusty")
+    @Size(max = 100, message = "Tytuł zadania nie może przekraczać 100 znaków")
     private String title;
 
     private String description;

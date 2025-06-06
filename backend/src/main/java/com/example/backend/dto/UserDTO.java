@@ -3,6 +3,7 @@ package com.example.backend.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.Pattern;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -43,6 +44,7 @@ public class UserDTO {
     private String lastName;
 
     @Size(max = 15, message = "Numer telefonu nie może przekraczać 15 znaków")
+    @Pattern(regexp = "^[\\d\\s\\-\\+\\(\\)]*$", message = "Nieprawidłowy format numeru telefonu")
     private String phone;
 
     private String role;
