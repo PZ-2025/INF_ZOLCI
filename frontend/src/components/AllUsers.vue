@@ -52,13 +52,13 @@
           </div>
 
           <div class="flex space-x-2">
-            <!-- Przycisk edycji - zablokowany dla głównego admina -->
+            <!-- Przycisk edycji -->
             <button
                 v-if="canEditUser(employee)"
-                :disabled="isMainAdmin(employee)"
+                :disabled="isMainAdmin(employee) && !isCurrentUserMainAdmin"
                 @click="editEmployee(employee.id)"
                 class="text-xs bg-primary text-white px-2 py-1 rounded-md hover:bg-secondary transition"
-                :class="{ 'opacity-50 cursor-not-allowed': isMainAdmin(employee) }"
+                :class="{ 'opacity-50 cursor-not-allowed': isMainAdmin(employee) && !isCurrentUserMainAdmin }"
             >
               Edytuj
             </button>
@@ -164,6 +164,11 @@ export default {
       return authService.hasRoleAtLeast('manager') && !isAdmin.value;
     });
 
+    // NOWE: Czy bieżący użytkownik to główny administrator
+    const isCurrentUserMainAdmin = computed(() => {
+      return authState.user?.username === 'admin';
+    });
+
     // Czy użytkownik jest administratorem (na podstawie jego roli)
     const isUserAdmin = (user) => {
       return user.role === 'admin' ||
@@ -181,12 +186,14 @@ export default {
       return isUserAdmin(user) && user.username === 'admin';
     };
 
-    // Czy bieżący użytkownik może edytować wskazanego użytkownika
+    // ZMIENIONE: Czy bieżący użytkownik może edytować wskazanego użytkownika
     const canEditUser = (user) => {
-      // Zablokuj edycję głównego admina
-      if (isMainAdmin(user)) return false;
+      // Główny admin może edytować tylko siebie
+      if (isMainAdmin(user)) {
+        return isCurrentUserMainAdmin.value;
+      }
 
-      // Administrator może edytować wszystkich poza głównym adminem
+      // Administrator może edytować wszystkich (oprócz głównego admina, który jest obsłużony wyżej)
       if (isAdmin.value) {
         return true;
       }
@@ -245,7 +252,7 @@ export default {
           { id: 1, firstName: 'Jan', lastName: 'Kowalski', email: 'jan.kowalski@example.com', username: 'jkowalski', role: 'employee', isActive: true },
           { id: 2, firstName: 'Anna', lastName: 'Nowak', email: 'anna.nowak@example.com', username: 'anowak', role: 'manager', isActive: true },
           { id: 3, firstName: 'Piotr', lastName: 'Zieliński', email: 'piotr.zielinski@example.com', username: 'pzielinski', role: 'employee', isActive: false },
-          { id: 4, firstName: 'Adam', lastName: 'Wiśniewski', email: 'adam.wisniewski@example.com', username: 'awisniewski', role: 'administrator', isActive: true }
+          { id: 4, firstName: 'Adam', lastName: 'Wiśniewski', email: 'adam.wisniewski@example.com', username: 'admin', role: 'administrator', isActive: true }
         ];
       } finally {
         loading.value = false;
@@ -314,7 +321,8 @@ export default {
         'manager': 'Kierownik',
         'admin': 'Administrator',
         'administrator': 'Administrator',
-        'ADMIN': 'Administrator'
+        'pracownik': 'Pracownik',
+        'kierownik': 'Kierownik'
       };
       return roleMap[role] || role;
     };
@@ -332,6 +340,7 @@ export default {
       confirmMessage,
       isAdmin,
       isManager,
+      isCurrentUserMainAdmin,
       isMainAdmin,
       canEditUser,
       canDeleteUser,

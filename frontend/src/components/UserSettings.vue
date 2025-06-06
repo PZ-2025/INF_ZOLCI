@@ -28,10 +28,17 @@
         <input
             type="text"
             v-model="user.username"
-            class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+            :disabled="isMainAdmin"
+            :class="[
+              'flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary',
+              isMainAdmin ? 'bg-gray-200 cursor-not-allowed text-gray-600' : 'bg-white'
+            ]"
             placeholder="Wpisz nazwę użytkownika"
             required
         />
+        <span v-if="isMainAdmin" class="ml-2 text-xs text-gray-500 italic">
+          Główny administrator - nie można zmienić
+        </span>
       </div>
 
       <!-- Pole formularza: Imię -->
@@ -122,7 +129,7 @@
             aria-label="Pokaż/Ukryj hasło"
           >
             <span v-if="showConfirmPassword">🙈</span>
-            <span v-else">👁️</span>
+            <span v-else>👁️</span>
           </button>
         </div>
       </div>
@@ -134,8 +141,15 @@
             type="checkbox"
             id="isActive"
             v-model="user.isActive"
-            class="h-5 w-5"
+            :disabled="isMainAdmin"
+            :class="[
+              'h-5 w-5',
+              isMainAdmin ? 'cursor-not-allowed opacity-50' : ''
+            ]"
         />
+        <span v-if="isMainAdmin" class="ml-2 text-xs text-gray-500 italic">
+          Główny administrator - zawsze aktywny
+        </span>
       </div>
 
       <button
@@ -144,7 +158,7 @@
           :disabled="isSaving"
       >
         <span v-if="isSaving">Zapisywanie zmian...</span>
-        <span v-else">Zapisz Zmiany</span>
+        <span v-else>Zapisz Zmiany</span>
       </button>
     </form>
 
@@ -207,6 +221,11 @@ export default {
       email: '',
       phone: '',
       isActive: true
+    });
+
+    // NOWE: Sprawdzenie czy to główny administrator
+    const isMainAdmin = computed(() => {
+      return user.username === 'admin';
     });
 
     // Dane dotyczące hasła przechowujemy osobno
@@ -326,8 +345,8 @@ export default {
         // Identyfikuj zmienione pola
         const changedFields = {};
 
-        // Sprawdź, które pola zostały zmienione
-        if (user.username !== originalUserData.value.username) {
+        // ZMIANA: Sprawdź zmienione pola, ale pomiń username i isActive dla głównego admina
+        if (!isMainAdmin.value && user.username !== originalUserData.value.username) {
           changedFields.username = user.username;
         }
         if (user.firstName !== originalUserData.value.firstName) {
@@ -342,7 +361,7 @@ export default {
         if (user.phone !== originalUserData.value.phone) {
           changedFields.phone = user.phone;
         }
-        if (currentUserId.value && user.isActive !== originalUserData.value.isActive) {
+        if (!isMainAdmin.value && currentUserId.value && user.isActive !== originalUserData.value.isActive) {
           changedFields.isActive = user.isActive;
         }
 
@@ -355,6 +374,12 @@ export default {
             ...originalUserData.value,
             ...changedFields
           };
+
+          // ZMIANA: Dla głównego admina usuń pola, których nie może zmieniać
+          if (isMainAdmin.value) {
+            fullUpdateData.username = originalUserData.value.username;
+            fullUpdateData.isActive = originalUserData.value.isActive;
+          }
 
           // Pełna aktualizacja z hasłem
           await userService.updateUser(user.id, fullUpdateData);
@@ -421,6 +446,7 @@ export default {
       error,
       successMessage,
       passwordError,
+      isMainAdmin, 
       loadUserData,
       updateSettings,
       showModal,
