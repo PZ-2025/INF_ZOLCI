@@ -1,3 +1,4 @@
+// frontend/src/components/UserSettings.vue
 <template>
   <div class="bg-background min-h-screen p-8 text-text">
     <h1 class="text-3xl text-left font-bold text-primary mb-6">
@@ -79,30 +80,6 @@
         />
       </div>
 
-      <!-- <div class="flex items-center mb-4">
-        <label for="currentPassword" class="w-40 font-semibold">Aktualne hasło</label>
-        <div class="flex-1 relative">
-          <input
-            :type="showCurrentPassword ? 'text' : 'password'"
-            id="currentPassword"
-            v-model="passwordData.currentPassword"
-            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
-            placeholder="Wpisz aktualne hasło"
-            :required="passwordData.newPassword.length > 0"
-          />
-          <button
-            type="button"
-            @click="showCurrentPassword = !showCurrentPassword"
-            class="absolute right-2 top-1/2 -translate-y-1/2 bg-transparent p-0 m-0 text-gray-500 text-base focus:outline-none"
-            tabindex="-1"
-            aria-label="Pokaż/Ukryj hasło"
-          >
-            <span v-if="showCurrentPassword">🙈</span>
-            <span v-else>👁️</span>
-          </button>
-        </div>
-      </div> -->
-
       <div class="flex items-center mb-4">
         <label for="newPassword" class="w-40 font-semibold">Nowe hasło</label>
         <div class="flex-1 relative">
@@ -135,7 +112,7 @@
             v-model="passwordData.confirmPassword"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
             placeholder="Potwierdź nowe hasło"
-            :required="passwordData.newPassword.length > 8"
+            :required="passwordData.newPassword.length > 0"
           />
           <button
             type="button"
@@ -145,7 +122,7 @@
             aria-label="Pokaż/Ukryj hasło"
           >
             <span v-if="showConfirmPassword">🙈</span>
-            <span v-else>👁️</span>
+            <span v-else">👁️</span>
           </button>
         </div>
       </div>
@@ -167,7 +144,7 @@
           :disabled="isSaving"
       >
         <span v-if="isSaving">Zapisywanie zmian...</span>
-        <span v-else>Zapisz Zmiany</span>
+        <span v-else">Zapisz Zmiany</span>
       </button>
     </form>
 
@@ -185,8 +162,8 @@
 </template>
 
 <script>
-import { ref, reactive, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, reactive, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import userService from '../services/userService';
 import { authState } from '../../router/router.js';
 import StatusModal from './StatusModal.vue';
@@ -205,13 +182,18 @@ export default {
   },
   setup(props) {
     const router = useRouter();
+    const route = useRoute();
     const { showModal, modalConfig, showStatus, hideModal } = useStatusModal();
 
     const { validateUser, validatePasswordMatch } = useValidation();
 
-    const showCurrentPassword = ref(false);
     const showNewPassword = ref(false);
     const showConfirmPassword = ref(false);
+
+    // Pobieranie userId z props lub route params
+    const currentUserId = computed(() => {
+      return props.userId || route.params.id || route.params.userId;
+    });
 
     // Oryginalne dane użytkownika (do wykrywania zmian)
     const originalUserData = ref({});
@@ -229,7 +211,6 @@ export default {
 
     // Dane dotyczące hasła przechowujemy osobno
     const passwordData = reactive({
-      currentPassword: '',
       newPassword: '',
       confirmPassword: ''
     });
@@ -241,15 +222,15 @@ export default {
     const successMessage = ref(null);
 
     // Błąd walidacji haseł
-    // const passwordError = computed(() => {
-    //   if (passwordData.newPassword && passwordData.newPassword !== passwordData.confirmPassword) {
-    //     return 'Hasła nie są identyczne';
-    //   }
-    //   if (passwordData.newPassword && passwordData.newPassword.length < 6) {
-    //     return 'Hasło musi mieć co najmniej 8 znaków';
-    //   }
-    //   return null;
-    // });
+    const passwordError = computed(() => {
+      if (passwordData.newPassword && passwordData.newPassword !== passwordData.confirmPassword) {
+        return 'Hasła nie są identyczne';
+      }
+      if (passwordData.newPassword && passwordData.newPassword.length < 6) {
+        return 'Hasło musi mieć co najmniej 6 znaków';
+      }
+      return null;
+    });
 
     // Pobieranie danych użytkownika
     const loadUserData = async () => {
@@ -259,9 +240,9 @@ export default {
 
       try {
         let userData;
-        if (props.userId) {
+        if (currentUserId.value) {
           // Jeśli przekazano userId, pobierz dane tego użytkownika
-          userData = await userService.getUserById(props.userId);
+          userData = await userService.getUserById(currentUserId.value);
         } else {
           // Jeśli nie, sprawdź czy użytkownik jest zalogowany
           if (!authState.isAuthenticated || !authState.user || !authState.user.id) {
@@ -308,12 +289,6 @@ export default {
 
     // Aktualizacja ustawień użytkownika z użyciem PATCH
     const updateSettings = async () => {
-      // Walidacja formularza
-      // if (passwordError.value) {
-      //   alert(passwordError.value);
-      //   return;
-      // }
-
       if (passwordError.value) {
         showStatus({
           type: 'error',
@@ -367,17 +342,13 @@ export default {
         if (user.phone !== originalUserData.value.phone) {
           changedFields.phone = user.phone;
         }
-        if (props.userId && user.isActive !== originalUserData.value.isActive) {
+        if (currentUserId.value && user.isActive !== originalUserData.value.isActive) {
           changedFields.isActive = user.isActive;
         }
 
         // Dodaj hasło tylko jeśli użytkownik chce je zmienić
         if (passwordData.newPassword) {
-          // if (!passwordData.currentPassword) {
-          //   throw new Error('Aktualne hasło jest wymagane do zmiany hasła');
-          // }
           changedFields.password = passwordData.newPassword;
-          // changedFields.currentPassword = passwordData.currentPassword;
 
           // Jeśli zmieniamy hasło, użyjmy PUT zamiast PATCH dla bezpieczeństwa
           const fullUpdateData = {
@@ -395,7 +366,6 @@ export default {
         }
 
         // Wyczyść dane hasła
-        // passwordData.currentPassword = '';
         passwordData.newPassword = '';
         passwordData.confirmPassword = '';
 
@@ -412,14 +382,15 @@ export default {
           onClose: () => {
             hideModal();
             // Jeśli edytujemy innego użytkownika, wróć do listy
-            if (props.userId) {
-              router.push('/allusers');
-            }
+            // if (currentUserId.value) {
+            //   router.push('/adminpanel');
+            // }
+            router.push('/adminpanel');
           }
         });
 
         // Zaktualizuj dane w stanie autoryzacji tylko jeśli edytujemy własne dane
-        if (!props.userId && authState.user) {
+        if (!currentUserId.value && authState.user) {
           authState.user.firstName = user.firstName;
           authState.user.lastName = user.lastName;
           authState.user.email = user.email;
@@ -455,7 +426,6 @@ export default {
       showModal,
       modalConfig,
       hideModal,
-      showCurrentPassword,
       showNewPassword,
       showConfirmPassword
     };
