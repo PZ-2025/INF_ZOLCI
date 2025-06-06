@@ -300,6 +300,42 @@ export default {
           return;
         }
 
+        // Sprawdź dostępność nazwy użytkownika (dodatkowa walidacja przez API)
+        try {
+          const usernameCheck = await userService.checkUsernameAvailability(user.value.username);
+          if (!usernameCheck.available) {
+            showStatus({
+              type: 'error',
+              title: 'Nazwa użytkownika zajęta',
+              message: 'Ta nazwa użytkownika jest już używana. Wybierz inną.',
+              buttonText: 'Zamknij'
+            });
+            loading.value = false;
+            return;
+          }
+        } catch (usernameError) {
+          console.warn('Nie można sprawdzić dostępności nazwy użytkownika przez API:', usernameError);
+          // Kontynuuj - serwer i tak zwaliduje przy tworzeniu
+        }
+
+        // Sprawdź dostępność adresu email
+        try {
+          const emailCheck = await userService.checkEmailAvailability(user.value.email);
+          if (!emailCheck.available) {
+            showStatus({
+              type: 'error',
+              title: 'Email zajęty',
+              message: 'Ten adres email jest już używany przez innego użytkownika.',
+              buttonText: 'Zamknij'
+            });
+            loading.value = false;
+            return;
+          }
+        } catch (emailError) {
+          console.warn('Nie można sprawdzić dostępności email przez API:', emailError);
+          // Kontynuuj - serwer i tak zwaliduje przy tworzeniu
+        }
+
         // Przekształcenie danych do formatu API
         const userData = {
           firstName: user.value.firstName,
@@ -349,14 +385,51 @@ export default {
 
       } catch (err) {
         console.error('Błąd podczas dodawania pracownika:', err);
+        
+        // NOWE: Lepsza obsługa błędów z serwera
+        let errorMessage = 'Nie udało się dodać pracownika.';
+        
+        if (err.message.includes('email') && err.message.includes('używany')) {
+          errorMessage = 'Ten adres email jest już używany przez innego użytkownika.';
+        } else if (err.message.includes('username') && err.message.includes('zajęta')) {
+          errorMessage = 'Ta nazwa użytkownika jest już zajęta. Wybierz inną.';
+        } else if (err.message.includes('Hasło')) {
+          errorMessage = 'Hasło musi mieć co najmniej 6 znaków.';
+        } else if (err.response && err.response.data && err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else {
+          errorMessage = `Błąd serwera: ${err.message}`;
+        }
+        
         showStatus({
           type: 'error',
           title: 'Błąd',
-          message: `Nie udało się dodać pracownika: ${err.message}`,
+          message: errorMessage,
           buttonText: 'Zamknij'
         });
       } finally {
         loading.value = false;
+      }
+    };
+
+    const validateEmailUniqueness = async () => {
+      if (!user.value.email) return true;
+      
+      try {
+        const isAvailable = await userService.checkEmailAvailability(user.value.email);
+        if (!isAvailable) {
+          showStatus({
+            type: 'error',
+            title: 'Email zajęty',
+            message: 'Ten adres email jest już używany przez innego użytkownika.',
+            buttonText: 'Zamknij'
+          });
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error('Błąd walidacji email:', error);
+        return true; // Pozwól kontynuować, serwer i tak zwaliduje
       }
     };
 

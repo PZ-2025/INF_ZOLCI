@@ -1,4 +1,3 @@
-// src/services/userService.js
 import apiService from './apiService';
 
 const userService = {
@@ -20,6 +19,16 @@ const userService = {
     // Get user by username
     async getUserByUsername(username) {
         return await apiService.get(`/database/users/username/${username}`);
+    },
+
+    // Check if email is available (not taken by another user)
+    async checkEmailAvailability(email) {
+        return await apiService.get(`/api/auth/check/email/${encodeURIComponent(email)}`);
+    },
+
+    // Check if username is available (not taken by another user)
+    async checkUsernameAvailability(username) {
+        return await apiService.get(`/api/auth/check/username/${encodeURIComponent(username)}`);
     },
 
     // Create user
@@ -47,6 +56,7 @@ const userService = {
         return await apiService.put(`/database/users/${userId}/login`);
     },
 
+    // Partial update user
     async partialUpdateUser(userId, updateData) {
         return await apiService.patch(`/database/users/${userId}`, updateData);
     }

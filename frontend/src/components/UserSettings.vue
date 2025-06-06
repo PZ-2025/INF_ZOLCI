@@ -24,20 +24,59 @@
       <!-- Pole formularza: Username -->
       <div class="flex items-center mb-4">
         <label class="w-40 font-semibold">Nazwa użytkownika</label>
-        <input
-            type="text"
-            v-model="user.username"
-            :disabled="isMainAdmin"
-            :class="[
-              'flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary',
-              isMainAdmin ? 'bg-gray-200 cursor-not-allowed text-gray-600' : 'bg-white'
-            ]"
-            placeholder="Wpisz nazwę użytkownika"
-            required
-        />
-        <span v-if="isMainAdmin" class="ml-2 text-xs text-gray-500 italic">
-          Główny administrator - nie można zmienić
-        </span>
+        <div class="flex-1">
+          <input
+              type="text"
+              v-model="user.username"
+              @blur="checkAdminAvailability"
+              @input="checkAdminAvailability"
+              :disabled="isMainAdmin"
+              :class="[
+                'w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary',
+                isMainAdmin ? 'bg-gray-200 cursor-not-allowed text-gray-600' : 'bg-white',
+                isChangingToAdmin && !isAdminUsernameAvailable ? 'border-red-500' : ''
+              ]"
+              placeholder="Wpisz nazwę użytkownika"
+              required
+          />
+          
+          <!-- Informacja dla oryginalnego głównego administratora -->
+          <div v-if="isMainAdmin" class="mt-1 text-xs text-gray-500 italic">
+            Główny administrator - nie można zmienić nazwy użytkownika
+          </div>
+          
+          <!-- Ostrzeżenie gdy próbuje zmienić na "admin" ale nazwa jest zajęta -->
+          <div v-else-if="isChangingToAdmin && !isAdminUsernameAvailable" class="mt-2 p-3 bg-red-50 border-l-4 border-red-400 text-red-800">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm">
+                  <strong>Błąd:</strong> Nazwa użytkownika "admin" jest już zajęta przez głównego administratora.
+                </p>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Informacja gdy zmienia na "admin" i nazwa jest dostępna -->
+          <div v-else-if="isChangingToAdmin && isAdminUsernameAvailable" class="mt-2 p-3 bg-yellow-50 border-l-4 border-yellow-400 text-yellow-800">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <p class="text-sm">
+                  <strong>Uwaga:</strong> Zmiana nazwy użytkownika na "admin" nada temu użytkownikowi uprawnienia głównego administratora.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Pole formularza: Imię -->
@@ -151,14 +190,24 @@
         </span>
       </div>
 
-      <button
-          type="submit"
-          class="w-full bg-primary hover:bg-secondary text-white font-bold py-2 rounded-lg transition"
-          :disabled="isSaving"
-      >
-        <span v-if="isSaving">Zapisywanie zmian...</span>
-        <span v-else>Zapisz Zmiany</span>
-      </button>
+      <div class="flex justify-between mt-6">
+        <button
+            type="button"
+            @click="cancelChanges"
+            class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-2 rounded-lg transition"
+            :disabled="isSaving"
+        >
+          Anuluj
+        </button>
+        <button
+            type="submit"
+            class="bg-primary hover:bg-secondary text-white px-6 py-2 rounded-lg transition"
+            :disabled="isSaving || (isChangingToAdmin && !isAdminUsernameAvailable)"
+        >
+          <span v-if="isSaving">Zapisywanie zmian...</span>
+          <span v-else>Zapisz Zmiany</span>
+        </button>
+      </div>
     </form>
 
     <StatusModal
@@ -167,9 +216,15 @@
         :title="modalConfig.title"
         :message="modalConfig.message"
         :button-text="modalConfig.buttonText"
+        :cancel-text="modalConfig.cancelText"
+        :show-cancel-button="modalConfig.showCancelButton"
         :auto-close="modalConfig.autoClose"
         :auto-close-delay="modalConfig.autoCloseDelay"
+        :on-close="modalConfig.onClose"
+        :on-cancel="modalConfig.onCancel"
         @close="hideModal"
+        @confirm="handleModalConfirm"
+        @cancel="handleModalCancel"
     />
   </div>
 </template>
@@ -222,10 +277,18 @@ export default {
       isActive: true
     });
 
-    // NOWE: Sprawdzenie czy to główny administrator
+    // POPRAWIONE: Sprawdzenie czy to główny administrator (na podstawie ORYGINALNYCH danych)
     const isMainAdmin = computed(() => {
-      return user.username === 'admin';
+      return originalUserData.value.username === 'admin';
     });
+
+    // NOWE: Sprawdzenie czy użytkownik próbuje zmienić nazwę na "admin"
+    const isChangingToAdmin = computed(() => {
+      return user.username === 'admin' && originalUserData.value.username !== 'admin';
+    });
+
+    // NOWE: Sprawdzenie czy nazwa "admin" jest dostępna do użycia
+    const isAdminUsernameAvailable = ref(true);
 
     // Dane dotyczące hasła przechowujemy osobno
     const passwordData = reactive({
@@ -250,6 +313,28 @@ export default {
       return null;
     });
 
+    // NOWE: Funkcja sprawdzania dostępności nazwy "admin"
+    const checkAdminAvailability = async () => {
+      if (user.username.toLowerCase() !== 'admin') {
+        isAdminUsernameAvailable.value = true;
+        return;
+      }
+
+      // Jeśli to oryginalny admin, zawsze dostępne
+      if (originalUserData.value.username === 'admin') {
+        isAdminUsernameAvailable.value = true;
+        return;
+      }
+
+      try {
+        const usernameCheck = await userService.checkUsernameAvailability('admin');
+        isAdminUsernameAvailable.value = usernameCheck.available;
+      } catch (error) {
+        console.warn('Nie można sprawdzić dostępności nazwy admin:', error);
+        isAdminUsernameAvailable.value = true; // Zakładamy dostępność w przypadku błędu
+      }
+    };
+
     // Sprawdzenie czy nazwa użytkownika "admin" już istnieje
     const checkAdminExists = async (username) => {
       if (username.toLowerCase() !== 'admin') return false;
@@ -262,6 +347,7 @@ export default {
         return false;
       }
     };
+
     const loadUserData = async () => {
       loading.value = true;
       error.value = null;
@@ -316,7 +402,7 @@ export default {
       }
     };
 
-    // Aktualizacja ustawień użytkownika z użyciem PATCH
+    // Aktualizacja ustawień użytkownika z użyciem PATCH i walidacją dostępności
     const updateSettings = async () => {
       if (passwordError.value) {
         showStatus({
@@ -375,6 +461,61 @@ export default {
           changedFields.isActive = user.isActive;
         }
 
+        // NOWE: Sprawdzenie dostępności username (jeśli został zmieniony)
+        if (changedFields.username) {
+          // Sprawdź czy próbuje zmienić na "admin" ale nie jest dostępne
+          if (changedFields.username.toLowerCase() === 'admin' && !isAdminUsernameAvailable.value) {
+            showStatus({
+              type: 'error',
+              title: 'Nazwa użytkownika niedostępna',
+              message: 'Nazwa użytkownika "admin" jest już zajęta przez głównego administratora.',
+              buttonText: 'Zamknij'
+            });
+            isSaving.value = false;
+            return;
+          }
+
+          // Sprawdzenie dostępności przez API (dla innych nazw)
+          if (changedFields.username.toLowerCase() !== 'admin') {
+            try {
+              const usernameCheck = await userService.checkUsernameAvailability(changedFields.username);
+              if (!usernameCheck.available) {
+                showStatus({
+                  type: 'error',
+                  title: 'Nazwa użytkownika zajęta',
+                  message: 'Ta nazwa użytkownika jest już używana. Wybierz inną.',
+                  buttonText: 'Zamknij'
+                });
+                isSaving.value = false;
+                return;
+              }
+            } catch (usernameError) {
+              console.warn('Nie można sprawdzić dostępności nazwy użytkownika przez API:', usernameError);
+              // Kontynuuj - serwer i tak zwaliduje przy aktualizacji
+            }
+          }
+        }
+
+        // NOWE: Sprawdzenie dostępności email (jeśli został zmieniony)
+        if (changedFields.email) {
+          try {
+            const emailCheck = await userService.checkEmailAvailability(changedFields.email);
+            if (!emailCheck.available) {
+              showStatus({
+                type: 'error',
+                title: 'Email zajęty',
+                message: 'Ten adres email jest już używany przez innego użytkownika.',
+                buttonText: 'Zamknij'
+              });
+              isSaving.value = false;
+              return;
+            }
+          } catch (emailError) {
+            console.warn('Nie można sprawdzić dostępności email przez API:', emailError);
+            // Kontynuuj - serwer i tak zwaliduje przy aktualizacji
+          }
+        }
+
         // Dodaj hasło tylko jeśli użytkownik chce je zmienić
         if (passwordData.newPassword) {
           changedFields.password = passwordData.newPassword;
@@ -398,6 +539,18 @@ export default {
           await userService.partialUpdateUser(user.id, changedFields);
         } else {
           console.log('Brak zmian w danych użytkownika');
+          
+          // NOWE: Informuj użytkownika, że nie wprowadził żadnych zmian
+          showStatus({
+            type: 'info',
+            title: 'Brak zmian',
+            message: 'Nie wprowadzono żadnych zmian w danych użytkownika.',
+            buttonText: 'Zamknij',
+            autoClose: true,
+            autoCloseDelay: 2000
+          });
+          isSaving.value = false;
+          return;
         }
 
         // Wyczyść dane hasła
@@ -416,10 +569,6 @@ export default {
           autoCloseDelay: 1500,
           onClose: () => {
             hideModal();
-            // Jeśli edytujemy innego użytkownika, wróć do listy
-            // if (currentUserId.value) {
-            //   router.push('/adminpanel');
-            // }
             router.push('/adminpanel');
           }
         });
@@ -432,15 +581,110 @@ export default {
         }
       } catch (err) {
         console.error('Błąd aktualizacji ustawień:', err);
+        
+        // NOWE: Lepsza obsługa błędów z serwera
+        let errorMessage = 'Nie udało się zaktualizować ustawień.';
+        
+        if (err.message.includes('email') && err.message.includes('używany')) {
+          errorMessage = 'Ten adres email jest już używany przez innego użytkownika.';
+        } else if (err.message.includes('username') && err.message.includes('zajęta')) {
+          errorMessage = 'Ta nazwa użytkownika jest już zajęta. Wybierz inną.';
+        } else if (err.message.includes('nieprawidłowe')) {
+          errorMessage = 'Aktualne hasło jest nieprawidłowe.';
+        } else if (err.response && err.response.data && err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else {
+          errorMessage = `Błąd serwera: ${err.message}`;
+        }
+        
         showStatus({
           type: 'error',
           title: 'Błąd',
-          message: `Nie udało się zaktualizować ustawień: ${err.message}`,
+          message: errorMessage,
           buttonText: 'Zamknij'
         });
       } finally {
         isSaving.value = false;
       }
+    };
+
+    // Funkcja anulowania zmian
+    const cancelChanges = () => {
+      // Sprawdź czy są jakieś niezapisane zmiany
+      const hasChanges = 
+        user.username !== originalUserData.value.username ||
+        user.firstName !== originalUserData.value.firstName ||
+        user.lastName !== originalUserData.value.lastName ||
+        user.email !== originalUserData.value.email ||
+        user.phone !== originalUserData.value.phone ||
+        (currentUserId.value && user.isActive !== originalUserData.value.isActive) ||
+        passwordData.newPassword.length > 0 ||
+        passwordData.confirmPassword.length > 0;
+
+      if (hasChanges) {
+        // Jeśli są zmiany, pokaż modal potwierdzenia
+        showStatus({
+          type: 'warning',
+          title: 'Niezapisane zmiany',
+          message: 'Masz niezapisane zmiany. Czy na pewno chcesz anulować? Wszystkie zmiany zostaną utracone.',
+          buttonText: 'Tak, anuluj edycję',
+          cancelText: 'Nie, kontynuuj edycję',
+          showCancelButton: true,
+          autoClose: false, // Wyłącz auto-zamykanie
+          onClose: () => {
+            // To się wykona gdy kliknie główny przycisk "Tak, anuluj edycję"
+            resetToOriginalData();
+            goBack();
+          },
+          onCancel: () => {
+            // To się wykona gdy kliknie przycisk "Nie, kontynuuj edycję"
+            hideModal();
+          }
+        });
+      } else {
+        // Jeśli nie ma zmian, po prostu wróć
+        goBack();
+      }
+    };
+
+    // Funkcja resetowania danych do oryginalnych wartości
+    const resetToOriginalData = () => {
+      user.username = originalUserData.value.username || '';
+      user.firstName = originalUserData.value.firstName || '';
+      user.lastName = originalUserData.value.lastName || '';
+      user.email = originalUserData.value.email || '';
+      user.phone = originalUserData.value.phone || '';
+      user.isActive = originalUserData.value.isActive !== undefined ? originalUserData.value.isActive : true;
+      
+      // Wyczyść dane hasła
+      passwordData.newPassword = '';
+      passwordData.confirmPassword = '';
+      
+      // Wyczyść komunikaty
+      error.value = null;
+      successMessage.value = null;
+    };
+
+    // Funkcja powrotu do poprzedniej strony
+    const goBack = () => {
+      // if (currentUserId.value) {
+        // Jeśli edytujemy konkretnego użytkownika, wróć do panelu admin
+        router.push('/adminpanel');
+      // } else {
+      //   // Jeśli edytujemy własne dane, wróć do poprzedniej strony
+      //   router.back();
+      // }
+    };
+
+    // Przyciski dla modalu
+    const handleModalConfirm = () => {
+      // Przycisk "Tak, anuluj edycję" - wywołuje onClose
+        modalConfig.value.onClose(); // resetToOriginalData() + goBack()
+    };
+
+    const handleModalCancel = () => {
+      // Przycisk "Nie, kontynuuj edycję" - wywołuje onCancel
+        modalConfig.value.onCancel(); // hideModal()
     };
 
     // Inicjalizacja komponentu
@@ -456,9 +700,15 @@ export default {
       error,
       successMessage,
       passwordError,
-      isMainAdmin, 
+      isMainAdmin,
+      isChangingToAdmin,
+      isAdminUsernameAvailable,
+      checkAdminAvailability,
       loadUserData,
       updateSettings,
+      cancelChanges,
+      handleModalConfirm, 
+      handleModalCancel,
       showModal,
       modalConfig,
       hideModal,
