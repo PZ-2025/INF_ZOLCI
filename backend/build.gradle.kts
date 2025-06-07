@@ -88,3 +88,59 @@ tasks.register("codeQuality") {
     // Make this task depend on checkstyle and spotbugs tasks
     dependsOn("checkstyleMain", "checkstyleTest", "spotbugsMain", "spotbugsTest")
 }
+
+tasks.register<JavaExec>("performanceTests") {
+    description = "Runs API performance tests for all controllers"
+    group = "verification"
+
+    dependsOn("compileTestJava")
+
+    classpath = sourceSets.test.get().runtimeClasspath
+    mainClass.set("com.example.backend.performance.PerformanceTestRunner")
+
+    // Ustawienia JVM dla testów wydajności
+    jvmArgs = listOf(
+        "-Xmx2g",
+        "-Xms1g",
+        "-XX:+UseG1GC",
+        "-Dspring.profiles.active=performance",
+        "-Dspring.main.web-application-type=servlet"
+    )
+
+    // Argumenty aplikacji
+    args = emptyList<String>()
+
+    // Konfiguracja środowiska
+    environment(
+        "SPRING_PROFILES_ACTIVE" to "performance",
+        "REPORTS_STORAGE_PATH" to "./test-reports"
+    )
+
+    doFirst {
+        println("🚀 Starting BuildTask API Performance Tests...")
+        println("📝 Using profile: performance")
+        println("🗄️ Database: H2 in-memory")
+        println("⏰ This may take several minutes...")
+        println("")
+    }
+
+    doLast {
+        println("")
+        println("✅ Performance tests completed!")
+        println("📊 Check the console output above for detailed results")
+    }
+}
+
+// Task do szybkiego uruchamiania testów wydajności
+tasks.register("perfTest") {
+    description = "Quick alias for performance tests"
+    group = "verification"
+    dependsOn("performanceTests")
+}
+
+// Task do czyszczenia raportów testowych
+tasks.register<Delete>("cleanTestReports") {
+    description = "Cleans test reports directory"
+    group = "verification"
+    delete("./test-reports")
+}
