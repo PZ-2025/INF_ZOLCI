@@ -19,5 +19,6 @@ docs/
 docs/**
 /backend/reports/
 /app-installer/tools/jre/
-/app-installer/tools/
-/app-installer/installer/
+/app-installer/tools/mariadb-installer.msi
+/app-installer/app/
+/app-installer/BuildTask-Installer.exe

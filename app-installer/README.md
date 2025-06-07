@@ -1,83 +1,152 @@
-# Pakowanie aplikacji krok po kroku
+# BuildTask Installer - Installation Instructions
 
-## 1. Tworzenie pliku JAR za pomocą Gradle
+## Required Tools
 
-1. Otwórz terminal w głównym katalogu projektu, gdzie znajduje się plik `gradlew`
-2. Wykonaj polecenie:
-   ```
-   ./gradlew bootJar
-   ```
-   (lub na Windows: `gradlew.bat bootJar`)
-3. Po zakończeniu procesu, plik JAR zostanie utworzony w katalogu `build/libs/`
-4. Sprawdź, czy plik JAR został poprawnie wygenerowany
+### 1. NSIS (Nullsoft Scriptable Install System)
 
-## 2. Utworzenie pliku EXE z JAR za pomocą Launch4j
+- Download from: https://nsis.sourceforge.io/Download
+- Install in the default location
+- Add to system PATH: `C:\Program Files (x86)\NSIS`
 
-1. Upewnij się, że masz zainstalowany Launch4j na swoim komputerze
-2. Znajdź swój plik konfiguracyjny `config.xml`
-3. Otwórz plik `config.xml` w edytorze tekstu i zaktualizuj następujące ścieżki:
-    - Ścieżkę do wejściowego pliku JAR:
-      ```xml
-      <jar>ścieżka/do/twojego/pliku.jar</jar>
-      ```
-    - Ścieżkę do wyjściowego pliku EXE:
-      ```xml
-      <outfile>ścieżka/do/wyjściowego/pliku.exe</outfile>
-      ```
-    - Ścieżkę do ikony aplikacji:
-      ```xml
-      <icon>ścieżka/do/ikony.ico</icon>
-      ```
-4. Zapisz zmiany w pliku `config.xml`
-5. Uruchom Launch4j:
-   ```
-   launch4j config.xml
-   ```
-6. Poczekaj, aż Launch4j zakończy konwersję JAR do EXE
-7. Sprawdź, czy plik EXE został poprawnie wygenerowany w lokalizacji, którą określiłeś w pliku konfiguracyjnym
+### 2. Launch4j
 
-## 3. Dodanie jre do folderu tools
+- Download from: http://launch4j.sourceforge.net/
+- Install in: `C:\Program Files (x86)\Launch4j\`
 
-1. Pobierz odpowiednią wersję JRE (Java Runtime Environment) w formacie .zip [AdoptOpenJDK](https://adoptium.net/temurin/releases/?os=windows&package=jre)
-2. Rozpakuj pobrany plik ZIP do folderu `tools/jre` w katalogu projektu
+### 3. NSIS Plugins (required)
 
-## 4. Budowanie frontendu
+- Simple Service Plugin: https://nsis.sourceforge.io/NSIS_Simple_Service_Plugin
+- Download and place in: `C:\Program Files (x86)\NSIS\Plugins\x86-unicode\`
 
-1. Przejdź do folderu frontendu:
-   ```
-   cd ścieżka/do/folderu/frontend
-   ```
-2. Upewnij się, że masz zainstalowany Node.js i npm
-3. Zainstaluj wszystkie wymagane zależności (jeśli jeszcze tego nie zrobiłeś):
-   ```
-   npm install
-   ```
-4. Uruchom budowanie aplikacji Electron dla systemu Windows:
-   ```
-   npm run electron:build:win
-   ```
-5. Poczekaj na zakończenie procesu budowania
-6. Pliki wynikowe znajdziesz w katalogu `dist` (lub innym, w zależności od konfiguracji projektu)
+## File Preparation
 
-## 5. Dodanie pliku instalacyjnego `mariadb-installer.msi` do folderu tools (potrzebna zmiana nazwy)
+### 1. Folder Structure
 
-link do pobrania [mariadb-installer.msi](https://mariadb.org/download/?t=mariadb&p=mariadb&r=11.7.2&os=windows&cpu=x86_64&pkg=msi&mirror=icm)
+```
+app-installer/
+├── installer.nsi              # Main NSIS script
+├── tools/
+│   ├── mariadb-installer.msi  # MariaDB installer (download separately)
+│   ├── jre/                   # JRE (download separately - 21 recommended, Adoptium OpenJDK)
+│   └── init.sql               # Already exists
+└── app/
+    └── BuildTask-Setup.exe    # Needs to be created from frontend build (frontend/dist)
 
-## 6. Tworzenie instalatora za pomocą Inno Setup
+```
 
-1. Upewnij się, że masz zainstalowany Inno Setup na swoim komputerze
-2. Znajdź swój plik konfiguracyjny `installer.iss`
-3. Uruchom kompilację skryptu instalatora:
-   ```
-   iscc installer.iss
-   ```
-   lub otwórz plik `installer.iss` w Inno Setup i kliknij przycisk "Compile"
-4. Poczekaj na zakończenie procesu kompilacji
-5. Instalator zostanie utworzony w katalogu określonym w pliku `installer.iss` (zazwyczaj w sekcji `OutputDir`)
+### 2. Downloading MariaDB Installer
 
-## Uwagi dodatkowe
+1. Go to: https://mariadb.org/download/
+2. Choose the latest stable version
+3. Select "MSI Package" for Windows
+4. Download and place it in `tools/mariadb-installer.msi`
 
-- Upewnij się, że wszystkie ścieżki w plikach konfiguracyjnych są poprawne i aktualne
-- Jeśli kompilacja któregokolwiek z etapów zakończy się niepowodzeniem, sprawdź logi błędów
-- Przed dystrybucją aplikacji, przetestuj instalator na czystym systemie, aby upewnić się, że działa poprawnie
-- Pamiętaj o dołączeniu wszelkich niezbędnych plików konfiguracyjnych, bibliotek i zależności
+### 3. Preparing the JRE
+
+1. Go to https://adoptium.net/
+2. Download the version on which You compiled BuildTask jar
+3. Select the "JRE" option
+4. Extract the JRE to a directory
+5. Place the JRE in `app-installer/tools/jre/`
+
+## Building the Installer
+
+### Manual Build
+
+```bash
+# 1. Build the backend
+cd backend
+gradlew clean build -x test
+
+# 2. Create backend.exe
+launch4j config.xml # Ensure config.xml is correctly set up with paths to the JAR and JRE
+
+# 3. Build the frontend
+cd ../frontend
+npm run electron:build:win
+
+# 4. Copy installer to app/
+cp "dist/BuildTask Setup *.exe" "../app-installer/app/BuildTask-Setup.exe"
+
+# 5. Compile NSIS installer
+cd ../app-installer
+makensis installer.nsi
+```
+
+## Testing the Installer
+
+### 1. Basic Test
+
+1. Run `BuildTask-Installer.exe` as administrator
+2. Ensure all steps complete successfully
+3. Verify that the application runs after installation
+
+### 2. Edge Case Testing
+
+**Port 8080 already in use:**
+
+```bash
+# Simulate a busy port
+docker run --name app_clone -d -p 8080:8080 busybox sleep 500000
+# Run the installer - it should display an error
+```
+
+**Port 3306 already in use:**
+
+```bash
+# Simulate a busy port
+docker run --name maria_clone -d -p 3306:3306 busybox sleep 500000
+# Run the installer - it should display an error
+```
+
+**MariaDB not installed:**
+
+- Uninstall MariaDB
+- Run the installer - it should install MariaDB automatically
+
+**MariaDB installed but stopped:**
+
+```bash
+net stop MariaDB
+# Run the installer - it should start the service
+```
+
+## Troubleshooting
+
+### NSIS Compilation Error
+
+```
+Error: Can't load plugin ServiceLib
+```
+
+**Solution:** Download and install the NSIS Simple Service plugin and add it to the NSIS plugins directory
+
+### Launch4j Error
+
+```
+Cannot find JRE
+```
+
+**Solution:** Check the paths in config.xml
+
+### Frontend Build Error
+
+```
+electron-builder failed
+```
+
+**Solution:**
+
+```bash
+cd frontend
+npm install
+npm run build
+npm run electron:build:win
+```
+
+## Support
+
+If you encounter issues, check:
+- NSIS logs in the `%TEMP%` folder
+- Windows Event Viewer for installation errors
+- Whether all required files are in the correct locations
