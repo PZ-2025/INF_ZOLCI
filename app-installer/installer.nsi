@@ -174,29 +174,37 @@ Function CheckMariaDB
     Pop $R0
     ${If} $R0 == 0
         StrCpy $ServiceName "MariaDB"
-        Goto service_found
+        DetailPrint "Found MariaDB service: $ServiceName"
+        Goto check_service_status
     ${EndIf}
 
     SimpleSC::ExistsService "MySQL"
     Pop $R0
     ${If} $R0 == 0
         StrCpy $ServiceName "MySQL"
-        Goto service_found
+        DetailPrint "Found MySQL service: $ServiceName"
+        Goto check_service_status
     ${EndIf}
 
     DetailPrint "No MariaDB service found - will be installed automatically"
     StrCpy $MariaDBStatus "not_installed"
     Return
 
-    service_found:
-        DetailPrint "Found MariaDB service: $ServiceName"
+    check_service_status:
+        DetailPrint "Checking service status for: $ServiceName"
         SimpleSC::ServiceIsRunning "$ServiceName"
-        Pop $R0
-        ${If} $R0 == 0
-            DetailPrint "MariaDB service ($ServiceName) is already running"
+        Pop $R0  ; error code (0 = success, <>0 = error)
+        Pop $R1  ; service status (1 = running, 0 = not running)
+        DetailPrint "ServiceIsRunning returned - Error code: $R0, Status: $R1"
+
+        ${If} $R0 != 0
+            DetailPrint "Error checking service status for $ServiceName (code: $R0)"
+            StrCpy $MariaDBStatus "unknown"
+        ${ElseIf} $R1 == 1
+            DetailPrint "MariaDB service ($ServiceName) is running"
             StrCpy $MariaDBStatus "running"
         ${Else}
-            DetailPrint "MariaDB service ($ServiceName) exists but is stopped"
+            DetailPrint "MariaDB service ($ServiceName) is stopped"
             StrCpy $MariaDBStatus "stopped"
         ${EndIf}
 FunctionEnd
@@ -209,15 +217,20 @@ Function InstallConfigureMariaDB
     ${ElseIf} $MariaDBStatus == "stopped"
         DetailPrint "MariaDB installed but stopped - starting service"
         Call StartMariaDB
+    ${ElseIf} $MariaDBStatus == "unknown"
+        DetailPrint "MariaDB status unknown - attempting to start"
+        Call StartMariaDB
     ${Else}
         DetailPrint "MariaDB is already running - skipping start"
     ${EndIf}
 
     DetailPrint "Waiting for MariaDB service to be fully ready..."
-    Sleep 5000
-
-    DetailPrint "Performing final MariaDB port check..."
-    Call CheckMariaDBPort
+    Call WaitForMariaDBPort
+    Pop $R0
+    ${If} $R0 != 0
+        MessageBox MB_ICONSTOP "ERROR: MariaDB service was started, but the server did not begin listening on port ${DB_PORT} within 30 seconds.$\n$\nPossible reasons:$\n• Configuration issue$\n• Port conflict$\n• Slow system startup$\n\nPlease check MariaDB logs or try to start the service manually."
+        Abort
+    ${EndIf}
     DetailPrint "MariaDB configuration completed successfully"
 FunctionEnd
 
@@ -289,6 +302,7 @@ FunctionEnd
 Function TryStartService
     DetailPrint "Trying to start service: $ServiceName"
 
+    ; Check if service exists
     SimpleSC::ExistsService "$ServiceName"
     Pop $R0
     ${If} $R0 != 0
@@ -297,58 +311,47 @@ Function TryStartService
         Return
     ${EndIf}
 
+    ; Check if service is already running
     SimpleSC::ServiceIsRunning "$ServiceName"
-    Pop $R0
-    ${If} $R0 == 0
+    Pop $R0  ; error code
+    Pop $R1  ; service status (1 = running, 0 = not running)
+
+    ${If} $R0 != 0
+        DetailPrint "Error checking service status for $ServiceName (code: $R0)"
+        ; Continue with start attempt anyway
+    ${ElseIf} $R1 == 1
         DetailPrint "Service $ServiceName is already running"
         Push 0
         Return
+    ${Else}
+        DetailPrint "Service $ServiceName is stopped, will start it"
     ${EndIf}
 
+    ; Start the service
     DetailPrint "Starting service $ServiceName..."
-    SimpleSC::StartService "$ServiceName" ""
+    SimpleSC::StartService "$ServiceName" "" 30
     Pop $R0
 
     ${If} $R0 == 0
         DetailPrint "Service $ServiceName started successfully"
         Sleep 2000
-        Push 0
+
+        ; Verify service is actually running
+        SimpleSC::ServiceIsRunning "$ServiceName"
+        Pop $R2  ; error code
+        Pop $R3  ; service status
+
+        ${If} $R2 == 0
+        ${AndIf} $R3 == 1
+            DetailPrint "Service $ServiceName verified as running"
+            Push 0
+        ${Else}
+            DetailPrint "Service $ServiceName started but verification failed (error: $R2, status: $R3)"
+            Push 1
+        ${EndIf}
     ${Else}
         DetailPrint "Failed to start service $ServiceName (code: $R0)"
         Push $R0
-    ${EndIf}
-FunctionEnd
-
-; Function to check MariaDB port
-Function CheckMariaDBPort
-    DetailPrint "Checking if MariaDB is listening on port ${DB_PORT}..."
-    Sleep 3000
-
-    nsExec::ExecToStack 'cmd /c "netstat -an | findstr :${DB_PORT}"'
-    Pop $R0
-    Pop $R1
-
-    ${If} $R0 != 0
-        DetailPrint "WARNING: MariaDB is not yet listening on port ${DB_PORT}"
-        DetailPrint "Waiting additional 10 seconds for MariaDB to start..."
-        Sleep 10000
-
-        nsExec::ExecToStack 'cmd /c "netstat -an | findstr :${DB_PORT}"'
-        Pop $R0
-        Pop $R1
-
-        ${If} $R0 != 0
-            DetailPrint "MariaDB still not listening on port ${DB_PORT}"
-            MessageBox MB_ICONEXCLAMATION "WARNING: MariaDB port check failed!$\n$\nMariaDB service appears to be running but is not listening on port ${DB_PORT}.$\n$\nContinue anyway?" IDYES port_continue
-            Abort
-
-            port_continue:
-                DetailPrint "User chose to continue despite port issues"
-        ${Else}
-            DetailPrint "MariaDB is now listening on port ${DB_PORT} (after retry)"
-        ${EndIf}
-    ${Else}
-        DetailPrint "MariaDB is listening correctly on port ${DB_PORT}"
     ${EndIf}
 FunctionEnd
 
@@ -505,6 +508,38 @@ Function LaunchApplication
     ${Else}
         MessageBox MB_ICONINFORMATION "BuildTask has been installed successfully!$\n$\nYou can find the application in Start Menu or on Desktop."
     ${EndIf}
+FunctionEnd
+
+; Function to wait for MariaDB port
+Function WaitForMariaDBPort
+    DetailPrint "Waiting for MariaDB to listen on port ${DB_PORT}..."
+    ; Max 30 seconds (30 attempts every 1s)
+    StrCpy $0 0
+
+    loop_start:
+        IntCmp $0 30 loop_timeout
+
+        nsExec::ExecToStack 'cmd /c "netstat -an | findstr :${DB_PORT}"'
+        Pop $1
+        Pop $2
+
+        ${If} $1 == 0
+            StrLen $3 $2
+            ${If} $3 > 0
+                DetailPrint "MariaDB is listening on port ${DB_PORT}"
+                Push 0
+                Return
+            ${EndIf}
+        ${EndIf}
+
+        Sleep 1000
+        IntOp $0 $0 + 1
+        DetailPrint "Waiting for port ${DB_PORT}... attempt $0/30"
+        Goto loop_start
+
+    loop_timeout:
+        DetailPrint "Timeout while waiting for MariaDB to listen on port ${DB_PORT}"
+        Push 1
 FunctionEnd
 
 ; Uninstaller section
